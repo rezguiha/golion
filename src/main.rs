@@ -1,6 +1,6 @@
 mod constants;
-mod handlers;
-mod inputs;
+mod optimization;
+mod domain;
 fn main() {
     println!("Hello, world!");
 }
