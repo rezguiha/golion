@@ -68,3 +68,34 @@ pub struct RenewableData {
     #[garde(dive)]
     specs: RenewableSpecs,
 }
+// endregion: All asset types' physical input data.
+
+// region: Asset Enumeration Definition
+/// Discriminated union of all asset types, tagged by `asset_type` in JSON.
+///
+/// # Examples
+///
+/// ```
+/// use golion::domain::asset::core::{AssetData, BessData};
+/// use golion::domain::asset::specifications::BessSpecs;
+/// use golion::domain::asset::availability::StorageAvailability;
+/// use chrono::Utc;
+///
+/// let asset = AssetData::Bess(
+///     BessData::builder()
+///         .availability(StorageAvailability::builder().start_at(Utc::now()).build())
+///         .specs(BessSpecs::builder().build())
+///         .build()
+/// );
+/// ```
+#[derive(Debug, Deserialize, Validate)]
+#[serde(tag = "asset_type")]
+pub enum AssetData {
+    #[serde(rename = "BESS")]
+    Bess(#[garde(dive)] BessData),
+    #[serde(rename = "CCGT")]
+    GasTurbine(#[garde(dive)] GasTurbineData),
+    #[serde(rename = "RENEWABLE")]
+    Renewable(#[garde(dive)] RenewableData),
+}
+// endregion: Asset Enumeration Definition
