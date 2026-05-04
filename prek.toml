@@ -1,0 +1,66 @@
+fail_fast = false
+
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "trailing-whitespace" },
+  { id = "end-of-file-fixer" },
+]
+
+[[repos]]
+repo = "https://github.com/pre-commit/pre-commit-hooks"
+rev = "v6.0.0"
+hooks = [
+  { id = "check-merge-conflict" },
+  { id = "check-toml" },
+]
+
+[[repos]]
+repo = "https://github.com/crate-ci/typos"
+rev = "v1.45.1"
+hooks = [
+  { id = "typos" },
+]
+
+# Formats GitHub Actions workflow YAML files.
+[[repos]]
+repo = "https://github.com/rbubley/mirrors-prettier"
+rev = "v3.8.3"
+hooks = [
+  { id = "prettier", types = ["yaml"] },
+]
+
+# Detects security vulnerabilities in GitHub Actions workflows.
+[[repos]]
+repo = "https://github.com/zizmorcore/zizmor-pre-commit"
+rev = "v1.24.1"
+hooks = [
+  { id = "zizmor" },
+]
+
+# Validates GitHub Actions workflow schema.
+[[repos]]
+repo = "https://github.com/python-jsonschema/check-jsonschema"
+rev = "0.37.1"
+hooks = [
+  { id = "check-github-workflows" },
+]
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "cargo-fmt"
+name = "cargo fmt"
+entry = "cargo fmt -- --check"
+language = "system"
+types = ["rust"]
+pass_filenames = false
+
+[[repos.hooks]]
+id = "cargo-clippy"
+name = "cargo clippy"
+entry = "cargo clippy -- -D warnings"
+language = "system"
+types = ["rust"]
+pass_filenames = false
