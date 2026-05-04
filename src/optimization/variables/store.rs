@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 // region:     --- Generic Variable Store Definition
 #[derive(Debug, Default)]
-struct VarStore<K, V> {
+pub struct VarStore<K, V> {
     store: HashMap<K, V>,
 }
 
