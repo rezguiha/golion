@@ -55,7 +55,7 @@ impl GeneratorVars {
 // endregion: --- Asset Variables
 
 // region: --- Market Variables
-/// This is still a work in progress and needs to be developed more to handle 
+/// This is still a work in progress and needs to be developed more to handle
 /// bidding variables that can be expressed in power in kW or in energy in kWh.
 #[derive(Debug)]
 pub struct BiddingVars {
