@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [lints.rust]
+# Temporarly disable dead code check as we are still
+# in early stages of project.
 dead_code = "allow"
 
 [dependencies]
