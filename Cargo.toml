@@ -3,6 +3,9 @@ name = "golion"
 version = "0.1.0"
 edition = "2024"
 
+[lints.rust]
+dead_code = "allow"
+
 [dependencies]
 chrono = { version = "0.4.44", features = ["serde"] }
 garde = { version = "0.22.1", features = ["derive"] }
