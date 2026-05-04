@@ -2,6 +2,8 @@
 name = "golion"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.94.1"
+authors = ["Hamdi Rezgui <hamdi.rezgui.pro@gmail.com>"]
 
 [lints.rust]
 # Temporarly disable dead code check as we are still
