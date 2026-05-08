@@ -76,16 +76,22 @@ pub struct RenewableData {
 /// # Examples
 ///
 /// ```
+/// use golion::domain::asset::availability::StorageAvailability;
 /// use golion::domain::asset::core::{AssetData, BessData};
 /// use golion::domain::asset::specifications::BessSpecs;
-/// use golion::domain::asset::availability::StorageAvailability;
 /// use chrono::Utc;
-///
 /// let asset = AssetData::Bess(
 ///     BessData::builder()
-///         .availability(StorageAvailability::builder().start_at(Utc::now()).build())
+///         .availability(
+///             StorageAvailability::builder()
+///                 .start_at(vec![Utc::now()])
+///                 .max_charge_power(vec![2.5])
+///                 .max_discharge_power(vec![2.4])
+///                 .max_usable_energy(vec![7.5])
+///                 .build(),
+///         )
 ///         .specs(BessSpecs::builder().build())
-///         .build()
+///         .build(),
 /// );
 /// ```
 #[derive(Debug, Deserialize, Validate)]

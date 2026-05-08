@@ -43,9 +43,7 @@ pub struct GeneratorVars {
 }
 impl GeneratorVars {
     pub fn new(vars: &mut ProblemVariables, max_output_power: f64) -> Self {
-        Self {
-            output_power: vars.add(variable().min(0).max(max_output_power)),
-        }
+        Self { output_power: vars.add(variable().min(0).max(max_output_power)) }
     }
     #[inline]
     fn output_energy(&self, duration: Duration) -> Expression {
