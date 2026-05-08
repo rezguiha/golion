@@ -3,6 +3,9 @@ use chrono::{DateTime, Utc};
 use garde::Validate;
 use serde::Deserialize;
 use typed_builder::TypedBuilder;
+
+use crate::series::HasTimeStamps;
+
 /// Storage unit availability that can both charge and discharge.
 /// Represents declared planned availability for future dates/times.
 #[derive(Debug, Deserialize, Validate, TypedBuilder)]
@@ -21,7 +24,11 @@ pub struct StorageAvailability {
     #[garde(inner(range(min = 0.0)))]
     max_usable_energy: Vec<f32>,
 }
-
+impl HasTimeStamps for StorageAvailability {
+    fn timestamps(&self) -> &[DateTime<Utc>] {
+        &self.start_at
+    }
+}
 /// Generator unit availability that can only output power.
 /// Represents declared planned availability for future dates/times.
 #[derive(Debug, Deserialize, Validate, TypedBuilder)]
@@ -35,4 +42,9 @@ pub struct GeneratorAvailability {
     /// Minimum output power with grid convention expressed in kW.
     #[garde(inner(range(min = 0.0)))]
     min_output_power: Vec<f32>,
+}
+impl HasTimeStamps for GeneratorAvailability {
+    fn timestamps(&self) -> &[DateTime<Utc>] {
+        &self.start_at
+    }
 }
