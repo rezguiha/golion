@@ -22,9 +22,9 @@ where
     where
         K: std::fmt::Debug,
     {
-        self.store.get(key).ok_or_else(|| StoreError::MissingKey {
-            key: format!("{key:?}"),
-        })
+        self.store
+            .get(key)
+            .ok_or_else(|| StoreError::MissingKey { key: format!("{key:?}") })
     }
     pub fn insert(&mut self, key: K, vars: V) {
         self.store.insert(key, vars);
