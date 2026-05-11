@@ -55,10 +55,31 @@ impl GeneratorVars {
 // region: --- Market Variables
 /// This is still a work in progress and needs to be developed more to handle
 /// bidding variables that can be expressed in power in kW or in energy in kWh.
+/// It is also missing increment specification in kw probably
 #[derive(Debug)]
 pub struct BiddingVars {
-    sell: Variable,
-    buy: Variable,
+    sell_power: Variable,
+    buy_power: Variable,
+}
+impl BiddingVars {
+    pub fn new(
+        vars: &mut ProblemVariables,
+        max_sell_power: f64,
+        max_buy_power: f64,
+    ) -> Self {
+        Self {
+            sell_power: vars.add(variable().min(0).max(max_sell_power)),
+            buy_power: vars.add(variable().min(0).max(max_buy_power)),
+        }
+    }
+    #[inline]
+    pub fn sell_volume(&self, duration: Duration) -> Expression {
+        power_to_energy(&self.sell_power, duration)
+    }
+    #[inline]
+    pub fn buy_volume(&self, duration: Duration) -> Expression {
+        power_to_energy(&self.buy_power, duration)
+    }
 }
 
 // endregion: --- Market Variables
