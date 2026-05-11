@@ -5,7 +5,7 @@ use super::keys::{BiddingKey, PhysicalKey};
 /// that will be needed to be linked with other components like
 /// bidding variables to define constraints linking both. It also facilitates
 /// solved variables retrieve from solution returned by good_lp.
-use crate::optimization::error::StoreError;
+use crate::error::StoreError;
 use std::collections::HashMap;
 use std::hash::Hash;
 // region:     --- Generic Variable Store Definition

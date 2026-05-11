@@ -1,4 +1,4 @@
-use crate::optimization::support::power_to_energy;
+use crate::support::power_to_energy;
 use chrono::Duration;
 use good_lp::{Expression, ProblemVariables, Variable, variable};
 

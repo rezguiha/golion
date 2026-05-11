@@ -1,0 +1,11 @@
+[package]
+name = "golion-server"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+golion-domain = { version = "0.0.0", path = "../golion-domain" }
+golion-optimization = { version = "0.0.0", path = "../golion-optimization" }
+
+[lints]
+workspace = true

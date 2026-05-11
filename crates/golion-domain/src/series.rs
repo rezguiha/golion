@@ -14,7 +14,7 @@ pub trait HasTimeStamps {
 /// # Examples
 ///
 /// ```
-/// use golion::series::{IndexedSeries,HasTimeStamps};
+/// use golion_domain::series::{IndexedSeries,HasTimeStamps};
 /// use chrono::{DateTime,Utc};
 /// struct ExampleTimeSeries{
 ///     start_at:Vec<DateTime<Utc>>,

@@ -1,20 +1,14 @@
-[package]
-name = "golion"
-version = "0.1.0"
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+version = "0.0.0"
 edition = "2024"
 rust-version = "1.94.1"
 authors = ["Hamdi Rezgui <hamdi.rezgui.pro@gmail.com>"]
 
-[lints.rust]
-# Temporarly disable dead code check as we are still
+[workspace.lints.rust]
+# Temporarily disable dead code check as we are still
 # in early stages of project.
 dead_code = "allow"
-
-[dependencies]
-chrono = { version = "0.4.44", features = ["serde"] }
-garde = { version = "0.22.1", features = ["derive"] }
-good_lp = { version = "1.15.1", features = ["highs"], default-features = false }
-serde = { version = "1.0.228", features = ["derive"] }
-thiserror = "2.0.18"
-typed-builder = "0.23.2"
-uuid = { version = "1.23.1", features = ["serde", "v4"] }
