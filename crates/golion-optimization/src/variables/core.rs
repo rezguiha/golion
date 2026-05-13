@@ -29,11 +29,11 @@ impl BatteryVars {
     }
     #[inline]
     pub fn output_energy(&self, duration: Duration) -> Expression {
-        power_to_energy(&self.output_power, duration)
+        power_to_energy(self.output_power, duration)
     }
     #[inline]
     pub fn input_energy(&self, duration: Duration) -> Expression {
-        power_to_energy(&self.input_power, duration)
+        power_to_energy(self.input_power, duration)
     }
 }
 
@@ -47,7 +47,7 @@ impl GeneratorVars {
     }
     #[inline]
     fn output_energy(&self, duration: Duration) -> Expression {
-        power_to_energy(&self.output_power, duration)
+        power_to_energy(self.output_power, duration)
     }
 }
 // endregion: --- Asset Variables
@@ -56,20 +56,28 @@ impl GeneratorVars {
 /// This is still a work in progress and needs to be developed more to handle
 /// bidding variables that can be expressed in power in kW or in energy in kWh.
 /// It is also missing increment specification in kw probably
+
 #[derive(Debug)]
 pub struct BiddingVars {
-    sell_power: Variable,
-    buy_power: Variable,
+    /// Sell bid power in kW, expressed as a multiple of the increment.
+    pub sell_power: Expression,
+    /// Buy bid power in kW, expressed as a multiple of the increment.
+    pub buy_power: Expression,
 }
 impl BiddingVars {
     pub fn new(
         vars: &mut ProblemVariables,
         max_sell_power: f64,
         max_buy_power: f64,
+        increment: f64,
     ) -> Self {
+        let sell_power_int = vars
+            .add(variable().integer().min(0.0).max((max_sell_power / increment).ceil()));
+        let buy_power_int = vars
+            .add(variable().integer().min(0.0).max((max_buy_power / increment).ceil()));
         Self {
-            sell_power: vars.add(variable().min(0).max(max_sell_power)),
-            buy_power: vars.add(variable().min(0).max(max_buy_power)),
+            sell_power: sell_power_int * increment,
+            buy_power: buy_power_int * increment,
         }
     }
     #[inline]
