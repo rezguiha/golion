@@ -1,14 +1,14 @@
 /// Availability structs definition.
 use chrono::{DateTime, Utc};
 use garde::Validate;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::series::HasTimeStamps;
 
 /// Storage unit availability that can both charge and discharge.
 /// Represents declared planned availability for future dates/times.
-#[derive(Debug, Deserialize, Validate, TypedBuilder)]
+#[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder)]
 pub struct StorageAvailability {
     /// Reference datetime for future declared availability.
     #[garde(skip)]
@@ -31,7 +31,7 @@ impl HasTimeStamps for StorageAvailability {
 }
 /// Generator unit availability that can only output power.
 /// Represents declared planned availability for future dates/times.
-#[derive(Debug, Deserialize, Validate, TypedBuilder)]
+#[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder)]
 pub struct GeneratorAvailability {
     /// Reference datetime for future declared availability.
     #[garde(skip)]
