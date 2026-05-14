@@ -2,14 +2,14 @@
 use super::availability::{GeneratorAvailability, StorageAvailability};
 use super::specifications::{BessSpecs, CcgtSpecs, RenewableSpecs};
 use garde::Validate;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 use uuid::Uuid;
 // region: All asset types' physical input data.
 
 /// Bess system representing a
 /// unit on which we can collect scada data.
-#[derive(Debug, Validate, Deserialize, TypedBuilder)]
+#[derive(Debug, Validate, Serialize, Deserialize, TypedBuilder)]
 pub struct BessData {
     /// The asset unique identification.
     #[builder(default=Uuid::new_v4())]
@@ -30,7 +30,7 @@ pub struct BessData {
 
 /// Combined Cycle Gas Turbine unit on which we can collect scada
 /// data.
-#[derive(Debug, Validate, Deserialize, TypedBuilder)]
+#[derive(Debug, Validate, Serialize, Deserialize, TypedBuilder)]
 pub struct GasTurbineData {
     /// The asset unique identification.
     #[builder(default=Uuid::new_v4())]
@@ -50,7 +50,7 @@ pub struct GasTurbineData {
 }
 
 /// Renewable Asset unit on which we can collect scada data.
-#[derive(Debug, Validate, Deserialize, TypedBuilder)]
+#[derive(Debug, Validate, Serialize, Deserialize, TypedBuilder)]
 pub struct RenewableData {
     /// The asset unique identification.
     #[builder(default=Uuid::new_v4())]
@@ -94,7 +94,7 @@ pub struct RenewableData {
 ///         .build(),
 /// );
 /// ```
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 #[serde(tag = "asset_type")]
 pub enum AssetData {
     #[serde(rename = "BESS")]

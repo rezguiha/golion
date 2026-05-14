@@ -2,10 +2,10 @@
 /// This defines mainly technical constructor information
 /// and user defined usage limitations.
 use garde::Validate;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 /// Bess static specifications.
-#[derive(Debug, Deserialize, Validate, TypedBuilder, Clone)]
+#[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder, Clone)]
 pub struct BessSpecs {
     /// Theoretical capacity expressed in kWh in grid side convention.
     #[builder(default = 7500.0)]
@@ -40,7 +40,7 @@ pub struct BessSpecs {
 }
 
 /// Renewable asset specifications
-#[derive(Debug, Deserialize, Validate, TypedBuilder, Clone)]
+#[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder, Clone)]
 pub struct RenewableSpecs {
     /// Nominal power output for renewable asset.
     /// This is a minimal implementation serving just
@@ -51,7 +51,7 @@ pub struct RenewableSpecs {
 }
 
 /// Renewable asset specifications
-#[derive(Debug, Deserialize, Validate, TypedBuilder, Clone)]
+#[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder, Clone)]
 pub struct CcgtSpecs {
     /// Nominal power output for Gas Turbine asset.
     /// /// This is a minimal implementation serving just
