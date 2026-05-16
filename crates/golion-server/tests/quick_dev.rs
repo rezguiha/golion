@@ -2,7 +2,7 @@ use anyhow::Result;
 use chrono::{Duration, Utc};
 use golion_domain::asset::{
     availability::StorageAvailability,
-    core::{AssetData, BessData},
+    core::{AssetData, AssetIdentification, BessData},
     specifications::BessSpecs,
 };
 /// Temporary simple test of sending assetdata as a payload
@@ -30,6 +30,7 @@ async fn test_optimize_bess() -> Result<()> {
                     .build(),
             )
             .specs(BessSpecs::builder().build())
+            .identification(AssetIdentification::builder().build())
             .build(),
     );
 
