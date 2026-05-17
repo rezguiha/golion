@@ -27,7 +27,7 @@ From the repository root:
 - `make lint` - run Clippy across all targets and features
 - `make test` - run documentation tests
 
-For fast iteration, consider running in too separate terminals:
+For fast iteration, consider running in two separate terminals:
 
 - `make server` - launch the server with live reload via `cargo watch`
 - `make test-client` - run the server test loop via `cargo watch`
