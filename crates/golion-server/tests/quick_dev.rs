@@ -5,6 +5,10 @@ use golion_domain::asset::{
     core::{AssetData, AssetIdentification, BessData},
     specifications::BessSpecs,
 };
+use golion_domain::constants::{
+    Countries, UncertifiedAncillaryMarketType, WholesaleMarketType,
+};
+use golion_domain::market::choice::MarketChoice;
 /// Temporary simple test of sending assetdata as a payload
 /// on optimize endpoint.
 #[tokio::test]
@@ -18,7 +22,16 @@ async fn test_optimize_bess() -> Result<()> {
         std::iter::successors(Some(start), |t| Some(*t + Duration::minutes(15)))
             .take(n)
             .collect();
-
+    let market_choices = vec![
+        MarketChoice::WholeSaleChoice {
+            market: WholesaleMarketType::SpotDayAhead,
+            country: Countries::FR,
+        },
+        MarketChoice::UncertifiedAncillaryChoice {
+            market: UncertifiedAncillaryMarketType::AfrrFree,
+            country: Countries::BE,
+        },
+    ];
     let asset = AssetData::Bess(
         BessData::builder()
             .availability(
@@ -31,6 +44,7 @@ async fn test_optimize_bess() -> Result<()> {
             )
             .specs(BessSpecs::builder().build())
             .identification(AssetIdentification::builder().build())
+            .market_choices(market_choices)
             .build(),
     );
 

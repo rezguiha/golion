@@ -1,12 +1,13 @@
 /// Different type asset definition.
 use super::availability::{GeneratorAvailability, StorageAvailability};
 use super::specifications::{BessSpecs, CcgtSpecs, RenewableSpecs};
+use crate::market::choice::MarketChoice;
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 use uuid::Uuid;
-// region: All asset types' physical input data.
 
+// region: Asset Identification
 #[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder)]
 pub struct AssetIdentification {
     /// The asset unique identification.
@@ -30,6 +31,10 @@ pub struct AssetIdentification {
     #[garde(skip)]
     brp_id: Uuid,
 }
+// endregion: Asset Identification
+
+// region: All asset types' physical input data.
+
 /// Bess system representing a
 /// unit on which we can collect scada data.
 #[derive(Debug, Validate, Serialize, Deserialize, TypedBuilder)]
@@ -44,6 +49,9 @@ pub struct BessData {
     /// Physical specification for Bess
     #[garde(dive)]
     specs: BessSpecs,
+    /// Market configuration and corresponding data.
+    #[garde(skip)]
+    market_choices: Vec<MarketChoice>,
 }
 
 /// Combined Cycle Gas Turbine unit on which we can collect scada
@@ -61,6 +69,9 @@ pub struct GasTurbineData {
     /// Physical specification for Gas Turbine
     #[garde(dive)]
     specs: CcgtSpecs,
+    /// Market configuration and corresponding data.
+    #[garde(skip)]
+    market_choices: Vec<MarketChoice>,
 }
 
 /// Renewable Asset unit on which we can collect scada data.
@@ -77,6 +88,9 @@ pub struct RenewableData {
     /// Physical specification for Gas Turbine
     #[garde(dive)]
     specs: RenewableSpecs,
+    /// Market configuration and corresponding data.
+    #[garde(skip)]
+    market_choices: Vec<MarketChoice>,
 }
 // endregion: All asset types' physical input data.
 
@@ -89,7 +103,13 @@ pub struct RenewableData {
 /// use golion_domain::asset::availability::StorageAvailability;
 /// use golion_domain::asset::core::{AssetData, BessData, AssetIdentification};
 /// use golion_domain::asset::specifications::BessSpecs;
+/// use golion_domain::constants::{WholesaleMarketType, Countries};
+/// use golion_domain::market::choice::MarketChoice;
 /// use chrono::Utc;
+/// let market_choice = MarketChoice::WholeSaleChoice {
+///             market: WholesaleMarketType::SpotDayAhead,
+///             country: Countries::FR,
+///         };
 /// let asset = AssetData::Bess(
 ///     BessData::builder()
 ///         .availability(
@@ -102,7 +122,8 @@ pub struct RenewableData {
 ///         )
 ///         .specs(BessSpecs::builder().build())
 ///         .identification(AssetIdentification::builder().build())
-///         .build(),
+///         .market_choices(vec![market_choice])
+///         .build()
 /// );
 /// ```
 #[derive(Debug, Serialize, Deserialize, Validate)]
