@@ -17,9 +17,10 @@ pub struct SymmetricSeries {
     #[garde(skip)]
     start_at: Vec<DateTime<Utc>>,
     /// Forecasted market price in €/kWh
+    #[garde(skip)]
     price: Vec<f32>,
 }
-impl HasTimeStamps for SymmetricSeries{
+impl HasTimeStamps for SymmetricSeries {
     fn timestamps(&self) -> &[DateTime<Utc>] {
         &self.start_at
     }
@@ -35,11 +36,13 @@ pub struct AsymmetricSeries {
     #[garde(skip)]
     start_at: Vec<DateTime<Utc>>,
     /// Forecasted market sell price  in €/kWh
+    #[garde(skip)]
     sell_price: Vec<f32>,
     /// Forecasted market buy price in €/kWh
+    #[garde(skip)]
     buy_price: Vec<f32>,
 }
-impl HasTimeStamps for AsymmetricSeries{
+impl HasTimeStamps for AsymmetricSeries {
     fn timestamps(&self) -> &[DateTime<Utc>] {
         &self.start_at
     }
@@ -57,20 +60,19 @@ pub struct SimplifiedAncillarySeries {
     #[garde(skip)]
     start_at: Vec<DateTime<Utc>>,
     /// Estimated market upward revenue in €/kW.
-    #[garde(inner(min=0.0))]
+    #[garde(inner(range(min = 0.0)))]
     sell_revenue: Vec<f32>,
     /// Estimated market downward revenue in €/kW.
-    #[garde(inner(min=0.0))]
+    #[garde(inner(range(min = 0.0)))]
     buy_revenue: Vec<f32>,
 }
-impl HasTimeStamps for SimplifiedCapacitySeries {
+impl HasTimeStamps for SimplifiedAncillarySeries {
     fn timestamps(&self) -> &[DateTime<Utc>] {
         &self.start_at
     }
 }
 
-
-/// Several revenue series will be defined here later on
-/// one for aFRR energy free bidding which is an energy part ancillary
-/// bidding.
-/// One for capacity auctions like aFRR capacicty and one for FCR markets
+// Several revenue series will be defined here later on
+// one for aFRR energy free bidding which is an energy part ancillary
+// bidding.
+// One for capacity auctions like aFRR capacicty and one for FCR markets
