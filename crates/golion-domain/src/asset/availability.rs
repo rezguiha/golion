@@ -15,14 +15,14 @@ pub struct StorageAvailability {
     start_at: Vec<DateTime<Utc>>,
     /// Maximum charge power with grid convention expressed in kW.
     #[garde(inner(range(min = 0.0)))]
-    max_charge_power: Vec<f32>,
+    max_charge_power: Vec<f64>,
     /// Maximum discharge power with grid convention expressed in kW.
     #[garde(inner(range(min = 0.0)))]
-    max_discharge_power: Vec<f32>,
+    max_discharge_power: Vec<f64>,
     /// Maximum usable energy expressed in kWh.
     /// Does not reflect energy level in battery — reflects maximum connected capacity.
     #[garde(inner(range(min = 0.0)))]
-    max_usable_energy: Vec<f32>,
+    max_usable_energy: Vec<f64>,
 }
 impl HasTimeStamps for StorageAvailability {
     fn timestamps(&self) -> &[DateTime<Utc>] {
@@ -38,10 +38,10 @@ pub struct GeneratorAvailability {
     start_at: Vec<DateTime<Utc>>,
     /// Maximum output power with grid convention expressed in kW.
     #[garde(inner(range(min = 0.0)))]
-    max_output_power: Vec<f32>,
+    max_output_power: Vec<f64>,
     /// Minimum output power with grid convention expressed in kW.
     #[garde(inner(range(min = 0.0)))]
-    min_output_power: Vec<f32>,
+    min_output_power: Vec<f64>,
 }
 impl HasTimeStamps for GeneratorAvailability {
     fn timestamps(&self) -> &[DateTime<Utc>] {
