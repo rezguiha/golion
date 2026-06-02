@@ -18,7 +18,7 @@ pub struct SymmetricSeries {
     start_at: Vec<DateTime<Utc>>,
     /// Forecasted market price in €/kWh
     #[garde(skip)]
-    price: Vec<f32>,
+    price: Vec<f64>,
 }
 impl HasTimeStamps for SymmetricSeries {
     fn timestamps(&self) -> &[DateTime<Utc>] {
@@ -37,10 +37,10 @@ pub struct AsymmetricSeries {
     start_at: Vec<DateTime<Utc>>,
     /// Forecasted market sell price  in €/kWh
     #[garde(skip)]
-    sell_price: Vec<f32>,
+    sell_price: Vec<f64>,
     /// Forecasted market buy price in €/kWh
     #[garde(skip)]
-    buy_price: Vec<f32>,
+    buy_price: Vec<f64>,
 }
 impl HasTimeStamps for AsymmetricSeries {
     fn timestamps(&self) -> &[DateTime<Utc>] {
@@ -61,10 +61,10 @@ pub struct SimplifiedAncillarySeries {
     start_at: Vec<DateTime<Utc>>,
     /// Estimated market upward revenue in €/kW.
     #[garde(inner(range(min = 0.0)))]
-    sell_revenue: Vec<f32>,
+    sell_revenue: Vec<f64>,
     /// Estimated market downward revenue in €/kW.
     #[garde(inner(range(min = 0.0)))]
-    buy_revenue: Vec<f32>,
+    buy_revenue: Vec<f64>,
 }
 impl HasTimeStamps for SimplifiedAncillarySeries {
     fn timestamps(&self) -> &[DateTime<Utc>] {
