@@ -45,7 +45,7 @@ pub struct BessData {
     identification: AssetIdentification,
     /// The declared future availability level of the Bess system
     #[garde(dive)]
-    availability: StorageAvailability,
+    availability: Vec<StorageAvailability>,
     /// Physical specification for Bess
     #[garde(dive)]
     specs: BessSpecs,
@@ -84,7 +84,7 @@ pub struct RenewableData {
 
     #[garde(dive)]
     /// The declared future availability level of the CCGT
-    availability: GeneratorAvailability,
+    availability: Vec<GeneratorAvailability>,
     /// Physical specification for Gas Turbine
     #[garde(dive)]
     specs: RenewableSpecs,
@@ -110,15 +110,17 @@ pub struct RenewableData {
 ///             market: WholesaleMarketType::SpotDayAhead,
 ///             country: Countries::FR,
 ///         };
+/// let availability = vec![
+///     StorageAvailability::builder()
+///         .start_at(Utc::now())
+///         .max_charge_power(20.0)
+///         .max_discharge_power(20.0)
+///         .max_usable_energy(100.0)
+///         .build()
+/// ];
 /// let asset = AssetData::Bess(
 ///     BessData::builder()
-///         .availability(
-///             StorageAvailability::builder()
-///                 .start_at(vec![Utc::now()])
-///                 .max_charge_power(vec![2.5])
-///                 .max_discharge_power(vec![2.4])
-///                 .max_usable_energy(vec![7.5])
-///                 .build(),
+///         .availability(availability
 ///         )
 ///         .specs(BessSpecs::builder().build())
 ///         .identification(AssetIdentification::builder().build())

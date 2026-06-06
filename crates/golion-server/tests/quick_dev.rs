@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 use golion_domain::asset::{
     availability::StorageAvailability,
     core::{AssetData, AssetIdentification, BessData},
@@ -18,7 +18,7 @@ async fn test_optimize_bess() -> Result<()> {
     // 3 days of 15-minute slots = 288 periods
     let n = 3 * 24 * 4;
     let start = Utc::now();
-    let timestamps =
+    let timestamps: Vec<DateTime<Utc>> =
         std::iter::successors(Some(start), |t| Some(*t + Duration::minutes(15)))
             .take(n)
             .collect();
@@ -32,16 +32,20 @@ async fn test_optimize_bess() -> Result<()> {
             country: Countries::BE,
         },
     ];
+    let availability = timestamps
+        .iter()
+        .map(|t| {
+            StorageAvailability::builder()
+                .start_at(t.to_utc())
+                .max_charge_power(20.0)
+                .max_discharge_power(20.0)
+                .max_usable_energy(100.0)
+                .build()
+        })
+        .collect();
     let asset = AssetData::Bess(
         BessData::builder()
-            .availability(
-                StorageAvailability::builder()
-                    .start_at(timestamps)
-                    .max_charge_power(vec![2.5; n])
-                    .max_discharge_power(vec![2.4; n])
-                    .max_usable_energy(vec![7.5; n])
-                    .build(),
-            )
+            .availability(availability)
             .specs(BessSpecs::builder().build())
             .identification(AssetIdentification::builder().build())
             .market_choices(market_choices)
