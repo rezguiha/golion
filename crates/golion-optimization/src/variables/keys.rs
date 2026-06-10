@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use golion_domain::constants::{Countries, MarketType};
+use golion_common::constants::{Countries, MarketType};
 use uuid::Uuid;
 
 /// Hash key to access physical variables
