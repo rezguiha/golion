@@ -1,3 +1,3 @@
 pub mod asset;
-pub mod constants;
+pub use golion_common::constants;
 pub mod market;

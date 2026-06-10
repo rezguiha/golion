@@ -8,6 +8,11 @@ edition = "2024"
 rust-version = "1.94.1"
 authors = ["Hamdi Rezgui <hamdi.rezgui.pro@gmail.com>"]
 
+[workspace.dependencies]
+golion-common = { path = "crates/golion-common", version = "0.0.0" }
+golion-domain = { path = "crates/golion-domain", version = "0.0.0" }
+golion-optimization = { path = "crates/golion-optimization", version = "0.0.0" }
+
 [workspace.lints.rust]
 # Temporarily disable dead code check as we are still
 # in early stages of project.

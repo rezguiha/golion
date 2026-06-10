@@ -7,8 +7,8 @@ edition = "2024"
 axum = "0.8.9"
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
-golion-domain = { version = "0.0.0", path = "../golion-domain" }
-golion-optimization = { version = "0.0.0", path = "../golion-optimization" }
+golion-domain = { workspace = true }
+golion-optimization = { workspace = true}
 
 [lints]
 workspace = true
