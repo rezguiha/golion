@@ -1,14 +1,7 @@
-// region: Add serde support macro.
-macro_rules! serde_type {
-    ($item:item) => {
-        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-        #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-        $item
-    };
-}
-// endregion: Add serde support macro.
+use crate::serde_type;
 // region: Market types
 serde_type! {
+    #[derive(Debug, Hash, Clone, PartialEq, Eq)]
     pub enum WholesaleMarketType {
         SpotDayAhead,
         IntradayAuction,
@@ -17,6 +10,7 @@ serde_type! {
 }
 
 serde_type! {
+    #[derive(Debug, Hash, Clone, PartialEq, Eq)]
     pub enum CertifiedAncillaryMarketType {
         Afrr,
         Fcr,
@@ -24,12 +18,14 @@ serde_type! {
 }
 
 serde_type! {
+    #[derive(Debug, Hash, Clone, PartialEq, Eq)]
     pub enum UncertifiedAncillaryMarketType {
         AfrrFree,
     }
 }
 
 serde_type! {
+    #[derive(Debug, Hash, Clone, PartialEq, Eq)]
     pub enum AncillaryMarketType {
         Certified(CertifiedAncillaryMarketType),
         Uncertified(UncertifiedAncillaryMarketType),
@@ -37,6 +33,7 @@ serde_type! {
 }
 
 serde_type! {
+    #[derive(Debug, Hash, Clone, PartialEq, Eq)]
     pub enum MarketType {
         WholeSale(WholesaleMarketType),
         Ancillary(AncillaryMarketType),
@@ -45,6 +42,7 @@ serde_type! {
 // endregion: Market types
 // region: Countries
 serde_type! {
+    #[derive(Debug, Hash, Clone, PartialEq, Eq)]
     pub enum Countries {
         FR,
         DE,
