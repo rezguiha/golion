@@ -3,7 +3,7 @@ lint:
 format:
 	cargo fmt
 test:
-	cargo test --doc
+	cargo test --workspace --exclude golion-server
 
 server:
 	cargo watch -q -c -w crates/ -x run
