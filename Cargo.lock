@@ -527,6 +527,7 @@ dependencies = [
  "chrono",
  "derive_more",
  "serde",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -549,7 +550,6 @@ dependencies = [
  "chrono",
  "golion-common",
  "good_lp",
- "thiserror 2.0.18",
  "uuid",
 ]
 
