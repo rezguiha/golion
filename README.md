@@ -1,9 +1,10 @@
 # Golion
 
 Golion is a multi-market,multi-country,multi-asset optimizer.
-It has three crates:
+It has four crates:
 
-- `golion-domain`: shared domain models.
+- `golion-common`: shared definitions across all crates.
+- `golion-domain`: domain data models for server.
 - `golion-optimization`: optimization models using `good_lp` with HiGHS.
 - `golion-server`: HTTP server wiring domain and optimization logic.
 
