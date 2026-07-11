@@ -1,6 +1,8 @@
 use super::availability::Availability;
-use crate::error::SeriesError;
+use crate::support::power_to_energy;
 use chrono::{DateTime, Duration, Utc};
+use golion_common::error::SeriesError;
+use golion_common::temporal::series::TimeSeries;
 use golion_common::units::power::{KiloWatt, KiloWattHour};
 use good_lp::{Constraint, Expression, ProblemVariables, Variable, constraint, variable};
 // region: Battery Limits
@@ -13,12 +15,12 @@ pub struct BessLimits {
 // endregion: Battery Limits
 // region: Battery Definition
 pub struct Battery {
-    availability: Vec<Availability>,
+    availability: TimeSeries<Availability>,
     initial_soc: KiloWattHour,
     granularity: Duration,
-    input_power: Vec<Variable>,
-    output_power: Vec<Variable>,
-    soc: Vec<Variable>,
+    input_power: Box<[Variable]>,
+    output_power: Box<[Variable]>,
+    soc: Box<[Variable]>,
     constraints: Vec<Constraint>,
 }
 
@@ -31,28 +33,23 @@ impl Battery {
         granularity: Duration,
         limits: BessLimits,
     ) -> Result<Self, SeriesError> {
-        // Check availability length matches time index length.
+        let start_at = match time_index.first() {
+            Some(t) => t,
+            None => panic!("Optimization time index is empty."),
+        };
+        let availability_series = TimeSeries::new(*start_at, granularity, availability);
         let time_index_length = time_index.len();
-        let availability_length = availability.len();
-        if availability_length != time_index_length {
-            return Err(SeriesError::MismatchedLength {
-                entity: "Availability".to_string(),
-                length: availability_length,
-                reference_length: time_index_length,
-            });
-        }
         // Initialize battery variables containers.
         let mut input_power: Vec<Variable> = Vec::with_capacity(time_index_length);
         let mut output_power: Vec<Variable> = Vec::with_capacity(time_index_length);
         let mut soc: Vec<Variable> = Vec::with_capacity(time_index_length);
         // Initialize battery physical constraints container.
         let mut constraints: Vec<Constraint> = Vec::with_capacity(4 * time_index_length);
-        let granularity_hours = granularity.as_seconds_f64() / 3600.0;
-        let mut physical_exchange: Expression = initial_soc.0.into();
+
         // Loop over time index ,create variables with limits applied ,
         // update physical exchange expression and soc defining constraints
         // and build availability constraints in same loop for efficiency.
-        for (_, avail_point) in time_index.iter().zip(availability.iter()) {
+        for (i, dt) in time_index.iter().enumerate() {
             // Create battery physical variables.
             let input_power_var =
                 vars.add(variable().min(0.0).max(limits.max_input_power.0));
@@ -64,25 +61,94 @@ impl Battery {
             output_power.push(output_power_var);
             soc.push(soc_var);
 
-            // Create soc definition constraints
-            physical_exchange += (input_power_var - output_power_var) * granularity_hours;
-            constraints.push(constraint!(soc_var == physical_exchange.clone()));
+            // Create soc transition constraints.
+            let prev_soc: Expression = match i {
+                0 => initial_soc.0.into(),
+                _ => soc[i - 1].into(),
+            };
+            constraints.push(constraint!(
+                soc_var
+                    == prev_soc
+                        + power_to_energy(
+                            input_power_var - output_power_var,
+                            granularity
+                        )
+            ));
             // Create availability constraints.
-
-            constraints.push(avail_point.charge_power_constraint(input_power_var));
-            constraints.push(avail_point.discharge_power_constraint(output_power_var));
-            constraints.push(avail_point.energy_available_at_t(soc_var));
+            match availability_series.at(dt) {
+                Ok(avail_point) => {
+                    constraints
+                        .push(avail_point.charge_power_constraint(input_power_var));
+                    constraints
+                        .push(avail_point.discharge_power_constraint(output_power_var));
+                    constraints.push(avail_point.energy_available_at_t(soc_var));
+                }
+                Err(error) => return Err(error),
+            };
         }
 
         Ok(Self {
-            availability,
+            availability: availability_series,
             initial_soc,
             granularity,
-            input_power,
-            output_power,
-            soc,
+            input_power: input_power.into_boxed_slice(),
+            output_power: output_power.into_boxed_slice(),
+            soc: soc.into_boxed_slice(),
             constraints,
         })
     }
 }
 // endregion: Battery Definition
+
+#[cfg(test)]
+mod tests {
+    use super::{Battery, BessLimits};
+    use crate::physical::bess::availability::Availability;
+    use chrono::{DateTime, Duration, Utc};
+    use golion_common::units::power::{KiloWatt, KiloWattHour};
+    use good_lp::ProblemVariables;
+
+    #[test]
+    fn build_battery_over_four_slots() {
+        // 4 slots at 15-minute granularity.
+        let granularity = Duration::minutes(15);
+        let start_at = Utc::now();
+        let time_index: Vec<DateTime<Utc>> =
+            (0..4).map(|i| start_at + granularity * i).collect();
+
+        // One availability point per slot (Availability is Copy).
+        let availability = vec![
+            Availability {
+                max_charge_power: KiloWatt(50.0),
+                max_discharge_power: KiloWatt(50.0),
+                max_usable_energy: KiloWattHour(100.0),
+            };
+            time_index.len()
+        ];
+
+        let mut vars = ProblemVariables::new();
+        let limits = BessLimits {
+            max_output_power: KiloWatt(50.0),
+            max_input_power: KiloWatt(50.0),
+            min_soc: KiloWattHour(0.0),
+            max_soc: KiloWattHour(100.0),
+        };
+
+        let battery = Battery::new(
+            &time_index,
+            &mut vars,
+            availability,
+            KiloWattHour(20.0),
+            granularity,
+            limits,
+        )
+        .expect("battery construction should succeed");
+
+        // 3 physical variables per slot.
+        assert_eq!(battery.input_power.len(), 4);
+        assert_eq!(battery.output_power.len(), 4);
+        assert_eq!(battery.soc.len(), 4);
+        // 1 soc-transition + 3 availability constraints per slot.
+        assert_eq!(battery.constraints.len(), 4 * 4);
+    }
+}
