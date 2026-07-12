@@ -24,7 +24,7 @@ solves how storage, renewables, and thermal generators should participate.
 ## ✨ Features
 
 - 🌍 Multi-country, multi-market participation (wholesale + ancillary services).
-- 🔋 Battery storage, renewables, and thermal generators as first-class assets.
+- 🔋 Battery storage, renewables, and gas turbines as first-class assets.
 - 🧠 One combined optimization problem across every asset, country, and market.
 - 📈 Linear programming with the HiGHS solver.
 - 🦀 Built in Rust (2024 edition).
@@ -45,11 +45,11 @@ cargo install prek
 
 From the repository root:
 
-- 🎨 `make format` — run `cargo fmt`
-- 🔍 `make lint` — run Clippy across all targets and features
-- 🧪 `make test` — run documentation tests
+- 📐 `make format` — run `cargo fmt`
+- 🕵️ `make lint` — run Clippy across all targets and features
+- 🧪 `make test` — run documentation and unit tests
 
 For fast iteration, consider running in two separate terminals:
 
-- 🖥️ `make server` — launch the server with live reload via `cargo watch`
-- 🔁 `make test-client` — run the server test loop via `cargo watch`
+- 👷 `make server` — launch the server with live reload via `cargo watch`
+- 🤙 `make test-client` — run the server test loop via `cargo watch`
