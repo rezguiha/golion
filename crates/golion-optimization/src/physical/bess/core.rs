@@ -1,7 +1,7 @@
 use super::availability::Availability;
 use crate::support::power_to_energy;
 use chrono::{DateTime, Duration, Utc};
-use golion_common::error::SeriesError;
+
 use golion_common::temporal::series::TimeSeries;
 use golion_common::units::power::{KiloWatt, KiloWattHour};
 use good_lp::{Constraint, Expression, ProblemVariables, Variable, constraint, variable};
@@ -28,16 +28,11 @@ impl Battery {
     pub fn new(
         time_index: &[DateTime<Utc>],
         vars: &mut ProblemVariables,
-        availability: Vec<Availability>,
+        availability: TimeSeries<Availability>,
         initial_soc: KiloWattHour,
         granularity: Duration,
         limits: BessLimits,
-    ) -> Result<Self, SeriesError> {
-        let start_at = match time_index.first() {
-            Some(t) => t,
-            None => panic!("Optimization time index is empty."),
-        };
-        let availability_series = TimeSeries::new(*start_at, granularity, availability);
+    ) -> Result<Self, golion_common::Error> {
         let time_index_length = time_index.len();
         // Initialize battery variables containers.
         let mut input_power: Vec<Variable> = Vec::with_capacity(time_index_length);
@@ -75,7 +70,7 @@ impl Battery {
                         )
             ));
             // Create availability constraints.
-            match availability_series.at(dt) {
+            match availability.at(dt) {
                 Ok(avail_point) => {
                     constraints
                         .push(avail_point.charge_power_constraint(input_power_var));
@@ -88,7 +83,7 @@ impl Battery {
         }
 
         Ok(Self {
-            availability: availability_series,
+            availability,
             initial_soc,
             granularity,
             input_power: input_power.into_boxed_slice(),
@@ -105,6 +100,8 @@ mod tests {
     use super::{Battery, BessLimits};
     use crate::physical::bess::availability::Availability;
     use chrono::{DateTime, Duration, Utc};
+    use golion_common::temporal::grid::RegularTimeGrid;
+    use golion_common::temporal::series::TimeSeries;
     use golion_common::units::power::{KiloWatt, KiloWattHour};
     use good_lp::ProblemVariables;
 
@@ -117,7 +114,9 @@ mod tests {
             (0..4).map(|i| start_at + granularity * i).collect();
 
         // One availability point per slot (Availability is Copy).
-        let availability = vec![
+        let grid =
+            RegularTimeGrid::try_new(start_at, granularity, time_index.len()).unwrap();
+        let data = vec![
             Availability {
                 max_charge_power: KiloWatt(50.0),
                 max_discharge_power: KiloWatt(50.0),
@@ -125,6 +124,7 @@ mod tests {
             };
             time_index.len()
         ];
+        let availability = TimeSeries { grid, data };
 
         let mut vars = ProblemVariables::new();
         let limits = BessLimits {
