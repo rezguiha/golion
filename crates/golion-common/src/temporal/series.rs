@@ -1,22 +1,31 @@
+/// TimeSeries container composed of a regular grid
+/// which encapsulates temporal information and
+/// the data that it contains. This enables us
+/// to have fast row access by index on an array of
+/// struct shaped data.
 use super::grid::RegularTimeGrid;
 use crate::{Error, Result};
 use chrono::{DateTime, Utc};
 use derive_more::From;
-pub trait TimeStampedUtc {
-    fn start_at(&self) -> &DateTime<Utc>;
-}
 
-#[derive(Debug)]
-pub struct TimeSeries<T> {
-    pub grid: RegularTimeGrid,
-    pub data: Vec<T>,
-}
+// region: TimeSeries Errors
 #[derive(Debug, From)]
 pub enum TimeSeriesError {
     TooShort { length: usize, minimal: i32 },
     GridEndMismatch { expected: DateTime<Utc>, actual: DateTime<Utc> },
     MissingValueAtTime { datetime: DateTime<Utc> },
 }
+// endregion: TimeSeries Errors
+
+// region: TimeSeries Struct and Traits
+#[derive(Debug)]
+pub struct TimeSeries<T> {
+    // Continuous time grid.
+    pub grid: RegularTimeGrid,
+    // Array of struct container.
+    pub data: Vec<T>,
+}
+
 impl<T> TimeSeries<T> {
     pub fn at(&self, dt: &DateTime<Utc>) -> Result<&T> {
         let index = self.grid.index_of(dt)?;
@@ -24,6 +33,16 @@ impl<T> TimeSeries<T> {
             .get(index)
             .ok_or(TimeSeriesError::MissingValueAtTime { datetime: *dt }.into())
     }
+}
+// endregion: TimeSeries Struct and Traits
+
+// region: TimeSeries from Vector of data conversion trait.
+/// Convenience trait to be able to use into TimeSeries directly
+/// on a vector of data if the conversion is straight forward
+/// with no extra transformation on the condition it has some temporal
+/// information in each row it contains.
+pub trait TimeStampedUtc {
+    fn start_at(&self) -> &DateTime<Utc>;
 }
 
 impl<T: TimeStampedUtc> TryFrom<Vec<T>> for TimeSeries<T> {
@@ -49,3 +68,4 @@ impl<T: TimeStampedUtc> TryFrom<Vec<T>> for TimeSeries<T> {
         }
     }
 }
+// region: TimeSeries from Vector of data conversion trait.

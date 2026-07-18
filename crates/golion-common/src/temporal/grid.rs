@@ -1,7 +1,12 @@
+/// Regular time grid definition that encapsulates
+/// the time related logic that enables us to have
+/// a computation of the index a particular row
+/// without the need of using a hashmap or binary
+/// search on a timestamp index.
 use chrono::{DateTime, Duration, Utc};
 use derive_more::From;
 
-// region: Grid Errors
+// region: Regular Grid Errors
 
 #[derive(Debug, From)]
 pub enum TimeGridError {
@@ -26,11 +31,16 @@ pub enum TimeGridError {
 // endregion: Grid Errors
 
 // region: Regular Grid Struct and Traits
+/// Continuous time grid definition.
 #[derive(Debug)]
 pub struct RegularTimeGrid {
+    /// First timestamp of timeseries.
     pub start: DateTime<Utc>,
+    /// Granularity of timeseries.
     pub step: Duration,
+    /// Length of timeseries.
     pub length: usize,
+    /// Computed end of timeseries.
     pub end: DateTime<Utc>,
 }
 impl RegularTimeGrid {
