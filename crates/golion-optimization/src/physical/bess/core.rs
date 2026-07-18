@@ -70,16 +70,11 @@ impl Battery {
                         )
             ));
             // Create availability constraints.
-            match availability.at(dt) {
-                Ok(avail_point) => {
-                    constraints
-                        .push(avail_point.charge_power_constraint(input_power_var));
-                    constraints
-                        .push(avail_point.discharge_power_constraint(output_power_var));
-                    constraints.push(avail_point.energy_available_at_t(soc_var));
-                }
-                Err(error) => return Err(error),
-            };
+            let avail_point = availability.at(dt)?;
+
+            constraints.push(avail_point.charge_power_constraint(input_power_var));
+            constraints.push(avail_point.discharge_power_constraint(output_power_var));
+            constraints.push(avail_point.energy_available_at_t(soc_var));
         }
 
         Ok(Self {
