@@ -1,35 +1,51 @@
-use crate::error::SeriesError;
-use chrono::{DateTime, Duration, Utc};
-
-pub struct TimeSeries<T> {
-    pub start_at: DateTime<Utc>,
-    pub granularity: Duration,
-    pub data: Vec<T>,
-    _granularity_seconds: i64,
+use super::grid::RegularTimeGrid;
+use crate::{Error, Result};
+use chrono::{DateTime, Utc};
+use derive_more::From;
+pub trait TimeStampedUtc {
+    fn start_at(&self) -> &DateTime<Utc>;
 }
 
+#[derive(Debug)]
+pub struct TimeSeries<T> {
+    pub grid: RegularTimeGrid,
+    pub data: Vec<T>,
+}
+#[derive(Debug, From)]
+pub enum TimeSeriesError {
+    TooShort { length: usize, minimal: i32 },
+    GridEndMismatch { expected: DateTime<Utc>, actual: DateTime<Utc> },
+    MissingValueAtTime { datetime: DateTime<Utc> },
+}
 impl<T> TimeSeries<T> {
-    pub fn new(start_at: DateTime<Utc>, granularity: Duration, data: Vec<T>) -> Self {
-        let _granularity_seconds = granularity.num_seconds();
-        Self { start_at, granularity, data, _granularity_seconds }
+    pub fn at(&self, dt: &DateTime<Utc>) -> Result<&T> {
+        let index = self.grid.index_of(dt)?;
+        self.data
+            .get(index)
+            .ok_or(TimeSeriesError::MissingValueAtTime { datetime: *dt }.into())
     }
-    pub fn at_index(&self, i: usize) -> Result<&T, SeriesError> {
-        self.data.get(i).ok_or(SeriesError::MissingValueAtIndex { index: i })
-    }
-    pub fn at(&self, dt: &DateTime<Utc>) -> Result<&T, SeriesError> {
-        let delta_seconds = (*dt - self.start_at).num_seconds();
-        let excess = delta_seconds.rem_euclid(self._granularity_seconds);
-        if excess != 0 {
-            return Err(SeriesError::NonAlignedValue {
-                datetime: *dt,
-                granularity: self._granularity_seconds,
-            });
-        }
-        let stride = delta_seconds.div_euclid(self._granularity_seconds);
+}
 
-        match stride {
-            s if s >= 0 => self.at_index(s as usize),
-            _ => Err(SeriesError::MissingValueAtTime { datetime: *dt }),
+impl<T: TimeStampedUtc> TryFrom<Vec<T>> for TimeSeries<T> {
+    type Error = Error;
+    fn try_from(data: Vec<T>) -> Result<TimeSeries<T>> {
+        let length = data.len();
+        if length < 2 {
+            return Err(TimeSeriesError::TooShort { length, minimal: 2 }.into());
+        };
+        // We can use unwrap here sinc we tested that length of data is at least 2
+        let start = data.first().unwrap().start_at();
+        let second = data.get(1).unwrap().start_at();
+        let step = *second - *start;
+        let end = data.last().unwrap().start_at();
+        let grid = RegularTimeGrid::try_new(*start, step, length)?;
+
+        match grid.end.eq(end) {
+            true => Ok(Self { grid, data }),
+            _ => {
+                Err(TimeSeriesError::GridEndMismatch { expected: *end, actual: grid.end }
+                    .into())
+            }
         }
     }
 }
