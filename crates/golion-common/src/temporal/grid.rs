@@ -1,11 +1,11 @@
+use super::step::MinuteGranularity;
 /// Regular time grid definition that encapsulates
 /// the time related logic that enables us to have
 /// a computation of the index a particular row
 /// without the need of using a hashmap or binary
 /// search on a timestamp index.
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use derive_more::From;
-
 // region: Regular Grid Errors
 
 #[derive(Debug, From)]
@@ -17,12 +17,12 @@ pub enum TimeGridError {
     },
     MissAlignedDatetime {
         dt: DateTime<Utc>,
-        step: Duration,
+        step: MinuteGranularity,
     },
 
     EndDateTimeOverFlow {
         start: DateTime<Utc>,
-        step: Duration,
+        step: MinuteGranularity,
         length: i32,
     },
     #[from]
@@ -37,7 +37,7 @@ pub struct RegularTimeGrid {
     /// First timestamp of timeseries.
     pub start: DateTime<Utc>,
     /// Granularity of timeseries.
-    pub step: Duration,
+    pub step: MinuteGranularity,
     /// Length of timeseries.
     pub length: usize,
     /// Computed end of timeseries.
@@ -46,11 +46,11 @@ pub struct RegularTimeGrid {
 impl RegularTimeGrid {
     pub fn try_new(
         start: DateTime<Utc>,
-        step: Duration,
+        step: MinuteGranularity,
         length: usize,
     ) -> Result<Self, TimeGridError> {
         let length_int = i32::try_from(length)?;
-        let end = start.checked_add_signed(step * length_int).ok_or({
+        let end = start.checked_add_signed(*step.duration() * length_int).ok_or({
             TimeGridError::EndDateTimeOverFlow { start, step, length: length_int }
         })?;
         Ok(RegularTimeGrid { start, step, length, end })
@@ -64,8 +64,9 @@ impl RegularTimeGrid {
                 end: self.end,
             });
         }
-        match usize::try_from((*dt - self.start).num_seconds() / self.step.num_seconds())
-        {
+        match usize::try_from(
+            (*dt - self.start).num_seconds() / self.step.duration().num_seconds(),
+        ) {
             Ok(index) => Ok(index),
             Err(_) => {
                 Err(TimeGridError::MissAlignedDatetime { dt: *dt, step: self.step })
