@@ -1,8 +1,9 @@
 use super::availability::Availability;
 use crate::support::power_to_energy;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 
 use golion_common::temporal::series::TimeSeries;
+use golion_common::temporal::step::MinuteGranularity;
 use golion_common::units::power::{KiloWatt, KiloWattHour};
 use good_lp::{Constraint, Expression, ProblemVariables, Variable, constraint, variable};
 // region: Battery Limits
@@ -17,7 +18,7 @@ pub struct BessLimits {
 pub struct Battery {
     availability: TimeSeries<Availability>,
     initial_soc: KiloWattHour,
-    granularity: Duration,
+    granularity: MinuteGranularity,
     input_power: Box<[Variable]>,
     output_power: Box<[Variable]>,
     soc: Box<[Variable]>,
@@ -30,7 +31,7 @@ impl Battery {
         vars: &mut ProblemVariables,
         availability: TimeSeries<Availability>,
         initial_soc: KiloWattHour,
-        granularity: Duration,
+        granularity: MinuteGranularity,
         limits: BessLimits,
     ) -> Result<Self, golion_common::Error> {
         let time_index_length = time_index.len();
@@ -66,7 +67,7 @@ impl Battery {
                     == prev_soc
                         + power_to_energy(
                             input_power_var - output_power_var,
-                            granularity
+                            granularity.duration()
                         )
             ));
             // Create availability constraints.
@@ -97,16 +98,17 @@ mod tests {
     use chrono::{DateTime, Duration, Utc};
     use golion_common::temporal::grid::RegularTimeGrid;
     use golion_common::temporal::series::TimeSeries;
+    use golion_common::temporal::step::MinuteGranularity;
     use golion_common::units::power::{KiloWatt, KiloWattHour};
     use good_lp::ProblemVariables;
 
     #[test]
     fn build_battery_over_four_slots() {
         // 4 slots at 15-minute granularity.
-        let granularity = Duration::minutes(15);
+        let granularity = MinuteGranularity::try_from(Duration::minutes(15)).unwrap();
         let start_at = Utc::now();
         let time_index: Vec<DateTime<Utc>> =
-            (0..4).map(|i| start_at + granularity * i).collect();
+            (0..4).map(|i| start_at + *granularity.duration() * i).collect();
 
         // One availability point per slot (Availability is Copy).
         let grid =
