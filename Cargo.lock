@@ -520,7 +520,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "golion-domain"
+name = "golion-contract"
 version = "0.0.0"
 dependencies = [
  "chrono",
@@ -549,7 +549,7 @@ dependencies = [
  "anyhow",
  "axum",
  "chrono",
- "golion-domain",
+ "golion-contract",
  "golion-optimization",
  "httpc-test",
  "serde_json",
