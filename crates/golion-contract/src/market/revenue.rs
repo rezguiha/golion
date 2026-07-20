@@ -13,10 +13,10 @@ use typed_builder::TypedBuilder;
 pub struct SymmetricSeries {
     /// Reference datetime for future estimated revenue.
     #[garde(skip)]
-    start_at: DateTime<Utc>,
+    pub start_at: DateTime<Utc>,
     /// Forecasted market price in €/kWh
     #[garde(skip)]
-    price: f64,
+    pub price: f64,
 }
 
 /// Asymmetric revenue series. This concerns wholesale markets
@@ -27,13 +27,13 @@ pub struct SymmetricSeries {
 pub struct AsymmetricSeries {
     /// Reference datetime for future estimated revenue.
     #[garde(skip)]
-    start_at: DateTime<Utc>,
+    pub start_at: DateTime<Utc>,
     /// Forecasted market sell price  in €/kWh
     #[garde(skip)]
-    sell_price: f64,
+    pub sell_price: f64,
     /// Forecasted market buy price in €/kWh
     #[garde(skip)]
-    buy_price: f64,
+    pub buy_price: f64,
 }
 
 /// A simplified version of revenue model for ancillary service
@@ -46,13 +46,13 @@ pub struct AsymmetricSeries {
 pub struct SimplifiedAncillarySeries {
     /// Reference datetime for future estimated revenue.
     #[garde(skip)]
-    start_at: DateTime<Utc>,
+    pub start_at: DateTime<Utc>,
     /// Estimated market upward revenue in €/kW.
     #[garde(range(min = 0.0))]
-    sell_revenue: f64,
+    pub sell_revenue: f64,
     /// Estimated market downward revenue in €/kW.
     #[garde(range(min = 0.0))]
-    buy_revenue: f64,
+    pub buy_revenue: f64,
 }
 
 // Several revenue series will be defined here later on
