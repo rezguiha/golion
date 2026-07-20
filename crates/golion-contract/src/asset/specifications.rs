@@ -10,33 +10,33 @@ pub struct BessSpecs {
     /// Theoretical capacity expressed in kWh in grid side convention.
     #[builder(default = 7500.0)]
     #[garde(range(min = 0.0))]
-    rated_energy: f64,
+    pub rated_energy: f64,
     /// Theoretical maximum charge power in kW in grid side convention.
     #[builder(default = 2500.0)]
     #[garde(range(min = 0.0))]
-    rated_charge_power: f64,
+    pub rated_charge_power: f64,
     /// Theoretical maximum discharge power in kW in grid side convention.
     #[builder(default = 2500.0)]
     #[garde(range(min = 0.0))]
-    rated_discharge_power: f64,
+    pub rated_discharge_power: f64,
     /// The charging efficiency expressed in percentage in \[0,1\]
     #[builder(default = 0.98)]
     #[garde(range(min = 0.0, max = 1.0))]
-    charge_efficiency: f64,
+    pub charge_efficiency: f64,
     /// The discharging efficiency expressed in percentage in \[0,1\]
     #[builder(default = 0.97)]
     #[garde(range(min = 0.0, max = 1.0))]
-    discharge_efficiency: f64,
+    pub discharge_efficiency: f64,
     /// Minimal state of charge to not go under expressed in \[0,1\] and represents
     /// the energy stored in available modules divided by capacity of those available
     /// modules.
     #[builder(default = 0.95)]
     #[garde(range(min = 0.0, max = 1.0))]
-    soc_min: f64,
+    pub soc_min: f64,
     /// Maximal state of charge with same convention as soc_max
     #[builder(default = 0.05)]
     #[garde(range(min = 0.0, max = 1.0))]
-    soc_max: f64,
+    pub soc_max: f64,
 }
 
 /// Renewable asset specifications
@@ -47,7 +47,7 @@ pub struct RenewableSpecs {
     /// for the skeleton of the generic architecture.
     #[builder(default = 2500.0)]
     #[garde(range(min = 0.0))]
-    rated_power: f64,
+    pub rated_power: f64,
 }
 
 /// Renewable asset specifications
@@ -58,5 +58,5 @@ pub struct CcgtSpecs {
     /// for the skeleton of the generic architecture.
     #[builder(default = 2500.0)]
     #[garde(range(min = 0.0))]
-    rated_power: f64,
+    pub rated_power: f64,
 }
