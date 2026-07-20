@@ -13,23 +13,23 @@ pub struct AssetIdentification {
     /// The asset unique identification.
     #[builder(default=Uuid::new_v4())]
     #[garde(skip)]
-    asset_id: Uuid,
+    pub asset_id: Uuid,
     /// The connection point identification which will serve
     /// as a grouping to model grid facing limitations/constraints.
     #[builder(default=Uuid::new_v4())]
     #[garde(skip)]
-    connection_point_id: Uuid,
+    pub connection_point_id: Uuid,
     /// The balancing service provider id which will serve as a grouping
     /// to model ancillary services facing interface. (FCR, aFRR, mFRR)
     #[builder(default=Uuid::new_v4())]
     #[garde(skip)]
-    bsp_id: Uuid,
+    pub bsp_id: Uuid,
 
     /// The balancing role party id which will serve as a grouping
     /// to model imbalance facing interface.(Day ahead, intraday ,imbalance)
     #[builder(default=Uuid::new_v4())]
     #[garde(skip)]
-    brp_id: Uuid,
+    pub brp_id: Uuid,
 }
 // endregion: Asset Identification
 
@@ -42,16 +42,16 @@ pub struct BessData {
     /// The asset unique identification id and grouping ids.
     #[serde(flatten)]
     #[garde(dive)]
-    identification: AssetIdentification,
+    pub identification: AssetIdentification,
     /// The declared future availability level of the Bess system
     #[garde(dive)]
-    availability: Vec<StorageAvailability>,
+    pub availability: Vec<StorageAvailability>,
     /// Physical specification for Bess
     #[garde(dive)]
-    specs: BessSpecs,
+    pub specs: BessSpecs,
     /// Market configuration and corresponding data.
     #[garde(skip)]
-    market_choices: Vec<MarketChoice>,
+    pub market_choices: Vec<MarketChoice>,
 }
 
 /// Combined Cycle Gas Turbine unit on which we can collect scada
@@ -61,17 +61,17 @@ pub struct GasTurbineData {
     /// The asset unique identification id and grouping ids.
     #[serde(flatten)]
     #[garde(dive)]
-    identification: AssetIdentification,
+    pub identification: AssetIdentification,
 
     #[garde(dive)]
     /// The declared future availability level of the CCGT
-    availability: GeneratorAvailability,
+    pub availability: GeneratorAvailability,
     /// Physical specification for Gas Turbine
     #[garde(dive)]
-    specs: CcgtSpecs,
+    pub specs: CcgtSpecs,
     /// Market configuration and corresponding data.
     #[garde(skip)]
-    market_choices: Vec<MarketChoice>,
+    pub market_choices: Vec<MarketChoice>,
 }
 
 /// Renewable Asset unit on which we can collect scada data.
@@ -80,17 +80,17 @@ pub struct RenewableData {
     /// The asset unique identification id and grouping ids.
     #[serde(flatten)]
     #[garde(dive)]
-    identification: AssetIdentification,
+    pub identification: AssetIdentification,
 
     #[garde(dive)]
     /// The declared future availability level of the CCGT
-    availability: Vec<GeneratorAvailability>,
+    pub availability: Vec<GeneratorAvailability>,
     /// Physical specification for Gas Turbine
     #[garde(dive)]
-    specs: RenewableSpecs,
+    pub specs: RenewableSpecs,
     /// Market configuration and corresponding data.
     #[garde(skip)]
-    market_choices: Vec<MarketChoice>,
+    pub market_choices: Vec<MarketChoice>,
 }
 // endregion: All asset types' physical input data.
 
