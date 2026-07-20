@@ -100,11 +100,11 @@ pub struct RenewableData {
 /// # Examples
 ///
 /// ```
-/// use golion_domain::asset::availability::StorageAvailability;
-/// use golion_domain::asset::core::{AssetData, BessData, AssetIdentification};
-/// use golion_domain::asset::specifications::BessSpecs;
-/// use golion_domain::constants::{WholesaleMarketType, Countries};
-/// use golion_domain::market::choice::MarketChoice;
+/// use golion_contract::asset::availability::StorageAvailability;
+/// use golion_contract::asset::core::{AssetData, BessData, AssetIdentification};
+/// use golion_contract::asset::specifications::BessSpecs;
+/// use golion_contract::constants::{WholesaleMarketType, Countries};
+/// use golion_contract::market::choice::MarketChoice;
 /// use chrono::Utc;
 /// let market_choice = MarketChoice::WholeSaleChoice {
 ///             market: WholesaleMarketType::SpotDayAhead,
