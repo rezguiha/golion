@@ -1,14 +1,14 @@
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
-use golion_domain::asset::{
+use golion_contract::asset::{
     availability::StorageAvailability,
     core::{AssetData, AssetIdentification, BessData},
     specifications::BessSpecs,
 };
-use golion_domain::constants::{
+use golion_contract::constants::{
     Countries, UncertifiedAncillaryMarketType, WholesaleMarketType,
 };
-use golion_domain::market::choice::MarketChoice;
+use golion_contract::market::choice::MarketChoice;
 /// Temporary simple test of sending assetdata as a payload
 /// on optimize endpoint.
 #[tokio::test]

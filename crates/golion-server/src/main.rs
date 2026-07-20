@@ -1,5 +1,5 @@
 use axum::{Json, Router, routing::post};
-use golion_domain::asset::core::AssetData;
+use golion_contract::asset::core::AssetData;
 /// Temporary handler that prints payload to make sure
 /// at least deserialization is working as expected.
 async fn handler_optimize(payload: Json<AssetData>) {

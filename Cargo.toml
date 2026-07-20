@@ -10,7 +10,7 @@ authors = ["Hamdi Rezgui <hamdi.rezgui.pro@gmail.com>"]
 
 [workspace.dependencies]
 golion-common = { path = "crates/golion-common", version = "0.0.0" }
-golion-domain = { path = "crates/golion-domain", version = "0.0.0" }
+golion-contract = { path = "crates/golion-contract", version = "0.0.0" }
 golion-optimization = { path = "crates/golion-optimization", version = "0.0.0" }
 
 [workspace.lints.rust]
