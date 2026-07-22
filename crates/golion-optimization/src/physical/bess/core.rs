@@ -2,9 +2,9 @@ use super::availability::Availability;
 use crate::support::power_to_energy;
 use chrono::{DateTime, Utc};
 
-use golion_common::temporal::series::TimeSeries;
-use golion_common::temporal::step::MinuteGranularity;
-use golion_common::units::power::{KiloWatt, KiloWattHour};
+use golion_domain::temporal::series::TimeSeries;
+use golion_domain::temporal::step::MinuteGranularity;
+use golion_domain::units::power::{KiloWatt, KiloWattHour};
 use good_lp::{Constraint, Expression, ProblemVariables, Variable, constraint, variable};
 // region: Battery Limits
 pub struct BessLimits {
@@ -33,7 +33,7 @@ impl Battery {
         initial_soc: KiloWattHour,
         granularity: MinuteGranularity,
         limits: BessLimits,
-    ) -> Result<Self, golion_common::Error> {
+    ) -> Result<Self, golion_domain::Error> {
         let time_index_length = time_index.len();
         // Initialize battery variables containers.
         let mut input_power: Vec<Variable> = Vec::with_capacity(time_index_length);
@@ -96,10 +96,10 @@ mod tests {
     use super::{Battery, BessLimits};
     use crate::physical::bess::availability::Availability;
     use chrono::{DateTime, Duration, Utc};
-    use golion_common::temporal::grid::RegularTimeGrid;
-    use golion_common::temporal::series::TimeSeries;
-    use golion_common::temporal::step::MinuteGranularity;
-    use golion_common::units::power::{KiloWatt, KiloWattHour};
+    use golion_domain::temporal::grid::RegularTimeGrid;
+    use golion_domain::temporal::series::TimeSeries;
+    use golion_domain::temporal::step::MinuteGranularity;
+    use golion_domain::units::power::{KiloWatt, KiloWattHour};
     use good_lp::ProblemVariables;
 
     #[test]

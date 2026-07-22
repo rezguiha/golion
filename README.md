@@ -16,7 +16,7 @@ solves how storage, renewables, and thermal generators should participate.
 
 ## 🧩 Crates
 
-- 🔩 `golion-common` — shared units and primitives across all crates.
+- 🔩 `golion-domain` — shared units and primitives across all crates.
 - 📦 `golion-contract` — serde data models defining the server's request contract.
 - ⚡ `golion-optimization` — optimization models using `good_lp` with HiGHS.
 - 🌐 `golion-server` — HTTP server wiring the contract and optimization logic.
