@@ -1,6 +1,6 @@
 use super::certification::CertifiedEnvelope;
 /// Definition of market choices for assets and their inputs.
-use golion_common::constants::{
+use golion_domain::constants::{
     CertifiedAncillaryMarketType, Countries, UncertifiedAncillaryMarketType,
     WholesaleMarketType,
 };

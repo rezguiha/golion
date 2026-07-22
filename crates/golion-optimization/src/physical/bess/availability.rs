@@ -1,4 +1,4 @@
-use golion_common::units::power::{KiloWatt, KiloWattHour};
+use golion_domain::units::power::{KiloWatt, KiloWattHour};
 use good_lp::{Constraint, Variable, constraint};
 
 #[derive(Debug, Clone, Copy, PartialEq)]

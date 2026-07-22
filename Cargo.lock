@@ -510,7 +510,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
-name = "golion-common"
+name = "golion-contract"
+version = "0.0.0"
+dependencies = [
+ "chrono",
+ "garde",
+ "golion-domain",
+ "serde",
+ "thiserror 2.0.18",
+ "typed-builder",
+ "uuid",
+]
+
+[[package]]
+name = "golion-domain"
 version = "0.0.0"
 dependencies = [
  "chrono",
@@ -520,24 +533,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "golion-contract"
-version = "0.0.0"
-dependencies = [
- "chrono",
- "garde",
- "golion-common",
- "serde",
- "thiserror 2.0.18",
- "typed-builder",
- "uuid",
-]
-
-[[package]]
 name = "golion-optimization"
 version = "0.0.0"
 dependencies = [
  "chrono",
- "golion-common",
+ "golion-domain",
  "good_lp",
  "uuid",
 ]
