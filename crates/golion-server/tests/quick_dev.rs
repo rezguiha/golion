@@ -5,10 +5,11 @@ use golion_contract::asset::{
     core::{AssetData, AssetIdentification, BessData},
     specifications::BessSpecs,
 };
-use golion_contract::constants::{
-    Countries, UncertifiedAncillaryMarketType, WholesaleMarketType,
-};
 use golion_contract::market::choice::MarketChoice;
+use golion_domain::countries::Countries;
+use golion_domain::market::market_type::{
+    UncertifiedAncillaryMarketType, WholesaleMarketType,
+};
 /// Temporary simple test of sending assetdata as a payload
 /// on optimize endpoint.
 #[tokio::test]

@@ -550,6 +550,7 @@ dependencies = [
  "axum",
  "chrono",
  "golion-contract",
+ "golion-domain",
  "golion-optimization",
  "httpc-test",
  "serde_json",
