@@ -1,8 +1,8 @@
 use super::certification::CertifiedEnvelope;
+use golion_domain::countries::Countries;
 /// Definition of market choices for assets and their inputs.
-use golion_domain::constants::{
-    CertifiedAncillaryMarketType, Countries, UncertifiedAncillaryMarketType,
-    WholesaleMarketType,
+use golion_domain::market::market_type::{
+    CertifiedAncillaryMarketType, UncertifiedAncillaryMarketType, WholesaleMarketType,
 };
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
