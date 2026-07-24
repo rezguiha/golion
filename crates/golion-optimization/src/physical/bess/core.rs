@@ -2,18 +2,12 @@ use super::availability::AvailabilityConstraints;
 use crate::support::power_to_energy;
 use chrono::{DateTime, Utc};
 
+use golion_domain::asset::bess::limits::BessLimits;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteGranularity;
-use golion_domain::units::power::{KiloWatt, KiloWattHour};
+use golion_domain::units::power::KiloWattHour;
 use good_lp::{Constraint, Expression, ProblemVariables, Variable, constraint, variable};
-// region: Battery Limits
-pub struct BessLimits {
-    pub max_output_power: KiloWatt,
-    pub max_input_power: KiloWatt,
-    pub min_soc: KiloWattHour,
-    pub max_soc: KiloWattHour,
-}
-// endregion: Battery Limits
+
 // region: Battery Definition
 pub struct Battery<A: AvailabilityConstraints> {
     availability: TimeSeries<A>,
@@ -93,9 +87,10 @@ impl<A: AvailabilityConstraints> Battery<A> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Battery, BessLimits};
+    use super::Battery;
     use chrono::{DateTime, Duration, Utc};
     use golion_domain::asset::bess::availability::Availability;
+    use golion_domain::asset::bess::limits::BessLimits;
     use golion_domain::temporal::grid::RegularTimeGrid;
     use golion_domain::temporal::series::TimeSeries;
     use golion_domain::temporal::step::MinuteGranularity;
