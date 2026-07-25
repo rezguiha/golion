@@ -2,20 +2,17 @@ use super::availability::AvailabilityConstraints;
 use crate::support::power_to_energy;
 use chrono::{DateTime, Utc};
 
-use golion_domain::asset::bess::limits::BessLimits;
-use golion_domain::temporal::series::TimeSeries;
+use crate::physical::variables::{BessVariables, VariableCreation};
 use golion_domain::temporal::step::MinuteGranularity;
 use golion_domain::units::power::KiloWattHour;
-use good_lp::{Constraint, Expression, ProblemVariables, Variable, constraint, variable};
-
+use golion_domain::{asset::bess::limits::BessLimits, temporal::series::TimeSeries};
+use good_lp::{Constraint, Expression, ProblemVariables, constraint};
 // region: Battery Definition
 pub struct Battery<A: AvailabilityConstraints> {
     availability: TimeSeries<A>,
     initial_soc: KiloWattHour,
     granularity: MinuteGranularity,
-    input_power: Box<[Variable]>,
-    output_power: Box<[Variable]>,
-    soc: Box<[Variable]>,
+    variables: BessVariables,
     constraints: Vec<Constraint>,
 }
 
@@ -29,10 +26,9 @@ impl<A: AvailabilityConstraints> Battery<A> {
         limits: BessLimits,
     ) -> Result<Self, golion_domain::Error> {
         let time_index_length = time_index.len();
-        // Initialize battery variables containers.
-        let mut input_power: Vec<Variable> = Vec::with_capacity(time_index_length);
-        let mut output_power: Vec<Variable> = Vec::with_capacity(time_index_length);
-        let mut soc: Vec<Variable> = Vec::with_capacity(time_index_length);
+        // Create battery physical variables.
+        let variables = limits.create_variables(vars, time_index_length);
+
         // Initialize battery physical constraints container.
         let mut constraints: Vec<Constraint> = Vec::with_capacity(4 * time_index_length);
 
@@ -40,21 +36,14 @@ impl<A: AvailabilityConstraints> Battery<A> {
         // update physical exchange expression and soc defining constraints
         // and build availability constraints in same loop for efficiency.
         for (i, dt) in time_index.iter().enumerate() {
-            // Create battery physical variables.
-            let input_power_var =
-                vars.add(variable().min(0.0).max(limits.max_input_power.0));
-            let output_power_var =
-                vars.add(variable().min(0.0).max(limits.max_output_power.0));
-            let soc_var =
-                vars.add(variable().min(limits.min_soc.0).max(limits.max_soc.0));
-            input_power.push(input_power_var);
-            output_power.push(output_power_var);
-            soc.push(soc_var);
+            let soc_var = variables.soc[i];
+            let input_power_var = variables.input_power[i];
+            let output_power_var = variables.output_power[i];
 
             // Create soc transition constraints.
             let prev_soc: Expression = match i {
                 0 => initial_soc.0.into(),
-                _ => soc[i - 1].into(),
+                _ => variables.soc[i - 1].into(),
             };
             constraints.push(constraint!(
                 soc_var
@@ -72,15 +61,7 @@ impl<A: AvailabilityConstraints> Battery<A> {
             constraints.push(avail_point.energy_available_at_t(soc_var));
         }
 
-        Ok(Self {
-            availability,
-            initial_soc,
-            granularity,
-            input_power: input_power.into_boxed_slice(),
-            output_power: output_power.into_boxed_slice(),
-            soc: soc.into_boxed_slice(),
-            constraints,
-        })
+        Ok(Self { availability, initial_soc, granularity, variables, constraints })
     }
 }
 // endregion: Battery Definition
@@ -137,9 +118,9 @@ mod tests {
         .expect("battery construction should succeed");
 
         // 3 physical variables per slot.
-        assert_eq!(battery.input_power.len(), 4);
-        assert_eq!(battery.output_power.len(), 4);
-        assert_eq!(battery.soc.len(), 4);
+        assert_eq!(battery.variables.input_power.len(), 4);
+        assert_eq!(battery.variables.output_power.len(), 4);
+        assert_eq!(battery.variables.soc.len(), 4);
         // 1 soc-transition + 3 availability constraints per slot.
         assert_eq!(battery.constraints.len(), 4 * 4);
     }
