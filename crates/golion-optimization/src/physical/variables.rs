@@ -1,35 +1,57 @@
-/// Physical Variables stores definition.
+/// Physical Variables definition.
 /// It includes also their creation trait.
+use crate::Result;
+use chrono::{DateTime, Utc};
+
 use golion_domain::asset::bess::limits::BessLimits;
+use golion_domain::temporal::series::TimeStampedUtc;
 use good_lp::{ProblemVariables, Variable, variable};
 
+// region: Bess Variables
+/// Bess Variables container with time information
+#[derive(Debug)]
 pub struct BessVariables {
-    // We are using Box instead of Vec here since variables
-    // are fixed in size.
-    pub input_power: Box<[Variable]>,
-    pub output_power: Box<[Variable]>,
-    pub soc: Box<[Variable]>,
+    pub start_at: DateTime<Utc>,
+    pub input_power: Variable,
+    pub output_power: Variable,
+    pub soc: Variable,
 }
-
-pub trait VariableCreation<T> {
-    fn create_variables(&self, variable_store: &mut ProblemVariables, length: usize)
-    -> T;
-}
-impl VariableCreation<BessVariables> for BessLimits {
-    fn create_variables(
-        &self,
-        variable_store: &mut ProblemVariables,
-        length: usize,
-    ) -> BessVariables {
-        let input_power: Box<[Variable]> = (0..length)
-            .map(|_| variable_store.add(variable().min(0.0).max(self.max_input_power)))
-            .collect();
-        let output_power: Box<[Variable]> = (0..length)
-            .map(|_| variable_store.add(variable().min(0.0).max(self.max_output_power)))
-            .collect();
-        let soc: Box<[Variable]> = (0..length)
-            .map(|_| variable_store.add(variable().min(self.min_soc).max(self.max_soc)))
-            .collect();
-        BessVariables { input_power, output_power, soc }
+// Implement TimeStampedUtc to enable creation
+// of TimeSeries<BessVariables> out of Vec<BessVariables>.
+impl TimeStampedUtc for BessVariables {
+    fn start_at(&self) -> &DateTime<Utc> {
+        &self.start_at
     }
 }
+
+// endregion: Bess Variables
+
+// region: BessVariableCreator
+pub trait BessVariableCreator {
+    fn create_variables_at(
+        &self,
+        dt: &DateTime<Utc>,
+        variable_generator: &mut ProblemVariables,
+    ) -> Result<BessVariables>;
+}
+
+impl BessVariableCreator for BessLimits {
+    fn create_variables_at(
+        &self,
+        dt: &DateTime<Utc>,
+        variable_generator: &mut ProblemVariables,
+    ) -> Result<BessVariables> {
+        let avail_point = self.availability.at(dt)?;
+        Ok(BessVariables {
+            start_at: *dt,
+            input_power: variable_generator
+                .add(variable().min(0.0).max(avail_point.max_charge_power)),
+            output_power: variable_generator
+                .add(variable().min(0.0).max(avail_point.max_discharge_power)),
+            soc: variable_generator.add(
+                variable().min(self.soc_range.min_soc.0).max(self.soc_range.max_soc),
+            ),
+        })
+    }
+}
+// endregion: BessVariableCreator

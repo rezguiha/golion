@@ -537,6 +537,7 @@ name = "golion-optimization"
 version = "0.0.0"
 dependencies = [
  "chrono",
+ "derive_more",
  "golion-domain",
  "good_lp",
  "uuid",

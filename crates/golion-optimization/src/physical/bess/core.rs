@@ -1,67 +1,57 @@
-use super::availability::AvailabilityConstraints;
-use crate::support::power_to_energy;
+use super::soc::transition_constraint;
+use crate::Result;
+use crate::physical::variables::{BessVariableCreator, BessVariables};
 use chrono::{DateTime, Utc};
-
-use crate::physical::variables::{BessVariables, VariableCreation};
+use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteGranularity;
+use golion_domain::units::efficiency::Efficiency;
 use golion_domain::units::power::KiloWattHour;
-use golion_domain::{asset::bess::limits::BessLimits, temporal::series::TimeSeries};
-use good_lp::{Constraint, Expression, ProblemVariables, constraint};
+use good_lp::{Constraint, Expression, ProblemVariables};
 // region: Battery Definition
-pub struct Battery<A: AvailabilityConstraints> {
-    availability: TimeSeries<A>,
+pub struct Battery {
     initial_soc: KiloWattHour,
     granularity: MinuteGranularity,
-    variables: BessVariables,
+    variable_store: TimeSeries<BessVariables>,
     constraints: Vec<Constraint>,
 }
 
-impl<A: AvailabilityConstraints> Battery<A> {
-    pub fn new(
+impl Battery {
+    pub fn new<B: BessVariableCreator>(
         time_index: &[DateTime<Utc>],
         vars: &mut ProblemVariables,
-        availability: TimeSeries<A>,
+        charge_efficiency: &Efficiency,
+        discharge_efficiency: &Efficiency,
         initial_soc: KiloWattHour,
         granularity: MinuteGranularity,
-        limits: BessLimits,
-    ) -> Result<Self, golion_domain::Error> {
+        limits: B,
+    ) -> Result<Self> {
         let time_index_length = time_index.len();
-        // Create battery physical variables.
-        let variables = limits.create_variables(vars, time_index_length);
-
-        // Initialize battery physical constraints container.
-        let mut constraints: Vec<Constraint> = Vec::with_capacity(4 * time_index_length);
-
-        // Loop over time index ,create variables with limits applied ,
-        // update physical exchange expression and soc defining constraints
-        // and build availability constraints in same loop for efficiency.
+        // Initialize battery physical variables and constraints containers.
+        let mut constraints: Vec<Constraint> = Vec::with_capacity(time_index_length);
+        let mut variable_vec: Vec<BessVariables> = Vec::with_capacity(time_index_length);
+        // Loop over time index ,create variables with their respective limits
+        // and generate defining soc constraints.
         for (i, dt) in time_index.iter().enumerate() {
-            let soc_var = variables.soc[i];
-            let input_power_var = variables.input_power[i];
-            let output_power_var = variables.output_power[i];
+            // Create battery physical variables.
+            let variables_at = limits.create_variables_at(dt, vars)?;
 
             // Create soc transition constraints.
             let prev_soc: Expression = match i {
                 0 => initial_soc.0.into(),
-                _ => variables.soc[i - 1].into(),
+                _ => variable_vec[i - 1].soc.into(),
             };
-            constraints.push(constraint!(
-                soc_var
-                    == prev_soc
-                        + power_to_energy(
-                            input_power_var - output_power_var,
-                            granularity.duration()
-                        )
+            constraints.push(transition_constraint(
+                &variables_at,
+                prev_soc,
+                &granularity,
+                charge_efficiency,
+                discharge_efficiency,
             ));
-            // Create availability constraints.
-            let avail_point = availability.at(dt)?;
-
-            constraints.push(avail_point.charge_power_constraint(input_power_var));
-            constraints.push(avail_point.discharge_power_constraint(output_power_var));
-            constraints.push(avail_point.energy_available_at_t(soc_var));
+            variable_vec.push(variables_at);
         }
+        let variable_store: TimeSeries<BessVariables> = variable_vec.try_into()?;
 
-        Ok(Self { availability, initial_soc, granularity, variables, constraints })
+        Ok(Self { initial_soc, granularity, variable_store, constraints })
     }
 }
 // endregion: Battery Definition
@@ -71,10 +61,11 @@ mod tests {
     use super::Battery;
     use chrono::{DateTime, Duration, Utc};
     use golion_domain::asset::bess::availability::Availability;
-    use golion_domain::asset::bess::limits::BessLimits;
+    use golion_domain::asset::bess::limits::{BessLimits, SocRange};
     use golion_domain::temporal::grid::RegularTimeGrid;
     use golion_domain::temporal::series::TimeSeries;
     use golion_domain::temporal::step::MinuteGranularity;
+    use golion_domain::units::efficiency::Efficiency;
     use golion_domain::units::power::{KiloWatt, KiloWattHour};
     use good_lp::ProblemVariables;
 
@@ -101,27 +92,29 @@ mod tests {
 
         let mut vars = ProblemVariables::new();
         let limits = BessLimits {
-            max_output_power: KiloWatt(50.0),
-            max_input_power: KiloWatt(50.0),
-            min_soc: KiloWattHour(0.0),
-            max_soc: KiloWattHour(100.0),
+            soc_range: SocRange {
+                min_soc: KiloWattHour(0.0),
+                max_soc: KiloWattHour(100.0),
+            },
+            availability,
         };
+        let charge_efficiency = Efficiency::try_from(0.95).unwrap();
+        let discharge_efficiency = Efficiency::try_from(0.95).unwrap();
 
         let battery = Battery::new(
             &time_index,
             &mut vars,
-            availability,
+            &charge_efficiency,
+            &discharge_efficiency,
             KiloWattHour(20.0),
             granularity,
             limits,
         )
         .expect("battery construction should succeed");
 
-        // 3 physical variables per slot.
-        assert_eq!(battery.variables.input_power.len(), 4);
-        assert_eq!(battery.variables.output_power.len(), 4);
-        assert_eq!(battery.variables.soc.len(), 4);
-        // 1 soc-transition + 3 availability constraints per slot.
-        assert_eq!(battery.constraints.len(), 4 * 4);
+        // One physical-variable triple per slot.
+        assert_eq!(battery.variable_store.data.len(), 4);
+        // One soc-transition constraint per slot.
+        assert_eq!(battery.constraints.len(), 4);
     }
 }
