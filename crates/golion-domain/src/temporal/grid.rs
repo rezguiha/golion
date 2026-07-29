@@ -50,9 +50,10 @@ impl RegularTimeGrid {
         length: usize,
     ) -> Result<Self, TimeGridError> {
         let length_int = i32::try_from(length)?;
-        let end = start.checked_add_signed(*step.duration() * length_int).ok_or({
-            TimeGridError::EndDateTimeOverFlow { start, step, length: length_int }
-        })?;
+        let end =
+            start.checked_add_signed(*step.duration() * (length_int - 1)).ok_or({
+                TimeGridError::EndDateTimeOverFlow { start, step, length: length_int }
+            })?;
         Ok(RegularTimeGrid { start, step, length, end })
     }
 
