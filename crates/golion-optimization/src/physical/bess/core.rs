@@ -93,8 +93,8 @@ mod tests {
         let mut vars = ProblemVariables::new();
         let limits = BessLimits {
             soc_range: SocRange {
-                min_soc: KiloWattHour(0.0),
-                max_soc: KiloWattHour(100.0),
+                min_soc: 0.0.try_into().unwrap(),
+                max_soc: 1.0.try_into().unwrap(),
             },
             availability,
         };

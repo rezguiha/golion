@@ -1,14 +1,14 @@
 use crate::{
     asset::bess::availability::Availability, temporal::series::TimeSeries,
-    units::power::KiloWattHour,
+    units::soc::SocFraction,
 };
 // region: BessLimit
 /// Bess state of charge operating range.
 /// This is a limitation set by the asset operators.
 #[derive(Debug)]
 pub struct SocRange {
-    pub min_soc: KiloWattHour,
-    pub max_soc: KiloWattHour,
+    pub min_soc: SocFraction,
+    pub max_soc: SocFraction,
 }
 #[derive(Debug)]
 pub struct BessLimits {

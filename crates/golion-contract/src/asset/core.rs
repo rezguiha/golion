@@ -3,6 +3,9 @@ use super::availability::{GeneratorAvailability, StorageAvailability};
 use super::specifications::{BessSpecs, CcgtSpecs, RenewableSpecs};
 use crate::market::choice::MarketChoice;
 use garde::Validate;
+use golion_domain::asset::bess::availability::Availability;
+use golion_domain::asset::bess::limits::{BessLimits, SocRange};
+use golion_domain::temporal::series::TimeSeries;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 use uuid::Uuid;
@@ -139,3 +142,19 @@ pub enum AssetData {
     Renewable(#[garde(dive)] RenewableData),
 }
 // endregion: Asset Enumeration Definition
+
+// region: Domain Conversion
+
+impl TryInto<BessLimits> for BessData {
+    type Error = crate::Error;
+    fn try_into(self) -> crate::Result<BessLimits> {
+        let soc_range: SocRange = self.specs.try_into()?;
+        let availability_raw: TimeSeries<StorageAvailability> =
+            self.availability.try_into()?;
+        let availability: TimeSeries<Availability> = TimeSeries {
+            grid: availability_raw.grid,
+            data: availability_raw.data.iter().map(|x| x.into()).collect(),
+        };
+        Ok(BessLimits { soc_range, availability })
+    }
+}
