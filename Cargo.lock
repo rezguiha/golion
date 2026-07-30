@@ -514,6 +514,7 @@ name = "golion-contract"
 version = "0.0.0"
 dependencies = [
  "chrono",
+ "derive_more",
  "garde",
  "golion-domain",
  "serde",

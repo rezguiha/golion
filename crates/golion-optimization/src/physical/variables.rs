@@ -49,7 +49,17 @@ impl BessVariableCreator for BessLimits {
             output_power: variable_generator
                 .add(variable().min(0.0).max(avail_point.max_discharge_power)),
             soc: variable_generator.add(
-                variable().min(self.soc_range.min_soc.0).max(self.soc_range.max_soc),
+                variable()
+                    .min(
+                        self.soc_range
+                            .min_soc
+                            .into_energy_kwh(&avail_point.max_usable_energy),
+                    )
+                    .max(
+                        self.soc_range
+                            .max_soc
+                            .into_energy_kwh(&avail_point.max_usable_energy),
+                    ),
             ),
         })
     }

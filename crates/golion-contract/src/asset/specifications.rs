@@ -2,8 +2,14 @@
 /// This defines mainly technical constructor information
 /// and user defined usage limitations.
 use garde::Validate;
+use golion_domain::asset::bess::{efficiency::BessPowerEfficiencies, limits::SocRange};
+use golion_domain::units::efficiency::Efficiency;
+use golion_domain::units::soc::SocFraction;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
+
+// region: Asset Specifications
+
 /// Bess static specifications.
 #[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder, Clone)]
 pub struct BessSpecs {
@@ -60,3 +66,24 @@ pub struct CcgtSpecs {
     #[garde(range(min = 0.0))]
     pub rated_power: f64,
 }
+// endregion: Asset Specifications
+
+// region: Domain Conversions
+impl TryInto<SocRange> for BessSpecs {
+    type Error = crate::Error;
+    fn try_into(self) -> crate::Result<SocRange> {
+        let min_soc_fraction: SocFraction = self.soc_min.try_into()?;
+        let max_soc_fraction: SocFraction = self.soc_max.try_into()?;
+        Ok(SocRange { min_soc: min_soc_fraction, max_soc: max_soc_fraction })
+    }
+}
+
+impl TryInto<BessPowerEfficiencies> for BessSpecs {
+    type Error = crate::Error;
+    fn try_into(self) -> crate::Result<BessPowerEfficiencies> {
+        let charge_efficiency: Efficiency = self.charge_efficiency.try_into()?;
+        let discharge_efficiency: Efficiency = self.discharge_efficiency.try_into()?;
+        Ok(BessPowerEfficiencies { charge_efficiency, discharge_efficiency })
+    }
+}
+// endregion: Domain Conversions
