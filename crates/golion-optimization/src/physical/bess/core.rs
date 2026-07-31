@@ -59,7 +59,7 @@ impl Battery {
 #[cfg(test)]
 mod tests {
     use super::Battery;
-    use chrono::{DateTime, Duration, Utc};
+    use chrono::{DateTime, Duration, DurationRound, Utc};
     use golion_domain::asset::bess::availability::Availability;
     use golion_domain::asset::bess::limits::{BessLimits, SocRange};
     use golion_domain::temporal::grid::RegularTimeGrid;
@@ -73,7 +73,7 @@ mod tests {
     fn build_battery_over_four_slots() {
         // 4 slots at 15-minute granularity.
         let granularity = MinuteGranularity::try_from(Duration::minutes(15)).unwrap();
-        let start_at = Utc::now();
+        let start_at = Utc::now().duration_round(*granularity.duration()).unwrap();
         let time_index: Vec<DateTime<Utc>> =
             (0..4).map(|i| start_at + *granularity.duration() * i).collect();
 
