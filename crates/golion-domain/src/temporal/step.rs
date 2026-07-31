@@ -24,12 +24,12 @@ pub struct InvalidGranularity {
 }
 
 impl TryFrom<Duration> for MinuteGranularity {
-    type Error = InvalidGranularity;
-    fn try_from(value: Duration) -> Result<Self, Self::Error> {
+    type Error = crate::Error;
+    fn try_from(value: Duration) -> crate::Result<Self> {
         [Duration::minutes(15), Duration::minutes(30), Duration::minutes(60)]
             .contains(&value)
             .then_some(MinuteGranularity(value))
-            .ok_or(InvalidGranularity { granularity: value })
+            .ok_or(InvalidGranularity { granularity: value }.into())
     }
 }
 // endregion: Time Granularity
