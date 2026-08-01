@@ -55,9 +55,9 @@ pub struct RegularTimeGrid {
 fn check_datetime_multiple_step(
     dt: DateTime<Utc>,
     step: MinuteGranularity,
-) -> Result<DateTime<Utc>, TimeGridError> {
+) -> Result<(), TimeGridError> {
     match dt.timestamp().rem_euclid(step.duration().num_seconds()) {
-        0 => Ok(dt),
+        0 => Ok(()),
         _ => Err(TimeGridError::DatetimeNonMultipleOfStep { dt, step }),
     }
 }
@@ -68,11 +68,12 @@ impl RegularTimeGrid {
         step: MinuteGranularity,
         length: usize,
     ) -> crate::Result<Self> {
-        let start = check_datetime_multiple_step(start, step)?;
+        check_datetime_multiple_step(start, step)?;
         let length_int = i32::try_from(length).map_err(TimeGridError::from)?;
         let end = start.checked_add_signed(*step.duration() * (length_int - 1)).ok_or(
             TimeGridError::EndDateTimeOverFlow { start, step, length: length_int },
         )?;
+        check_datetime_multiple_step(end, step)?;
         Ok(RegularTimeGrid { start, step, length, end })
     }
     pub fn try_new_start_end(
@@ -80,11 +81,12 @@ impl RegularTimeGrid {
         step: MinuteGranularity,
         end: DateTime<Utc>,
     ) -> crate::Result<Self> {
-        if end > start {
+        if end <= start {
             return Err(TimeGridError::EndBeforeStart { start, end }.into());
         }
-        let start = check_datetime_multiple_step(start, step)?;
-        let end = check_datetime_multiple_step(end, step)?;
+        check_datetime_multiple_step(start, step)?;
+        check_datetime_multiple_step(end, step)?;
+
         let length: usize = (end.timestamp() - start.timestamp())
             .div_euclid(step.duration().num_seconds())
             .try_into()
@@ -102,6 +104,7 @@ impl RegularTimeGrid {
             }
             .into());
         }
+        check_datetime_multiple_step(*dt, self.step)?;
         match usize::try_from(
             (*dt - self.start).num_seconds() / self.step.duration().num_seconds(),
         ) {
