@@ -19,12 +19,6 @@ pub enum TimeGridError {
         dt: DateTime<Utc>,
         step: MinuteGranularity,
     },
-
-    EndDateTimeOverFlow {
-        start: DateTime<Utc>,
-        step: MinuteGranularity,
-        length: i32,
-    },
     EndBeforeStart {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
@@ -69,10 +63,7 @@ impl RegularTimeGrid {
         length: usize,
     ) -> crate::Result<Self> {
         check_datetime_multiple_step(start, step)?;
-        let length_int = i32::try_from(length).map_err(TimeGridError::from)?;
-        let end = start.checked_add_signed(*step.duration() * (length_int - 1)).ok_or(
-            TimeGridError::EndDateTimeOverFlow { start, step, length: length_int },
-        )?;
+        let end = start + *step.duration() * (length as i32 - 1);
         check_datetime_multiple_step(end, step)?;
         Ok(RegularTimeGrid { start, step, length, end })
     }
@@ -115,5 +106,9 @@ impl RegularTimeGrid {
             }
         }
     }
+    pub fn iter(&self) -> impl Iterator<Item = DateTime<Utc>> {
+        (0..=self.length).map(|i| self.start + *self.step.duration() * i as i32)
+    }
 }
+
 // endregion: Regular Grid Struct and Traits
