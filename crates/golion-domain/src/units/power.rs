@@ -1,10 +1,9 @@
-use crate::serde_type;
 use chrono::Duration;
 use derive_more::{Add, From, Into};
 // region: Power Units
-serde_type! {
+
 #[derive(PartialEq, From, Add, Into, Debug, Clone, Copy)]
-pub struct KiloWatt(pub f64);}
+pub struct KiloWatt(pub f64);
 
 #[derive(PartialEq, From, Add, Into, Debug, Clone, Copy)]
 pub struct MegaWatt(pub f64);

@@ -1,43 +1,17 @@
 /// Different type asset definition.
 use super::availability::{GeneratorAvailability, StorageAvailability};
+use super::identification::AssetIdentification;
 use super::specifications::{BessSpecs, CcgtSpecs, RenewableSpecs};
 use crate::market::choice::MarketChoice;
+use crate::market::commitments::{AncillaryCommitments, WholesaleCommitments};
 use garde::Validate;
 use golion_domain::asset::bess::availability::Availability;
 use golion_domain::asset::bess::limits::{BessLimits, SocRange};
 use golion_domain::temporal::series::TimeSeries;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
-use uuid::Uuid;
-
-// region: Asset Identification
-#[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder)]
-pub struct AssetIdentification {
-    /// The asset unique identification.
-    #[builder(default=Uuid::new_v4())]
-    #[garde(skip)]
-    pub asset_id: Uuid,
-    /// The connection point identification which will serve
-    /// as a grouping to model grid facing limitations/constraints.
-    #[builder(default=Uuid::new_v4())]
-    #[garde(skip)]
-    pub connection_point_id: Uuid,
-    /// The balancing service provider id which will serve as a grouping
-    /// to model ancillary services facing interface. (FCR, aFRR, mFRR)
-    #[builder(default=Uuid::new_v4())]
-    #[garde(skip)]
-    pub bsp_id: Uuid,
-
-    /// The balancing role party id which will serve as a grouping
-    /// to model imbalance facing interface.(Day ahead, intraday ,imbalance)
-    #[builder(default=Uuid::new_v4())]
-    #[garde(skip)]
-    pub brp_id: Uuid,
-}
-// endregion: Asset Identification
 
 // region: All asset types' physical input data.
-
 /// Bess system representing a
 /// unit on which we can collect scada data.
 #[derive(Debug, Validate, Serialize, Deserialize, TypedBuilder)]
@@ -55,6 +29,10 @@ pub struct BessData {
     /// Market configuration and corresponding data.
     #[garde(skip)]
     pub market_choices: Vec<MarketChoice>,
+    #[garde(skip)]
+    pub ancillary_commitments: AncillaryCommitments,
+    #[garde(skip)]
+    pub wholesale_commitments: WholesaleCommitments,
 }
 
 /// Combined Cycle Gas Turbine unit on which we can collect scada
@@ -68,13 +46,17 @@ pub struct GasTurbineData {
 
     #[garde(dive)]
     /// The declared future availability level of the CCGT
-    pub availability: GeneratorAvailability,
+    pub availability: Vec<GeneratorAvailability>,
     /// Physical specification for Gas Turbine
     #[garde(dive)]
     pub specs: CcgtSpecs,
     /// Market configuration and corresponding data.
     #[garde(skip)]
     pub market_choices: Vec<MarketChoice>,
+    #[garde(skip)]
+    pub ancillary_commitments: AncillaryCommitments,
+    #[garde(skip)]
+    pub wholesale_commitments: WholesaleCommitments,
 }
 
 /// Renewable Asset unit on which we can collect scada data.
@@ -94,6 +76,10 @@ pub struct RenewableData {
     /// Market configuration and corresponding data.
     #[garde(skip)]
     pub market_choices: Vec<MarketChoice>,
+    #[garde(skip)]
+    pub ancillary_commitments: AncillaryCommitments,
+    #[garde(skip)]
+    pub wholesale_commitments: WholesaleCommitments,
 }
 // endregion: All asset types' physical input data.
 
@@ -103,32 +89,43 @@ pub struct RenewableData {
 /// # Examples
 ///
 /// ```
-/// use golion_contract::asset::availability::StorageAvailability;
-/// use golion_contract::asset::core::{AssetData, BessData, AssetIdentification};
-/// use golion_contract::asset::specifications::BessSpecs;
-/// use golion_domain::{market::market_type::WholesaleMarketType,countries::Countries};
-/// use golion_contract::market::choice::MarketChoice;
+/// use std::collections::HashMap;
+///
 /// use chrono::Utc;
+/// use golion_contract::asset::availability::StorageAvailability;
+/// use golion_contract::asset::core::{AssetData, BessData};
+/// use golion_contract::asset::identification::AssetIdentification;
+/// use golion_contract::asset::specifications::BessSpecs;
+/// use golion_contract::market::choice::MarketChoice;
+/// use golion_contract::market::commitments::WholesaleCommitment;
+/// use golion_domain::countries::Countries;
+/// use golion_domain::market::market_type::WholesaleMarketType;
+///
 /// let market_choice = MarketChoice::WholeSaleChoice {
-///             market: WholesaleMarketType::SpotDayAhead,
-///             country: Countries::FR,
-///         };
+///     market: WholesaleMarketType::SpotDayAhead,
+///     country: Countries::FR,
+/// };
 /// let availability = vec![
 ///     StorageAvailability::builder()
 ///         .start_at(Utc::now())
 ///         .max_charge_power(20.0)
 ///         .max_discharge_power(20.0)
 ///         .max_usable_energy(100.0)
-///         .build()
+///         .build(),
 /// ];
+/// let wholesale_commitments = HashMap::from([(
+///     WholesaleMarketType::SpotDayAhead,
+///     vec![WholesaleCommitment::builder().start_at(Utc::now()).net_position(10.0).build()],
+/// )]);
 /// let asset = AssetData::Bess(
 ///     BessData::builder()
-///         .availability(availability
-///         )
+///         .availability(availability)
 ///         .specs(BessSpecs::builder().build())
 ///         .identification(AssetIdentification::builder().build())
 ///         .market_choices(vec![market_choice])
-///         .build()
+///         .wholesale_commitments(wholesale_commitments)
+///         .ancillary_commitments(HashMap::new())
+///         .build(),
 /// );
 /// ```
 #[derive(Debug, Serialize, Deserialize, Validate)]
