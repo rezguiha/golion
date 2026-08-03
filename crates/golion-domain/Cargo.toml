@@ -4,13 +4,10 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-serde = { version = "1.0.228", features = ["derive"], optional = true }
+serde = { version = "1.0.228", features = ["derive"]}
 derive_more = { version = "2", features = ["full"] }
 chrono = "0.4.44"
 thiserror = "2.0.18"
-
-[features]
-serde = ["dep:serde"]
 
 [lints]
 workspace = true

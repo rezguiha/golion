@@ -1,17 +1,16 @@
 /// Granularity in minutes struct represents the possible
 /// allowed values of steps to have in timeseries.
-use crate::serde_type;
 use chrono::Duration;
 use derive_more::{Display, From};
 // region: Time Granularity
-serde_type! {
+
 #[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
 pub struct MinuteGranularity(Duration);
 // Made the Duration attribute private to force
 // during use the usage of the try_from method
 // to validate values and omit other ways of creation
 // that may bypass it.
-}
+
 impl MinuteGranularity {
     pub fn duration(&self) -> &Duration {
         &self.0

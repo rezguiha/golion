@@ -1,42 +1,36 @@
-use crate::serde_type;
+use serde::{Deserialize, Serialize};
 // region: Market types
-serde_type! {
-    #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-    pub enum WholesaleMarketType {
-        SpotDayAhead,
-        IntradayAuction,
-        IntradayContinuous,
-    }
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WholesaleMarketType {
+    SpotDayAhead,
+    IntradayAuction,
+    IntradayContinuous,
 }
 
-serde_type! {
-    #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-    pub enum CertifiedAncillaryMarketType {
-        Afrr,
-        Fcr,
-    }
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CertifiedAncillaryMarketType {
+    Afrr,
+    Fcr,
 }
 
-serde_type! {
-    #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-    pub enum UncertifiedAncillaryMarketType {
-        AfrrFree,
-    }
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UncertifiedAncillaryMarketType {
+    AfrrFree,
 }
 
-serde_type! {
-    #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-    pub enum AncillaryMarketType {
-        Certified(CertifiedAncillaryMarketType),
-        Uncertified(UncertifiedAncillaryMarketType),
-    }
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum AncillaryMarketType {
+    Certified(CertifiedAncillaryMarketType),
+    Uncertified(UncertifiedAncillaryMarketType),
 }
 
-serde_type! {
-    #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-    pub enum MarketType {
-        WholeSale(WholesaleMarketType),
-        Ancillary(AncillaryMarketType),
-    }
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum MarketType {
+    WholeSale(WholesaleMarketType),
+    Ancillary(AncillaryMarketType),
 }
+
 // endregion: Market types

@@ -2,14 +2,17 @@ use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
 use golion_contract::asset::{
     availability::StorageAvailability,
-    core::{AssetData, AssetIdentification, BessData},
+    core::{AssetData, BessData},
+    identification::AssetIdentification,
     specifications::BessSpecs,
 };
 use golion_contract::market::choice::MarketChoice;
+use golion_contract::market::commitments::{AncillaryCommitment, WholesaleCommitment};
 use golion_domain::countries::Countries;
 use golion_domain::market::market_type::{
-    UncertifiedAncillaryMarketType, WholesaleMarketType,
+    AncillaryMarketType, UncertifiedAncillaryMarketType, WholesaleMarketType,
 };
+use std::collections::HashMap;
 /// Temporary simple test of sending assetdata as a payload
 /// on optimize endpoint.
 #[tokio::test]
@@ -44,12 +47,40 @@ async fn test_optimize_bess() -> Result<()> {
                 .build()
         })
         .collect();
+
+    let ancillary_commitments = HashMap::from([(
+        AncillaryMarketType::Uncertified(UncertifiedAncillaryMarketType::AfrrFree),
+        timestamps
+            .iter()
+            .map(|t| {
+                AncillaryCommitment::builder()
+                    .start_at(t.to_utc())
+                    .upward_power(10.0)
+                    .downward_power(10.0)
+                    .build()
+            })
+            .collect(),
+    )]);
+    let wholesale_commitments = HashMap::from([(
+        WholesaleMarketType::IntradayAuction,
+        timestamps
+            .iter()
+            .map(|t| {
+                WholesaleCommitment::builder()
+                    .start_at(t.to_utc())
+                    .net_position(2.6)
+                    .build()
+            })
+            .collect(),
+    )]);
     let asset = AssetData::Bess(
         BessData::builder()
             .availability(availability)
             .specs(BessSpecs::builder().build())
             .identification(AssetIdentification::builder().build())
             .market_choices(market_choices)
+            .ancillary_commitments(ancillary_commitments)
+            .wholesale_commitments(wholesale_commitments)
             .build(),
     );
 
