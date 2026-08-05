@@ -1,30 +1,19 @@
 /// Market Revenue Series
 use chrono::{DateTime, Utc};
 use garde::Validate;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
-
-/// Symmetric revenue series. This concerns wholesale markets
-/// where buy and sell prices are the same.
-/// For example:
-///     - spot day ahead
-///     - intraday auction 1,2,3
-#[derive(Debug, Deserialize, Validate, TypedBuilder)]
-pub struct SymmetricSeries {
-    /// Reference datetime for future estimated revenue.
-    #[garde(skip)]
-    pub start_at: DateTime<Utc>,
-    /// Forecasted market price in €/kWh
-    #[garde(skip)]
-    pub price: f64,
-}
-
-/// Asymmetric revenue series. This concerns wholesale markets
-/// where buy and sell prices/revenue are  not the same.
+/// Wholesale revenue series.
 /// For example:
 ///     -spot intraday continuous
-#[derive(Debug, Deserialize, Validate, TypedBuilder)]
-pub struct AsymmetricSeries {
+///     - spot day ahead
+///     - intraday auction 1,2,3
+/// In markets where we have same price for sell and buy.
+/// These might be equal. Even in that case, someone might
+/// add a sell and buy margin to simulate the price you are going
+/// to go under or upper to execute the trade.
+#[derive(Debug, Deserialize, Serialize, Validate, TypedBuilder)]
+pub struct SimplifiedWholesaleRevenue {
     /// Reference datetime for future estimated revenue.
     #[garde(skip)]
     pub start_at: DateTime<Utc>,
@@ -42,8 +31,8 @@ pub struct AsymmetricSeries {
 ///     - aFRR free bidding
 ///     - aFRR capacity bidding
 ///     - FCR
-#[derive(Debug, Deserialize, Validate, TypedBuilder)]
-pub struct SimplifiedAncillarySeries {
+#[derive(Debug, Deserialize, Serialize, Validate, TypedBuilder)]
+pub struct SimplifiedAncillaryRevenue {
     /// Reference datetime for future estimated revenue.
     #[garde(skip)]
     pub start_at: DateTime<Utc>,
@@ -55,7 +44,22 @@ pub struct SimplifiedAncillarySeries {
     pub buy_revenue: f64,
 }
 
-// Several revenue series will be defined here later on
-// one for aFRR energy free bidding which is an energy part ancillary
-// bidding.
-// One for capacity auctions like aFRR capacicty and one for FCR markets
+/// A mapping between markets and their corresponding data
+/// models. An enum on market type has been chosen as ground
+/// work to potentially having different revenue structs depending
+/// on each market. This could be simplified later on if project
+/// does not evolve in that direction.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "market")]
+pub enum AncillaryRevenueSeries {
+    Afrr(Vec<SimplifiedAncillaryRevenue>),
+    Fcr(Vec<SimplifiedAncillaryRevenue>),
+    AfrrFree(Vec<SimplifiedAncillaryRevenue>),
+}
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "market")]
+pub enum WholeSaleRevenueSeries {
+    SpotDayAhead(Vec<SimplifiedAncillaryRevenue>),
+    IntradayAuction(Vec<SimplifiedAncillaryRevenue>),
+    IntradayContinuous(Vec<SimplifiedAncillaryRevenue>),
+}
