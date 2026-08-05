@@ -1,4 +1,5 @@
 use crate::asset::core::AssetData;
+use crate::market::revenue::{AncillaryRevenueSeries, WholeSaleRevenueSeries};
 use chrono::{DateTime, TimeDelta, Utc};
 use golion_domain::temporal::{grid::RegularTimeGrid, step::MinuteGranularity};
 use serde::{Deserialize, Serialize};
@@ -10,6 +11,8 @@ pub struct OptimizationInput {
     optimization_end_at: DateTime<Utc>,
     optimization_granularity: TimeDelta,
     assets: Vec<AssetData>,
+    ancillary_markets: Vec<AncillaryRevenueSeries>,
+    wholesale_markets: Vec<WholeSaleRevenueSeries>,
 }
 // region: Domain Conversions.
 impl TryFrom<OptimizationInput> for RegularTimeGrid {
