@@ -10,7 +10,7 @@ use golion_contract::market::choice::MarketChoice;
 use golion_contract::market::commitments::{AncillaryCommitment, WholesaleCommitment};
 use golion_domain::countries::Countries;
 use golion_domain::market::market_type::{
-    AncillaryMarketType, UncertifiedAncillaryMarketType, WholesaleMarketType,
+    AncillaryMarketType, EnergyAncillaryMarketType, WholesaleMarketType,
 };
 use std::collections::HashMap;
 /// Temporary simple test of sending assetdata as a payload
@@ -31,8 +31,8 @@ async fn test_optimize_bess() -> Result<()> {
             market: WholesaleMarketType::SpotDayAhead,
             country: Countries::FR,
         },
-        MarketChoice::UncertifiedAncillaryChoice {
-            market: UncertifiedAncillaryMarketType::AfrrFree,
+        MarketChoice::EnergyAncillaryChoice {
+            market: EnergyAncillaryMarketType::AfrrFree,
             country: Countries::BE,
         },
     ];
@@ -49,7 +49,7 @@ async fn test_optimize_bess() -> Result<()> {
         .collect();
 
     let ancillary_commitments = HashMap::from([(
-        AncillaryMarketType::Uncertified(UncertifiedAncillaryMarketType::AfrrFree),
+        AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
         timestamps
             .iter()
             .map(|t| {
