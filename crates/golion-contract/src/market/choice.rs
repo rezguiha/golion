@@ -2,7 +2,7 @@ use super::certification::CertifiedEnvelope;
 use golion_domain::countries::Countries;
 /// Definition of market choices for assets and their inputs.
 use golion_domain::market::market_type::{
-    CertifiedAncillaryMarketType, UncertifiedAncillaryMarketType, WholesaleMarketType,
+    CapacityAncillaryMarketType, EnergyAncillaryMarketType, WholesaleMarketType,
 };
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
@@ -11,13 +11,13 @@ pub enum MarketChoice {
         market: WholesaleMarketType,
         country: Countries,
     },
-    CertifiedAncillaryChoice {
-        market: CertifiedAncillaryMarketType,
+    CapacityAncillaryChoice {
+        market: CapacityAncillaryMarketType,
         country: Countries,
         certified: CertifiedEnvelope,
     },
-    UncertifiedAncillaryChoice {
-        market: UncertifiedAncillaryMarketType,
+    EnergyAncillaryChoice {
+        market: EnergyAncillaryMarketType,
         country: Countries,
     },
 }
