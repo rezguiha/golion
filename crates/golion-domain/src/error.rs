@@ -1,6 +1,6 @@
 use super::temporal::grid::TimeGridError;
 use super::temporal::series::TimeSeriesError;
-use super::temporal::step::InvalidGranularity;
+use super::temporal::step::MinuteStepError;
 use super::units::efficiency::InvalidEfficiency;
 use super::units::soc::InvalidSocFraction;
 use derive_more::From;
@@ -12,7 +12,7 @@ pub enum Error {
     #[from]
     TimeSeries(TimeSeriesError),
     #[from]
-    Step(InvalidGranularity),
+    Step(MinuteStepError),
     #[from]
     SOC(InvalidSocFraction),
     #[from]
