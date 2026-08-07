@@ -1,4 +1,4 @@
-use super::step::MinuteGranularity;
+use super::step::{MinuteStep, MinuteStepError};
 /// Regular time grid definition that encapsulates
 /// the time related logic that enables us to have
 /// a computation of the index a particular row
@@ -17,16 +17,14 @@ pub enum TimeGridError {
     },
     MissAlignedDatetime {
         dt: DateTime<Utc>,
-        step: MinuteGranularity,
+        step: MinuteStep,
     },
     EndBeforeStart {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     },
-    DatetimeNonMultipleOfStep {
-        dt: DateTime<Utc>,
-        step: MinuteGranularity,
-    },
+    #[from]
+    StepError(MinuteStepError),
     #[from]
     LengthOverFlow(std::num::TryFromIntError),
 }
@@ -39,44 +37,34 @@ pub struct RegularTimeGrid {
     /// First timestamp of timeseries.
     pub start: DateTime<Utc>,
     /// Granularity of timeseries.
-    pub step: MinuteGranularity,
+    pub step: MinuteStep,
     /// Length of timeseries.
     pub length: usize,
     /// Computed end of timeseries.
     pub end: DateTime<Utc>,
 }
 
-fn check_datetime_multiple_step(
-    dt: DateTime<Utc>,
-    step: MinuteGranularity,
-) -> Result<(), TimeGridError> {
-    match dt.timestamp().rem_euclid(step.duration().num_seconds()) {
-        0 => Ok(()),
-        _ => Err(TimeGridError::DatetimeNonMultipleOfStep { dt, step }),
-    }
-}
-
 impl RegularTimeGrid {
     pub fn try_new(
         start: DateTime<Utc>,
-        step: MinuteGranularity,
+        step: MinuteStep,
         length: usize,
     ) -> crate::Result<Self> {
-        check_datetime_multiple_step(start, step)?;
+        step.check_datetime_multiple_step(start)?;
         let end = start + *step.duration() * (length as i32 - 1);
-        check_datetime_multiple_step(end, step)?;
+        step.check_datetime_multiple_step(end)?;
         Ok(RegularTimeGrid { start, step, length, end })
     }
     pub fn try_new_start_end(
         start: DateTime<Utc>,
-        step: MinuteGranularity,
+        step: MinuteStep,
         end: DateTime<Utc>,
     ) -> crate::Result<Self> {
         if end <= start {
             return Err(TimeGridError::EndBeforeStart { start, end }.into());
         }
-        check_datetime_multiple_step(start, step)?;
-        check_datetime_multiple_step(end, step)?;
+        step.check_datetime_multiple_step(start)?;
+        step.check_datetime_multiple_step(end)?;
 
         let length: usize = (end.timestamp() - start.timestamp())
             .div_euclid(step.duration().num_seconds())
@@ -95,7 +83,7 @@ impl RegularTimeGrid {
             }
             .into());
         }
-        check_datetime_multiple_step(*dt, self.step)?;
+        self.step.check_datetime_multiple_step(*dt)?;
         match usize::try_from(
             (*dt - self.start).num_seconds() / self.step.duration().num_seconds(),
         ) {

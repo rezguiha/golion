@@ -1,7 +1,7 @@
 use crate::asset::core::AssetData;
 use crate::market::revenue::{AncillaryRevenueSeries, WholeSaleRevenueSeries};
 use chrono::{DateTime, TimeDelta, Utc};
-use golion_domain::temporal::{grid::RegularTimeGrid, step::MinuteGranularity};
+use golion_domain::temporal::{grid::RegularTimeGrid, step::MinuteStep};
 use serde::{Deserialize, Serialize};
 
 /// Optimization full payload struct.
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub struct OptimizationInput {
     optimization_start_at: DateTime<Utc>,
     optimization_end_at: DateTime<Utc>,
-    optimization_granularity: TimeDelta,
+    optimization_step: TimeDelta,
     assets: Vec<AssetData>,
     ancillary_markets: Vec<AncillaryRevenueSeries>,
     wholesale_markets: Vec<WholeSaleRevenueSeries>,
@@ -18,7 +18,7 @@ pub struct OptimizationInput {
 impl TryFrom<OptimizationInput> for RegularTimeGrid {
     type Error = crate::Error;
     fn try_from(value: OptimizationInput) -> crate::Result<Self> {
-        let step: MinuteGranularity = value.optimization_granularity.try_into()?;
+        let step: MinuteStep = value.optimization_step.try_into()?;
         let grid = RegularTimeGrid::try_new_start_end(
             value.optimization_start_at,
             step,
