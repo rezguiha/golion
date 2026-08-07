@@ -3,14 +3,14 @@ use crate::Result;
 use crate::physical::variables::{BessVariableCreator, BessVariables};
 use chrono::{DateTime, Utc};
 use golion_domain::temporal::series::TimeSeries;
-use golion_domain::temporal::step::MinuteGranularity;
+use golion_domain::temporal::step::MinuteStep;
 use golion_domain::units::efficiency::Efficiency;
 use golion_domain::units::power::KiloWattHour;
 use good_lp::{Constraint, Expression, ProblemVariables};
 // region: Battery Definition
 pub struct Battery {
     initial_soc: KiloWattHour,
-    granularity: MinuteGranularity,
+    step: MinuteStep,
     variable_store: TimeSeries<BessVariables>,
     constraints: Vec<Constraint>,
 }
@@ -22,7 +22,7 @@ impl Battery {
         charge_efficiency: &Efficiency,
         discharge_efficiency: &Efficiency,
         initial_soc: KiloWattHour,
-        granularity: MinuteGranularity,
+        step: MinuteStep,
         limits: B,
     ) -> Result<Self> {
         let time_index_length = time_index.len();
@@ -43,7 +43,7 @@ impl Battery {
             constraints.push(transition_constraint(
                 &variables_at,
                 prev_soc,
-                &granularity,
+                &step,
                 charge_efficiency,
                 discharge_efficiency,
             ));
@@ -51,7 +51,7 @@ impl Battery {
         }
         let variable_store: TimeSeries<BessVariables> = variable_vec.try_into()?;
 
-        Ok(Self { initial_soc, granularity, variable_store, constraints })
+        Ok(Self { initial_soc, step, variable_store, constraints })
     }
 }
 // endregion: Battery Definition
@@ -64,22 +64,21 @@ mod tests {
     use golion_domain::asset::bess::limits::{BessLimits, SocRange};
     use golion_domain::temporal::grid::RegularTimeGrid;
     use golion_domain::temporal::series::TimeSeries;
-    use golion_domain::temporal::step::MinuteGranularity;
+    use golion_domain::temporal::step::MinuteStep;
     use golion_domain::units::efficiency::Efficiency;
     use golion_domain::units::power::{KiloWatt, KiloWattHour};
     use good_lp::ProblemVariables;
 
     #[test]
     fn build_battery_over_four_slots() {
-        // 4 slots at 15-minute granularity.
-        let granularity = MinuteGranularity::try_from(Duration::minutes(15)).unwrap();
-        let start_at = Utc::now().duration_round(*granularity.duration()).unwrap();
+        // 4 slots at 15-minute step.
+        let step = MinuteStep::try_from(Duration::minutes(15)).unwrap();
+        let start_at = Utc::now().duration_round(*step.duration()).unwrap();
         let time_index: Vec<DateTime<Utc>> =
-            (0..4).map(|i| start_at + *granularity.duration() * i).collect();
+            (0..4).map(|i| start_at + *step.duration() * i).collect();
 
         // One availability point per slot (Availability is Copy).
-        let grid =
-            RegularTimeGrid::try_new(start_at, granularity, time_index.len()).unwrap();
+        let grid = RegularTimeGrid::try_new(start_at, step, time_index.len()).unwrap();
         let data = vec![
             Availability {
                 max_charge_power: KiloWatt(50.0),
@@ -107,7 +106,7 @@ mod tests {
             &charge_efficiency,
             &discharge_efficiency,
             KiloWattHour(20.0),
-            granularity,
+            step,
             limits,
         )
         .expect("battery construction should succeed");
