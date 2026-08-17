@@ -1,10 +1,9 @@
 /// Availability structs definition.
-use chrono::{DateTime, Utc};
 use garde::Validate;
 use golion_domain::temporal::series::TimeStampedUtc;
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
-
 type DomainBessAvailability = golion_domain::asset::bess::availability::Availability;
 // region: Availability structs
 /// Storage unit availability that can both charge and discharge.
@@ -13,7 +12,7 @@ type DomainBessAvailability = golion_domain::asset::bess::availability::Availabi
 pub struct StorageAvailability {
     /// Reference datetime for future declared availability.
     #[garde(skip)]
-    pub start_at: DateTime<Utc>,
+    pub start_at: Timestamp,
     /// Maximum charge power with grid convention expressed in kW.
     #[garde(range(min = 0.0))]
     pub max_charge_power: f64,
@@ -32,7 +31,7 @@ pub struct StorageAvailability {
 pub struct GeneratorAvailability {
     /// Reference datetime for future declared availability.
     #[garde(skip)]
-    pub start_at: DateTime<Utc>,
+    pub start_at: Timestamp,
     /// Maximum output power with grid convention expressed in kW.
     #[garde(range(min = 0.0))]
     pub max_output_power: f64,
@@ -57,7 +56,7 @@ impl From<&StorageAvailability> for DomainBessAvailability {
 }
 
 impl TimeStampedUtc for StorageAvailability {
-    fn start_at(&self) -> &DateTime<Utc> {
+    fn start_at(&self) -> &Timestamp {
         &self.start_at
     }
 }

@@ -1,12 +1,12 @@
 use super::soc::transition_constraint;
 use crate::Result;
 use crate::physical::variables::{BessVariableCreator, BessVariables};
-use chrono::{DateTime, Utc};
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
 use golion_domain::units::efficiency::Efficiency;
 use golion_domain::units::power::KiloWattHour;
 use good_lp::{Constraint, Expression, ProblemVariables};
+use jiff::Timestamp;
 // region: Battery Definition
 pub struct Battery {
     initial_soc: KiloWattHour,
@@ -17,7 +17,7 @@ pub struct Battery {
 
 impl Battery {
     pub fn new<B: BessVariableCreator>(
-        time_index: &[DateTime<Utc>],
+        time_index: &[Timestamp],
         vars: &mut ProblemVariables,
         charge_efficiency: &Efficiency,
         discharge_efficiency: &Efficiency,
@@ -59,7 +59,6 @@ impl Battery {
 #[cfg(test)]
 mod tests {
     use super::Battery;
-    use chrono::{DateTime, Duration, DurationRound, Utc};
     use golion_domain::asset::bess::availability::Availability;
     use golion_domain::asset::bess::limits::{BessLimits, SocRange};
     use golion_domain::temporal::grid::RegularTimeGrid;
@@ -68,13 +67,15 @@ mod tests {
     use golion_domain::units::efficiency::Efficiency;
     use golion_domain::units::power::{KiloWatt, KiloWattHour};
     use good_lp::ProblemVariables;
+    use jiff::{SignedDuration, Timestamp, Unit};
 
     #[test]
     fn build_battery_over_four_slots() {
         // 4 slots at 15-minute step.
-        let step = MinuteStep::try_from(Duration::minutes(15)).unwrap();
-        let start_at = Utc::now().duration_round(*step.duration()).unwrap();
-        let time_index: Vec<DateTime<Utc>> =
+        let step = MinuteStep::try_from(SignedDuration::from_mins(15)).unwrap();
+        let start_at =
+            Timestamp::now().round((Unit::Minute, step.duration().as_mins())).unwrap();
+        let time_index: Vec<Timestamp> =
             (0..4).map(|i| start_at + *step.duration() * i).collect();
 
         // One availability point per slot (Availability is Copy).

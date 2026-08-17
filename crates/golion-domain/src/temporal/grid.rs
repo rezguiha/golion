@@ -4,24 +4,25 @@ use super::step::{MinuteStep, MinuteStepError};
 /// a computation of the index a particular row
 /// without the need of using a hashmap or binary
 /// search on a timestamp index.
-use chrono::{DateTime, Utc};
 use derive_more::From;
+use jiff::{Span, Timestamp};
+
 // region: Regular Grid Errors
 
 #[derive(Debug, From)]
 pub enum TimeGridError {
     OutsideBounds {
-        dt: DateTime<Utc>,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        dt: Timestamp,
+        start: Timestamp,
+        end: Timestamp,
     },
     MissAlignedDatetime {
-        dt: DateTime<Utc>,
+        dt: Timestamp,
         step: MinuteStep,
     },
     EndBeforeStart {
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        start: Timestamp,
+        end: Timestamp,
     },
     #[from]
     StepError(MinuteStepError),
@@ -35,18 +36,18 @@ pub enum TimeGridError {
 #[derive(Debug)]
 pub struct RegularTimeGrid {
     /// First timestamp of timeseries.
-    pub start: DateTime<Utc>,
+    pub start: Timestamp,
     /// Granularity of timeseries.
     pub step: MinuteStep,
     /// Length of timeseries.
     pub length: usize,
     /// Computed end of timeseries.
-    pub end: DateTime<Utc>,
+    pub end: Timestamp,
 }
 
 impl RegularTimeGrid {
     pub fn try_new(
-        start: DateTime<Utc>,
+        start: Timestamp,
         step: MinuteStep,
         length: usize,
     ) -> crate::Result<Self> {
@@ -56,9 +57,9 @@ impl RegularTimeGrid {
         Ok(RegularTimeGrid { start, step, length, end })
     }
     pub fn try_new_start_end(
-        start: DateTime<Utc>,
+        start: Timestamp,
         step: MinuteStep,
-        end: DateTime<Utc>,
+        end: Timestamp,
     ) -> crate::Result<Self> {
         if end <= start {
             return Err(TimeGridError::EndBeforeStart { start, end }.into());
@@ -66,15 +67,16 @@ impl RegularTimeGrid {
         step.check_datetime_multiple_step(start)?;
         step.check_datetime_multiple_step(end)?;
 
-        let length: usize = (end.timestamp() - start.timestamp())
-            .div_euclid(step.duration().num_seconds())
+        let length: usize = (end.duration_since(start))
+            .as_secs()
+            .div_euclid(step.duration().as_secs())
             .try_into()
             .map_err(TimeGridError::from)?;
 
         Ok(RegularTimeGrid { start, step, length, end })
     }
 
-    pub fn index_of(&self, dt: &DateTime<Utc>) -> crate::Result<usize> {
+    pub fn index_of(&self, dt: &Timestamp) -> crate::Result<usize> {
         if (*dt < self.start) | (*dt > self.end) {
             return Err(TimeGridError::OutsideBounds {
                 dt: *dt,
@@ -85,7 +87,7 @@ impl RegularTimeGrid {
         }
         self.step.check_datetime_multiple_step(*dt)?;
         match usize::try_from(
-            (*dt - self.start).num_seconds() / self.step.duration().num_seconds(),
+            (dt.duration_since(self.start)).as_secs() / self.step.duration().as_secs(),
         ) {
             Ok(index) => Ok(index),
             Err(_) => {
@@ -94,8 +96,11 @@ impl RegularTimeGrid {
             }
         }
     }
-    pub fn iter(&self) -> impl Iterator<Item = DateTime<Utc>> {
-        (0..=self.length).map(|i| self.start + *self.step.duration() * i as i32)
+    pub fn iter(&self) -> crate::Result<impl Iterator<Item = Timestamp>> {
+        let span = Span::try_from(*self.step.duration())
+            .map_err(MinuteStepError::JiffConversionError)?;
+
+        Ok(self.start.series(span).take_while(|dt| dt <= &self.end))
     }
 }
 

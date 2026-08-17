@@ -1,5 +1,4 @@
 use anyhow::Result;
-use chrono::{DateTime, Duration, Utc};
 use golion_contract::asset::{
     availability::StorageAvailability,
     core::{AssetData, BessData},
@@ -12,6 +11,7 @@ use golion_domain::countries::Countries;
 use golion_domain::market::market_type::{
     AncillaryMarketType, EnergyAncillaryMarketType, WholesaleMarketType,
 };
+use jiff::{SignedDuration, Timestamp};
 use std::collections::HashMap;
 /// Temporary simple test of sending assetdata as a payload
 /// on optimize endpoint.
@@ -21,9 +21,9 @@ async fn test_optimize_bess() -> Result<()> {
 
     // 3 days of 15-minute slots = 288 periods
     let n = 3 * 24 * 4;
-    let start = Utc::now();
-    let timestamps: Vec<DateTime<Utc>> =
-        std::iter::successors(Some(start), |t| Some(*t + Duration::minutes(15)))
+    let start = Timestamp::now();
+    let timestamps: Vec<Timestamp> =
+        std::iter::successors(Some(start), |t| Some(*t + SignedDuration::from_mins(15)))
             .take(n)
             .collect();
     let market_choices = vec![
@@ -40,7 +40,7 @@ async fn test_optimize_bess() -> Result<()> {
         .iter()
         .map(|t| {
             StorageAvailability::builder()
-                .start_at(t.to_utc())
+                .start_at(*t)
                 .max_charge_power(20.0)
                 .max_discharge_power(20.0)
                 .max_usable_energy(100.0)
@@ -54,7 +54,7 @@ async fn test_optimize_bess() -> Result<()> {
             .iter()
             .map(|t| {
                 AncillaryCommitment::builder()
-                    .start_at(t.to_utc())
+                    .start_at(*t)
                     .upward_power(10.0)
                     .downward_power(10.0)
                     .build()
@@ -66,10 +66,7 @@ async fn test_optimize_bess() -> Result<()> {
         timestamps
             .iter()
             .map(|t| {
-                WholesaleCommitment::builder()
-                    .start_at(t.to_utc())
-                    .net_position(2.6)
-                    .build()
+                WholesaleCommitment::builder().start_at(*t).net_position(2.6).build()
             })
             .collect(),
     )]);

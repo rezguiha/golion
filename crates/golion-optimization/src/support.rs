@@ -1,10 +1,10 @@
-/// Support Methods and Definitions for handlers.
-use chrono::Duration;
 use good_lp::{Expression, IntoAffineExpression};
+/// Support Methods and Definitions for handlers.
+use jiff::SignedDuration;
 #[inline]
 pub(crate) fn power_to_energy(
     v: impl IntoAffineExpression,
-    duration: &Duration,
+    duration: &SignedDuration,
 ) -> Expression {
-    (duration.as_seconds_f64() / 3600.0) * v.into_expression()
+    (duration.as_secs_f64() / 3600.0) * v.into_expression()
 }

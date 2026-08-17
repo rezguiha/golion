@@ -91,7 +91,7 @@ pub struct RenewableData {
 /// ```
 /// use std::collections::HashMap;
 ///
-/// use chrono::Utc;
+/// use jiff::Timestamp;
 /// use golion_contract::asset::availability::StorageAvailability;
 /// use golion_contract::asset::core::{AssetData, BessData};
 /// use golion_contract::asset::identification::AssetIdentification;
@@ -107,7 +107,7 @@ pub struct RenewableData {
 /// };
 /// let availability = vec![
 ///     StorageAvailability::builder()
-///         .start_at(Utc::now())
+///         .start_at(Timestamp::now())
 ///         .max_charge_power(20.0)
 ///         .max_discharge_power(20.0)
 ///         .max_usable_energy(100.0)
@@ -115,7 +115,7 @@ pub struct RenewableData {
 /// ];
 /// let wholesale_commitments = HashMap::from([(
 ///     WholesaleMarketType::SpotDayAhead,
-///     vec![WholesaleCommitment::builder().start_at(Utc::now()).net_position(10.0).build()],
+///     vec![WholesaleCommitment::builder().start_at(Timestamp::now()).net_position(10.0).build()],
 /// )]);
 /// let asset = AssetData::Bess(
 ///     BessData::builder()
