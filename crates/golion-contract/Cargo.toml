@@ -4,14 +4,14 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-uuid = { version = "1.23.1", features = ["serde", "v4"] }
+derive_more = { workspace = true }
 garde = { version = "0.22.1", features = ["derive"] }
-serde = { version = "1.0.228", features = ["derive"] }
-golion-domain = { workspace = true}
+golion-domain = { workspace = true }
+jiff = { workspace = true, features = ["serde"] }
+serde = { workspace = true }
 thiserror = "2.0.18"
 typed-builder = "0.23.2"
-derive_more = { version = "2", features = ["full"] }
-jiff = { version = "0.2.35", features = ["serde"] }
+uuid = { version = "1.23.1", features = ["serde", "v4"] }
 
 [lints]
 workspace = true

@@ -9,9 +9,12 @@ rust-version = "1.97.1"
 authors = ["Hamdi Rezgui <hamdi.rezgui.pro@gmail.com>"]
 
 [workspace.dependencies]
-golion-domain = { path = "crates/golion-domain", version = "0.0.0" }
+derive_more = { version = "2", features = ["full"] }
 golion-contract = { path = "crates/golion-contract", version = "0.0.0" }
+golion-domain = { path = "crates/golion-domain", version = "0.0.0" }
 golion-optimization = { path = "crates/golion-optimization", version = "0.0.0" }
+jiff = "0.2.35"
+serde = { version = "1.0.228", features = ["derive"] }
 
 [workspace.lints.rust]
 # Temporarily disable dead code check as we are still
