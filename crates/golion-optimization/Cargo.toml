@@ -4,11 +4,11 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-jiff = "0.2.35"
-uuid = "1.23.1"
+derive_more = { workspace = true }
+golion-domain = { workspace = true }
 good_lp = { version = "1.15.1", features = ["highs"], default-features = false }
-golion-domain = { workspace = true}
-derive_more = { version = "2", features = ["full"] }
+jiff = { workspace = true }
+uuid = "1.23.1"
 
 [lints]
 workspace = true

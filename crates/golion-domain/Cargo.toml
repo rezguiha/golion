@@ -4,10 +4,10 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-serde = { version = "1.0.228", features = ["derive"]}
-derive_more = { version = "2", features = ["full"] }
+derive_more = { workspace = true }
+jiff = { workspace = true }
+serde = { workspace = true }
 thiserror = "2.0.18"
-jiff = "0.2.35"
 
 [lints]
 workspace = true
