@@ -1,6 +1,6 @@
 /// Market Revenue Series
-use chrono::{DateTime, Utc};
 use garde::Validate;
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 /// Wholesale revenue series.
@@ -16,7 +16,7 @@ use typed_builder::TypedBuilder;
 pub struct SimplifiedWholesaleRevenue {
     /// Reference datetime for future estimated revenue.
     #[garde(skip)]
-    pub start_at: DateTime<Utc>,
+    pub start_at: Timestamp,
     /// Forecasted market sell price  in €/kWh
     #[garde(skip)]
     pub sell_price: f64,
@@ -35,7 +35,7 @@ pub struct SimplifiedWholesaleRevenue {
 pub struct SimplifiedAncillaryRevenue {
     /// Reference datetime for future estimated revenue.
     #[garde(skip)]
-    pub start_at: DateTime<Utc>,
+    pub start_at: Timestamp,
     /// Estimated market upward revenue in €/kW.
     #[garde(range(min = 0.0))]
     pub sell_revenue: f64,

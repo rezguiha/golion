@@ -1,17 +1,16 @@
 /// Physical Variables definition.
 /// It includes also their creation trait.
 use crate::Result;
-use chrono::{DateTime, Utc};
-
 use golion_domain::asset::bess::limits::BessLimits;
 use golion_domain::temporal::series::TimeStampedUtc;
 use good_lp::{ProblemVariables, Variable, variable};
+use jiff::Timestamp;
 
 // region: Bess Variables
 /// Bess Variables container with time information
 #[derive(Debug)]
 pub struct BessVariables {
-    pub start_at: DateTime<Utc>,
+    pub start_at: Timestamp,
     pub input_power: Variable,
     pub output_power: Variable,
     pub soc: Variable,
@@ -19,7 +18,7 @@ pub struct BessVariables {
 // Implement TimeStampedUtc to enable creation
 // of TimeSeries<BessVariables> out of Vec<BessVariables>.
 impl TimeStampedUtc for BessVariables {
-    fn start_at(&self) -> &DateTime<Utc> {
+    fn start_at(&self) -> &Timestamp {
         &self.start_at
     }
 }
@@ -30,7 +29,7 @@ impl TimeStampedUtc for BessVariables {
 pub trait BessVariableCreator {
     fn create_variables_at(
         &self,
-        dt: &DateTime<Utc>,
+        dt: &Timestamp,
         variable_generator: &mut ProblemVariables,
     ) -> Result<BessVariables>;
 }
@@ -38,7 +37,7 @@ pub trait BessVariableCreator {
 impl BessVariableCreator for BessLimits {
     fn create_variables_at(
         &self,
-        dt: &DateTime<Utc>,
+        dt: &Timestamp,
         variable_generator: &mut ProblemVariables,
     ) -> Result<BessVariables> {
         let avail_point = self.availability.at(dt)?;

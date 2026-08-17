@@ -6,8 +6,8 @@ edition = "2024"
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"]}
 derive_more = { version = "2", features = ["full"] }
-chrono = "0.4.44"
 thiserror = "2.0.18"
+jiff = "0.2.35"
 
 [lints]
 workspace = true

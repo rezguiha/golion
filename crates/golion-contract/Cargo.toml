@@ -4,7 +4,6 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-chrono = { version = "0.4.44", features = ["serde"] }
 uuid = { version = "1.23.1", features = ["serde", "v4"] }
 garde = { version = "0.22.1", features = ["derive"] }
 serde = { version = "1.0.228", features = ["derive"] }
@@ -12,6 +11,7 @@ golion-domain = { workspace = true}
 thiserror = "2.0.18"
 typed-builder = "0.23.2"
 derive_more = { version = "2", features = ["full"] }
+jiff = { version = "0.2.35", features = ["serde"] }
 
 [lints]
 workspace = true

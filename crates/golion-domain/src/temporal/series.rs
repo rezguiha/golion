@@ -6,14 +6,14 @@
 use super::grid::RegularTimeGrid;
 use super::step::MinuteStep;
 use crate::{Error, Result};
-use chrono::{DateTime, Utc};
 use derive_more::From;
+use jiff::Timestamp;
 // region: TimeSeries Errors
 #[derive(Debug, From)]
 pub enum TimeSeriesError {
     TooShort { length: usize, minimal: i32 },
-    GridEndMismatch { expected: DateTime<Utc>, actual: DateTime<Utc> },
-    MissingValueAtTime { datetime: DateTime<Utc> },
+    GridEndMismatch { expected: Timestamp, actual: Timestamp },
+    MissingValueAtTime { datetime: Timestamp },
 }
 // endregion: TimeSeries Errors
 
@@ -27,7 +27,7 @@ pub struct TimeSeries<T> {
 }
 
 impl<T> TimeSeries<T> {
-    pub fn at(&self, dt: &DateTime<Utc>) -> Result<&T> {
+    pub fn at(&self, dt: &Timestamp) -> Result<&T> {
         let index = self.grid.index_of(dt)?;
         self.data
             .get(index)
@@ -42,7 +42,7 @@ impl<T> TimeSeries<T> {
 /// with no extra transformation on the condition it has some temporal
 /// information in each row it contains.
 pub trait TimeStampedUtc {
-    fn start_at(&self) -> &DateTime<Utc>;
+    fn start_at(&self) -> &Timestamp;
 }
 
 impl<T: TimeStampedUtc> TryFrom<Vec<T>> for TimeSeries<T> {

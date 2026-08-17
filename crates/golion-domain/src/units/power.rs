@@ -1,5 +1,5 @@
-use chrono::Duration;
 use derive_more::{Add, From, Into};
+use jiff::SignedDuration;
 // region: Power Units
 
 #[derive(PartialEq, From, Add, Into, Debug, Clone, Copy)]
@@ -33,20 +33,20 @@ impl From<KiloWattHour> for MegaWattHour {
 
 // region: Power-Energy Conversion
 impl KiloWatt {
-    pub fn to_kwh(&self, duration: Duration) -> KiloWattHour {
-        KiloWattHour(self.0 * duration.as_seconds_f64() / 3600.0)
+    pub fn to_kwh(&self, duration: SignedDuration) -> KiloWattHour {
+        KiloWattHour(self.0 * duration.as_secs_f64() / 3600.0)
     }
-    pub fn to_mwh(&self, duration: Duration) -> MegaWattHour {
+    pub fn to_mwh(&self, duration: SignedDuration) -> MegaWattHour {
         self.to_kwh(duration).into()
     }
 }
 impl MegaWatt {
-    pub fn to_kwh(&self, duration: Duration) -> KiloWattHour {
+    pub fn to_kwh(&self, duration: SignedDuration) -> KiloWattHour {
         let value_kw: KiloWatt = KiloWatt(self.0 * 1000.0);
         value_kw.to_kwh(duration)
     }
-    pub fn to_mwh(&self, duration: Duration) -> MegaWattHour {
-        MegaWattHour(self.0 * duration.as_seconds_f64() / 3600.0)
+    pub fn to_mwh(&self, duration: SignedDuration) -> MegaWattHour {
+        MegaWattHour(self.0 * duration.as_secs_f64() / 3600.0)
     }
 }
 
