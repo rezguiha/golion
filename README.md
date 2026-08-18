@@ -37,7 +37,7 @@ solves how storage, renewables, and thermal generators should participate.
 Install tools:
 
 ```bash
-cargo install cargo install --locked bacon
+cargo install --locked bacon
 cargo install prek
 ```
 
