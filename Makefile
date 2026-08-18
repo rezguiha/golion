@@ -1,12 +1,12 @@
 lint:
-	cargo clippy --all-targets --all-features -- -D warnings
+	bacon clippy
 format:
 	cargo fmt
 test:
-	cargo test --workspace --exclude golion-server
+	bacon test
 
 server:
-	cargo watch -q -c -w crates/ -x run
+	bacon server
 
 test-client:
-	cargo watch -q -c -w crates/golion-server/tests/ -x 'test --package golion-server --test quick_dev -- --nocapture'
+	bacon test-client
