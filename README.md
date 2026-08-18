@@ -31,13 +31,13 @@ solves how storage, renewables, and thermal generators should participate.
 
 ## 🛠️ Prerequisites
 
-- `cargo-watch`
+- `bacon`
 - `prek`
 
 Install tools:
 
 ```bash
-cargo install cargo-watch
+cargo install cargo install --locked bacon
 cargo install prek
 ```
 
