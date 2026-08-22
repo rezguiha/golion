@@ -1,6 +1,8 @@
 use jiff::civil::Time;
 use jiff::tz::TimeZone;
-use jiff::{Span, Timestamp, ToSpan};
+use jiff::{RoundMode, Span, Timestamp, ToSpan, Unit, Zoned, ZonedRound};
+
+use crate::market::bid::BidSpecs;
 // region: Delta in Days
 
 /// This struct is used to represent the time separating auction closure and bidding
@@ -11,6 +13,13 @@ use jiff::{Span, Timestamp, ToSpan};
 
 #[derive(Debug)]
 pub struct DeltaDays(Span);
+
+impl DeltaDays {
+    // Getter method.
+    fn value(&self) -> &Span {
+        &self.0
+    }
+}
 
 #[derive(Debug)]
 pub enum MarketTemporalityError {
@@ -30,7 +39,8 @@ impl TryFrom<Span> for DeltaDays {
 
 // endregion: Delta in Days
 
-// region: Static Auction temporality representation and its structs.
+// region: Static Auction
+
 #[derive(Debug)]
 pub struct TimeDefinedInterval {
     pub start_time: Time,
@@ -90,7 +100,24 @@ impl StaticAuctionTemporality {
     }
 }
 
-// endregion: Static Auction temporality representation and its structs.
+// endregion: Static Auction
+
+// region: Dynamic Auction
+
+#[derive(Debug)]
+pub struct DynamicAuctionTemporality {
+    /// Represents available bidding period.
+    pub bidding_interval: TimeDefinedInterval,
+    /// Represents the minimal time separating
+    /// reference time and the next available bid.
+    /// This may represent liquidity constraints
+    /// on certain markets in certain countries or
+    /// a regulatory constraint like in ancillary services
+    /// about gate opening and closures.
+    pub neutralization_delay: Span,
+    pub timezone: TimeZone,
+}
+// endregion: Dynamic Auction
 
 // region: Bidding Time Boundaries and its trait implementations
 
@@ -109,40 +136,94 @@ pub trait ToBidTimeBounds {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
+        bid_specifications: &BidSpecs,
     ) -> crate::Result<BidTimeBounds>;
 }
 
+/// Convenience method that adds a delta in days and sets the time to the new
+/// zoned datetime.
+fn add_and_set_time(reference: &Zoned, delta: &Span, time: Time) -> crate::Result<Zoned> {
+    let new = reference.checked_add(delta).and_then(|dt| dt.with().time(time).build())?;
+    Ok(new)
+}
 impl ToBidTimeBounds for StaticAuctionTemporality {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
+        bid_specifications: &BidSpecs,
     ) -> crate::Result<BidTimeBounds> {
         // We are using clone here on timezone as it is cheap to clone
         // and to_zoned requires to pass ownership of timezone.
         let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
         let zoned_open_at =
             zoned_reference_time.with().time(self.open_interval.start_time).build()?;
-        // The use of saturating_add is fine here as we can at most add 1 or 2 days.
-        let zoned_close_at = zoned_open_at
-            .saturating_add(self.open_interval.delta_start_end.0)
-            .with()
-            .time(self.open_interval.end_time)
-            .build()?;
-        let zoned_bidding_start = zoned_close_at
-            .saturating_add(self.delta_close_bidding_start.0)
-            .with()
-            .time(self.bidding_interval.start_time)
-            .build()?;
-        let zoned_bidding_end = zoned_bidding_start
-            .saturating_add(self.bidding_interval.delta_start_end.0)
-            .with()
-            .time(self.bidding_interval.end_time)
-            .build()?;
-        Ok(BidTimeBounds {
-            start_at: zoned_bidding_start.into(),
-            end_at: zoned_bidding_end.into(),
-        })
+        let zoned_close_at = add_and_set_time(
+            &zoned_open_at,
+            self.open_interval.delta_start_end.value(),
+            self.open_interval.end_time,
+        )?;
+        let zoned_bidding_start = add_and_set_time(
+            &zoned_close_at,
+            self.delta_close_bidding_start.value(),
+            self.bidding_interval.start_time,
+        )?;
+        let zoned_bidding_end = add_and_set_time(
+            &zoned_bidding_start,
+            self.bidding_interval.delta_start_end.value(),
+            self.bidding_interval.end_time,
+        )?;
+        // Round start_at to next multiple of bid granularity
+        let start_at = zoned_bidding_start.round(
+            ZonedRound::new()
+                .smallest(Unit::Minute)
+                .increment(bid_specifications.step.duration().as_mins())
+                .mode(RoundMode::Expand),
+        )?;
+        // Round end_at to previous multiple of bid granularity
+        // as convention is [start,end[ to be able to fit the last
+        // bid in period.
+        let end_at = zoned_bidding_end.round(
+            ZonedRound::new()
+                .smallest(Unit::Minute)
+                .increment(bid_specifications.step.duration().as_mins())
+                .mode(RoundMode::Trunc),
+        )?;
+        Ok(BidTimeBounds { start_at: start_at.into(), end_at: end_at.into() })
     }
 }
 
+impl ToBidTimeBounds for DynamicAuctionTemporality {
+    fn to_bid_time_bounds(
+        &self,
+        reference_time: &Timestamp,
+        bid_specifications: &BidSpecs,
+    ) -> crate::Result<BidTimeBounds> {
+        let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
+        let zoned_bidding_start = add_and_set_time(
+            &zoned_reference_time,
+            &self.neutralization_delay,
+            self.bidding_interval.start_time,
+        )?;
+        let zoned_bidding_end = add_and_set_time(
+            &zoned_bidding_start,
+            self.bidding_interval.delta_start_end.value(),
+            self.bidding_interval.end_time,
+        )?;
+        // Round to next multiple of bid granularity.
+        let start_at = zoned_bidding_start.round(
+            ZonedRound::new()
+                .smallest(Unit::Minute)
+                .increment(bid_specifications.step.duration().as_mins())
+                .mode(RoundMode::Ceil),
+        )?;
+
+        let end_at = zoned_bidding_end.round(
+            ZonedRound::new()
+                .smallest(Unit::Minute)
+                .increment(bid_specifications.step.duration().as_mins())
+                .mode(RoundMode::Trunc),
+        )?;
+        Ok(BidTimeBounds { start_at: start_at.into(), end_at: end_at.into() })
+    }
+}
 // endregion: Bidding Time Boundaries and its trait implementations
