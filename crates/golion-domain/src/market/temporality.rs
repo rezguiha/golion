@@ -3,6 +3,7 @@ use jiff::tz::TimeZone;
 use jiff::{RoundMode, Span, Timestamp, ToSpan, Unit, Zoned, ZonedRound};
 
 use crate::market::bid::BidSpecs;
+use crate::temporal::step::MinuteStep;
 // region: Delta in Days
 
 /// This struct is used to represent the time separating auction closure and bidding
@@ -146,6 +147,31 @@ fn add_and_set_time(reference: &Zoned, delta: &Span, time: Time) -> crate::Resul
     let new = reference.checked_add(delta).and_then(|dt| dt.with().time(time).build())?;
     Ok(new)
 }
+/// Adapts bidding start and end to fit bid step which is
+/// expressed in minutes.
+/// We round up start to next multiple of bid step and end
+/// to the previous one as convention is as starting convention
+/// [start,end[. This makes sure to stay in available range.
+fn fit_bounds_to_bid_step(
+    start: Zoned,
+    end: Zoned,
+    bid_step: MinuteStep,
+) -> crate::Result<(Zoned, Zoned)> {
+    let minutes = bid_step.duration().as_mins();
+    let new_start = start.round(
+        ZonedRound::new()
+            .smallest(Unit::Minute)
+            .increment(minutes)
+            .mode(RoundMode::Expand),
+    )?;
+    let new_end = end.round(
+        ZonedRound::new()
+            .smallest(Unit::Minute)
+            .increment(minutes)
+            .mode(RoundMode::Trunc),
+    )?;
+    Ok((new_start, new_end))
+}
 impl ToBidTimeBounds for StaticAuctionTemporality {
     fn to_bid_time_bounds(
         &self,
@@ -172,22 +198,12 @@ impl ToBidTimeBounds for StaticAuctionTemporality {
             self.bidding_interval.delta_start_end.value(),
             self.bidding_interval.end_time,
         )?;
-        // Round start_at to next multiple of bid granularity
-        let start_at = zoned_bidding_start.round(
-            ZonedRound::new()
-                .smallest(Unit::Minute)
-                .increment(bid_specifications.step.duration().as_mins())
-                .mode(RoundMode::Expand),
+        let (start_at, end_at) = fit_bounds_to_bid_step(
+            zoned_bidding_start,
+            zoned_bidding_end,
+            bid_specifications.step,
         )?;
-        // Round end_at to previous multiple of bid granularity
-        // as convention is [start,end[ to be able to fit the last
-        // bid in period.
-        let end_at = zoned_bidding_end.round(
-            ZonedRound::new()
-                .smallest(Unit::Minute)
-                .increment(bid_specifications.step.duration().as_mins())
-                .mode(RoundMode::Trunc),
-        )?;
+
         Ok(BidTimeBounds { start_at: start_at.into(), end_at: end_at.into() })
     }
 }
@@ -209,19 +225,10 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
             self.bidding_interval.delta_start_end.value(),
             self.bidding_interval.end_time,
         )?;
-        // Round to next multiple of bid granularity.
-        let start_at = zoned_bidding_start.round(
-            ZonedRound::new()
-                .smallest(Unit::Minute)
-                .increment(bid_specifications.step.duration().as_mins())
-                .mode(RoundMode::Ceil),
-        )?;
-
-        let end_at = zoned_bidding_end.round(
-            ZonedRound::new()
-                .smallest(Unit::Minute)
-                .increment(bid_specifications.step.duration().as_mins())
-                .mode(RoundMode::Trunc),
+        let (start_at, end_at) = fit_bounds_to_bid_step(
+            zoned_bidding_start,
+            zoned_bidding_end,
+            bid_specifications.step,
         )?;
         Ok(BidTimeBounds { start_at: start_at.into(), end_at: end_at.into() })
     }
