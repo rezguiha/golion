@@ -4,6 +4,15 @@ use jiff::{RoundMode, Span, Timestamp, ToSpan, Unit, Zoned, ZonedRound};
 
 use crate::market::bid::BidSpecs;
 use crate::temporal::step::MinuteStep;
+// region: Errors
+
+#[derive(Debug)]
+pub enum MarketTemporalityError {
+    InvalidDeltaDayValue { value: Span },
+    InvalidIntervalBound { start_time: Time, end_time: Time, delta_start_end: Span },
+}
+// endregion: Errors
+
 // region: Delta in Days
 
 /// This struct is used to represent the time separating auction closure and bidding
@@ -22,12 +31,6 @@ impl DeltaDays {
     }
 }
 
-#[derive(Debug)]
-pub enum MarketTemporalityError {
-    InvalidDeltaDayValue { value: Span },
-    InvalidIntervalBound { start_time: Time, end_time: Time, delta_start_end: Span },
-}
-
 impl TryFrom<Span> for DeltaDays {
     type Error = crate::Error;
     fn try_from(value: Span) -> crate::Result<Self> {
@@ -38,10 +41,22 @@ impl TryFrom<Span> for DeltaDays {
     }
 }
 
-// endregion: Delta in Days
-
-// region: Static Auction
-
+/// Represents an interval defined by a starting time and ending time
+/// and a delta expressed in days.
+/// The times will be associated with a reference date and the delta will be applied
+/// between start and end to determine starting and ending datetimes.
+///
+/// The convention used here is [start,end].
+///
+/// For example:
+///     To represent day ahead bidding interval:
+///         start_time: 00:00
+///         end_time: 23:59
+///
+/// Make sure to use for end_time a value that represents correctly the end.
+/// For example if bidding ends at 11:00:
+/// Make sure to put 10:59 to avoid including 11:00 in your representation
+/// as it might lead to different results.
 #[derive(Debug)]
 pub struct TimeDefinedInterval {
     pub start_time: Time,
@@ -71,6 +86,10 @@ impl TimeDefinedInterval {
         }
     }
 }
+
+// endregion: Delta in Days
+
+// region: Static Auction
 
 /// Market temporality where an auction is held at fixed times
 /// and where bidding starts and ends at fixed times.
@@ -125,6 +144,9 @@ pub struct DynamicAuctionTemporality {
 /// Represents the time boundaries of bidding that are available
 /// at a particular reference time (optimization run time or reference time
 /// in case of backtesting).
+///
+/// Available bids are those where their timestamp dt in starting convention
+/// is in [start_at,end_at[.
 #[derive(Debug)]
 pub struct BidTimeBounds {
     start_at: Timestamp,
@@ -134,11 +156,13 @@ pub struct BidTimeBounds {
 /// to a reference timestamp which will be in our case the run time
 /// of the process.
 pub trait ToBidTimeBounds {
+    /// Returns `None` when the computed bidding window does not contain a
+    /// single full bid step (e.g. it is narrower than the step, or empty).
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
         bid_specifications: &BidSpecs,
-    ) -> crate::Result<BidTimeBounds>;
+    ) -> crate::Result<Option<BidTimeBounds>>;
 }
 
 /// Convenience method that adds a delta in days and sets the time to the new
@@ -151,12 +175,16 @@ fn add_and_set_time(reference: &Zoned, delta: &Span, time: Time) -> crate::Resul
 /// expressed in minutes.
 /// We round up start to next multiple of bid step and end
 /// to the previous one as convention is as starting convention
-/// [start,end[. This makes sure to stay in available range.
+/// to make sure to have full steps inside interval.
+///
+/// It returns None when the window between start and end is too narrow
+/// and smaller than the bid step. In this case, there is no bidding interval
+/// to be returned.
 fn fit_bounds_to_bid_step(
     start: Zoned,
     end: Zoned,
     bid_step: MinuteStep,
-) -> crate::Result<(Zoned, Zoned)> {
+) -> crate::Result<Option<(Zoned, Zoned)>> {
     let minutes = bid_step.duration().as_mins();
     let new_start = start.round(
         ZonedRound::new()
@@ -170,14 +198,17 @@ fn fit_bounds_to_bid_step(
             .increment(minutes)
             .mode(RoundMode::Trunc),
     )?;
-    Ok((new_start, new_end))
+    if new_start >= new_end {
+        return Ok(None);
+    }
+    Ok(Some((new_start, new_end)))
 }
 impl ToBidTimeBounds for StaticAuctionTemporality {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
         bid_specifications: &BidSpecs,
-    ) -> crate::Result<BidTimeBounds> {
+    ) -> crate::Result<Option<BidTimeBounds>> {
         // We are using clone here on timezone as it is cheap to clone
         // and to_zoned requires to pass ownership of timezone.
         let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
@@ -198,13 +229,16 @@ impl ToBidTimeBounds for StaticAuctionTemporality {
             self.bidding_interval.delta_start_end.value(),
             self.bidding_interval.end_time,
         )?;
-        let (start_at, end_at) = fit_bounds_to_bid_step(
+        let bounds = fit_bounds_to_bid_step(
             zoned_bidding_start,
             zoned_bidding_end,
             bid_specifications.step,
         )?;
 
-        Ok(BidTimeBounds { start_at: start_at.into(), end_at: end_at.into() })
+        Ok(bounds.map(|(start_at, end_at)| BidTimeBounds {
+            start_at: start_at.into(),
+            end_at: end_at.into(),
+        }))
     }
 }
 
@@ -213,7 +247,7 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
         &self,
         reference_time: &Timestamp,
         bid_specifications: &BidSpecs,
-    ) -> crate::Result<BidTimeBounds> {
+    ) -> crate::Result<Option<BidTimeBounds>> {
         let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
         let zoned_bidding_start = add_and_set_time(
             &zoned_reference_time,
@@ -225,12 +259,86 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
             self.bidding_interval.delta_start_end.value(),
             self.bidding_interval.end_time,
         )?;
-        let (start_at, end_at) = fit_bounds_to_bid_step(
+        let bounds = fit_bounds_to_bid_step(
             zoned_bidding_start,
             zoned_bidding_end,
             bid_specifications.step,
         )?;
-        Ok(BidTimeBounds { start_at: start_at.into(), end_at: end_at.into() })
+        Ok(bounds.map(|(start_at, end_at)| BidTimeBounds {
+            start_at: start_at.into(),
+            end_at: end_at.into(),
+        }))
     }
 }
 // endregion: Bidding Time Boundaries and its trait implementations
+
+// region: Tests
+#[cfg(test)]
+mod tests {
+    use jiff::{SignedDuration, Timestamp, ToSpan, civil::Time, tz::TimeZone};
+
+    use crate::market::bid::{BidSpecs, KiloWattIncrement};
+    use crate::market::temporality::{
+        DynamicAuctionTemporality, TimeDefinedInterval, ToBidTimeBounds,
+    };
+    use crate::temporal::step::MinuteStep;
+
+    fn bid_specs(step_minutes: i64) -> BidSpecs {
+        BidSpecs {
+            step: MinuteStep::try_from(SignedDuration::from_mins(step_minutes)).unwrap(),
+            increment: KiloWattIncrement::from(100),
+        }
+    }
+
+    #[test]
+    fn window_less_than_bid_step() {
+        let bidding_interval = TimeDefinedInterval {
+            start_time: Time::new(10, 0, 0, 0).unwrap(),
+            end_time: Time::new(10, 3, 0, 0).unwrap(),
+            delta_start_end: 0.days().try_into().unwrap(),
+        };
+        let timezone = TimeZone::get("CET").unwrap();
+        let neutralization_delay = 0.minutes();
+        let dynamic_auction = DynamicAuctionTemporality {
+            bidding_interval,
+            neutralization_delay,
+            timezone,
+        };
+
+        // 2024-01-15T09:00:00Z == 10:00 CET.
+        let reference_time: Timestamp = "2024-01-15T09:00:00Z".parse().unwrap();
+        let bounds =
+            dynamic_auction.to_bid_time_bounds(&reference_time, &bid_specs(15)).unwrap();
+
+        assert!(bounds.is_none());
+    }
+    #[test]
+    fn single_available_bid() {
+        // 9:50-10:20 CET is one full 15-minute step (10:00-10:15).
+        let bidding_interval = TimeDefinedInterval {
+            start_time: Time::new(9, 50, 0, 0).unwrap(),
+            end_time: Time::new(10, 20, 0, 0).unwrap(),
+            delta_start_end: 0.days().try_into().unwrap(),
+        };
+        let timezone = TimeZone::get("CET").unwrap();
+        let neutralization_delay = 0.minutes();
+        let dynamic_auction = DynamicAuctionTemporality {
+            bidding_interval,
+            neutralization_delay,
+            timezone,
+        };
+
+        // 2024-01-15T09:00:00Z == 10:00 CET.
+        let reference_time: Timestamp = "2024-01-15T09:00:00Z".parse().unwrap();
+        let bounds = dynamic_auction
+            .to_bid_time_bounds(&reference_time, &bid_specs(15))
+            .unwrap()
+            .unwrap();
+
+        // 10:00 CET is already on the step boundary == 09:00Z.
+        assert_eq!(bounds.start_at, "2024-01-15T09:00:00Z".parse().unwrap());
+        // 10:20 CET truncates down to 10:15 CET == 09:15Z.
+        assert_eq!(bounds.end_at, "2024-01-15T09:15:00Z".parse().unwrap());
+    }
+}
+// endregion: Tests
