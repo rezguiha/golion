@@ -9,7 +9,8 @@ use crate::temporal::step::MinuteStep;
 #[derive(Debug)]
 pub enum MarketTemporalityError {
     InvalidDeltaDayValue { value: Span },
-    InvalidIntervalBound { start_time: Time, end_time: Time, delta_start_end: Span },
+    InvalidTimeDefinedBound { start_time: Time, end_time: Time, delta_start_end: Span },
+    EmptyContinuousBiddingBound,
 }
 // endregion: Errors
 
@@ -71,7 +72,7 @@ impl TimeDefinedInterval {
     ) -> crate::Result<Self> {
         let delta_start_end_days: DeltaDays = delta_start_end.try_into()?;
         if (start_time > end_time) & (delta_start_end_days.0.get_days() == 0) {
-            Err(MarketTemporalityError::InvalidIntervalBound {
+            Err(MarketTemporalityError::InvalidTimeDefinedBound {
                 start_time,
                 end_time,
                 delta_start_end: delta_start_end_days.0,
@@ -138,6 +139,17 @@ pub struct DynamicAuctionTemporality {
     pub timezone: TimeZone,
 }
 // endregion: Dynamic Auction
+
+// region: Continuous Auction
+
+#[derive(Debug)]
+pub struct ContinuousAuctionTemporality {
+    pub next_day_gate_open_time: Time,
+    pub neutralization_delay: Span,
+    pub timezone: TimeZone,
+}
+
+// endregion: Continuous Auction
 
 // region: Bidding Time Boundaries and its trait implementations
 
@@ -268,6 +280,63 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
             start_at: start_at.into(),
             end_at: end_at.into(),
         }))
+    }
+}
+
+impl ToBidTimeBounds for ContinuousAuctionTemporality {
+    fn to_bid_time_bounds(
+        &self,
+        reference_time: &Timestamp,
+        bid_specifications: &BidSpecs,
+    ) -> crate::Result<Option<BidTimeBounds>> {
+        let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
+        // Compute same day bidding bounds.
+        let same_day_end = zoned_reference_time.end_of_day()?;
+
+        let same_day_start =
+            zoned_reference_time.checked_add(self.neutralization_delay)?;
+        let same_day_bounds = fit_bounds_to_bid_step(
+            same_day_start,
+            same_day_end,
+            bid_specifications.step,
+        )?;
+        // Compute next day bidding bounds.
+        let next_day_bidding_start =
+            zoned_reference_time.tomorrow().and_then(|dt| dt.start_of_day())?;
+        let next_day_bidding_end = next_day_bidding_start.end_of_day()?;
+
+        let next_day_bounds = fit_bounds_to_bid_step(
+            next_day_bidding_start,
+            next_day_bidding_end,
+            bid_specifications.step,
+        )?;
+
+        match (same_day_bounds, next_day_bounds) {
+            // Continuous bidding will always have either bidding on same day
+            // or next day. If there is none on both days there was an issue in computation.
+            (None, None) => {
+                Err(MarketTemporalityError::EmptyContinuousBiddingBound {}.into())
+            }
+            // If next bidding not still available return same day bidding bounds.
+            (Some((same_start_at, same_end_at)), None) => Ok(Some(BidTimeBounds {
+                start_at: same_start_at.into(),
+                end_at: same_end_at.into(),
+            })),
+            // If same and next bidding are available return combination of the two
+            // as bidding is continuous in time.
+            (Some((same_start_at, _)), Some((_, next_end_at))) => {
+                Ok(Some(BidTimeBounds {
+                    start_at: same_start_at.into(),
+                    end_at: next_end_at.into(),
+                }))
+            }
+            // If only next day bidding is available return it. This may happen at the boundary
+            // of the two days.
+            (None, Some((next_start_at, next_end_at))) => Ok(Some(BidTimeBounds {
+                start_at: next_start_at.into(),
+                end_at: next_end_at.into(),
+            })),
+        }
     }
 }
 // endregion: Bidding Time Boundaries and its trait implementations
