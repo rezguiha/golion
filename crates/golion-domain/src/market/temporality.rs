@@ -193,9 +193,9 @@ fn add_and_set_time(reference: &Zoned, delta: &Span, time: Time) -> crate::Resul
 /// and smaller than the bid step. In this case, there is no bidding interval
 /// to be returned.
 fn fit_bounds_to_bid_step(
-    start: Zoned,
-    end: Zoned,
-    bid_step: MinuteStep,
+    start: &Zoned,
+    end: &Zoned,
+    bid_step: &MinuteStep,
 ) -> crate::Result<Option<(Zoned, Zoned)>> {
     let minutes = bid_step.duration().as_mins();
     let new_start = start.round(
@@ -242,9 +242,9 @@ impl ToBidTimeBounds for StaticAuctionTemporality {
             self.bidding_interval.end_time,
         )?;
         let bounds = fit_bounds_to_bid_step(
-            zoned_bidding_start,
-            zoned_bidding_end,
-            bid_specifications.step,
+            &zoned_bidding_start,
+            &zoned_bidding_end,
+            &bid_specifications.step,
         )?;
 
         Ok(bounds.map(|(start_at, end_at)| BidTimeBounds {
@@ -272,9 +272,9 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
             self.bidding_interval.end_time,
         )?;
         let bounds = fit_bounds_to_bid_step(
-            zoned_bidding_start,
-            zoned_bidding_end,
-            bid_specifications.step,
+            &zoned_bidding_start,
+            &zoned_bidding_end,
+            &bid_specifications.step,
         )?;
         Ok(bounds.map(|(start_at, end_at)| BidTimeBounds {
             start_at: start_at.into(),
@@ -295,20 +295,27 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
 
         let same_day_start =
             zoned_reference_time.checked_add(self.neutralization_delay)?;
-        let same_day_bounds = fit_bounds_to_bid_step(
-            same_day_start,
-            same_day_end,
-            bid_specifications.step,
+        let same_day_bounds = &fit_bounds_to_bid_step(
+            &same_day_start,
+            &same_day_end,
+            &bid_specifications.step,
         )?;
         // Compute next day bidding bounds.
-        let next_day_bidding_start =
+        let next_bidding_day_start =
             zoned_reference_time.tomorrow().and_then(|dt| dt.start_of_day())?;
+        let next_day_bidding_start = match next_bidding_day_start {
+            dt if dt >= same_day_start => dt,
+            // At reference times at the end of the day, adding the neutralization
+            // delay will exceed the scope of the current day into next one and
+            // we need to exclude the relevant times from bidding of next.
+            _ => same_day_start,
+        };
         let next_day_bidding_end = next_day_bidding_start.end_of_day()?;
 
         let next_day_bounds = fit_bounds_to_bid_step(
-            next_day_bidding_start,
-            next_day_bidding_end,
-            bid_specifications.step,
+            &next_day_bidding_start,
+            &next_day_bidding_end,
+            &bid_specifications.step,
         )?;
 
         match (same_day_bounds, next_day_bounds) {
@@ -348,7 +355,8 @@ mod tests {
 
     use crate::market::bid::{BidSpecs, KiloWattIncrement};
     use crate::market::temporality::{
-        DynamicAuctionTemporality, TimeDefinedInterval, ToBidTimeBounds,
+        ContinuousAuctionTemporality, DynamicAuctionTemporality, TimeDefinedInterval,
+        ToBidTimeBounds,
     };
     use crate::temporal::step::MinuteStep;
 
@@ -360,7 +368,7 @@ mod tests {
     }
 
     #[test]
-    fn window_less_than_bid_step() {
+    fn dynamic_window_less_than_bid_step() {
         let bidding_interval = TimeDefinedInterval {
             start_time: Time::new(10, 0, 0, 0).unwrap(),
             end_time: Time::new(10, 3, 0, 0).unwrap(),
@@ -382,7 +390,7 @@ mod tests {
         assert!(bounds.is_none());
     }
     #[test]
-    fn single_available_bid() {
+    fn dynamic_single_available_bid() {
         // 9:50-10:20 CET is one full 15-minute step (10:00-10:15).
         let bidding_interval = TimeDefinedInterval {
             start_time: Time::new(9, 50, 0, 0).unwrap(),
@@ -408,6 +416,48 @@ mod tests {
         assert_eq!(bounds.start_at, "2024-01-15T09:00:00Z".parse().unwrap());
         // 10:20 CET truncates down to 10:15 CET == 09:15Z.
         assert_eq!(bounds.end_at, "2024-01-15T09:15:00Z".parse().unwrap());
+    }
+
+    fn continuous_test(
+        reference_time: Timestamp,
+        expected_bidding_start: Timestamp,
+        expected_bidding_end: Timestamp,
+    ) {
+        let timezone = TimeZone::get("CET").unwrap();
+        let next_day_gate_open_time = Time::new(15, 0, 0, 0).unwrap();
+        let neutralization_delay = 2.hours();
+        let continuous_auction = ContinuousAuctionTemporality {
+            neutralization_delay,
+            next_day_gate_open_time,
+            timezone,
+        };
+        let bounds = continuous_auction
+            .to_bid_time_bounds(&reference_time, &bid_specs(15))
+            .unwrap()
+            .unwrap();
+        assert_eq!(bounds.start_at, expected_bidding_start);
+        assert_eq!(bounds.end_at, expected_bidding_end);
+    }
+    #[test]
+    fn continuous_same_day_only() {
+        let reference_time: Timestamp = "2024-01-15T09:00:00Z".parse().unwrap();
+        let expected_bidding_start = "2024-01-15T11:00:00Z".parse().unwrap();
+        let expected_bidding_end = "2024-01-16T22:45:00Z".parse().unwrap();
+        continuous_test(reference_time, expected_bidding_start, expected_bidding_end);
+    }
+    #[test]
+    fn continuous_next_only() {
+        let reference_time: Timestamp = "2024-01-15T22:55:00Z".parse().unwrap();
+        let expected_bidding_start = "2024-01-16T01:00:00Z".parse().unwrap();
+        let expected_bidding_end = "2024-01-16T22:45:00Z".parse().unwrap();
+        continuous_test(reference_time, expected_bidding_start, expected_bidding_end);
+    }
+    #[test]
+    fn continuous_both_days() {
+        let reference_time: Timestamp = "2024-01-15T16:00:00Z".parse().unwrap();
+        let expected_bidding_start = "2024-01-15T18:00:00Z".parse().unwrap();
+        let expected_bidding_end = "2024-01-16T22:45:00Z".parse().unwrap();
+        continuous_test(reference_time, expected_bidding_start, expected_bidding_end);
     }
 }
 // endregion: Tests
