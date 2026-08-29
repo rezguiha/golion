@@ -65,11 +65,15 @@ pub struct TimeDefinedInterval {
     pub delta_start_end: DeltaDays,
 }
 impl TimeDefinedInterval {
-    fn try_new(
-        start_time: Time,
-        end_time: Time,
+    pub fn try_new(
+        open_hour: i8,
+        open_minute: i8,
+        close_hour: i8,
+        close_minute: i8,
         delta_start_end: Span,
     ) -> crate::Result<Self> {
+        let start_time = Time::new(open_hour, open_minute, 0, 0)?;
+        let end_time = Time::new(close_hour, close_minute, 0, 0)?;
         let delta_start_end_days: DeltaDays = delta_start_end.try_into()?;
         if (start_time > end_time) & (delta_start_end_days.0.get_days() == 0) {
             Err(MarketTemporalityError::InvalidTimeDefinedBound {
@@ -104,12 +108,13 @@ pub struct StaticAuctionTemporality {
 }
 
 impl StaticAuctionTemporality {
-    fn try_new(
+    pub fn try_new(
         open_interval: TimeDefinedInterval,
         bidding_interval: TimeDefinedInterval,
         delta_close_bidding_start: Span,
-        timezone: TimeZone,
+        timezone: &str,
     ) -> crate::Result<Self> {
+        let timezone = TimeZone::get(timezone)?;
         let delta_close_bidding_start_days: DeltaDays =
             delta_close_bidding_start.try_into()?;
         Ok(Self {
@@ -138,6 +143,16 @@ pub struct DynamicAuctionTemporality {
     pub neutralization_delay: Span,
     pub timezone: TimeZone,
 }
+impl DynamicAuctionTemporality {
+    pub fn try_new(
+        bidding_interval: TimeDefinedInterval,
+        neutralization_delay: Span,
+        timezone: &str,
+    ) -> crate::Result<Self> {
+        let timezone = TimeZone::get(timezone)?;
+        Ok(Self { bidding_interval, neutralization_delay, timezone })
+    }
+}
 // endregion: Dynamic Auction
 
 // region: Continuous Auction
@@ -149,6 +164,19 @@ pub struct ContinuousAuctionTemporality {
     pub timezone: TimeZone,
 }
 
+impl ContinuousAuctionTemporality {
+    pub fn try_new(
+        next_day_gate_open_hour: i8,
+        next_day_gate_open_minute: i8,
+        neutralization_delay: Span,
+        timezone: &str,
+    ) -> crate::Result<Self> {
+        let timezone = TimeZone::get(timezone)?;
+        let next_day_gate_open_time =
+            Time::new(next_day_gate_open_hour, next_day_gate_open_minute, 0, 0)?;
+        Ok(Self { next_day_gate_open_time, neutralization_delay, timezone })
+    }
+}
 // endregion: Continuous Auction
 
 // region: Bidding Time Boundaries and its trait implementations
@@ -351,7 +379,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
 // region: Tests
 #[cfg(test)]
 mod tests {
-    use jiff::{SignedDuration, Timestamp, ToSpan, civil::Time, tz::TimeZone};
+    use jiff::{SignedDuration, Timestamp, ToSpan};
 
     use crate::market::bid::{BidSpecs, KiloWattIncrement};
     use crate::market::temporality::{
@@ -369,18 +397,15 @@ mod tests {
 
     #[test]
     fn dynamic_window_less_than_bid_step() {
-        let bidding_interval = TimeDefinedInterval {
-            start_time: Time::new(10, 0, 0, 0).unwrap(),
-            end_time: Time::new(10, 3, 0, 0).unwrap(),
-            delta_start_end: 0.days().try_into().unwrap(),
-        };
-        let timezone = TimeZone::get("CET").unwrap();
+        let bidding_interval =
+            TimeDefinedInterval::try_new(10, 0, 10, 3, 0.days()).unwrap();
         let neutralization_delay = 0.minutes();
-        let dynamic_auction = DynamicAuctionTemporality {
+        let dynamic_auction = DynamicAuctionTemporality::try_new(
             bidding_interval,
             neutralization_delay,
-            timezone,
-        };
+            "CET",
+        )
+        .unwrap();
 
         // 2024-01-15T09:00:00Z == 10:00 CET.
         let reference_time: Timestamp = "2024-01-15T09:00:00Z".parse().unwrap();
@@ -392,18 +417,15 @@ mod tests {
     #[test]
     fn dynamic_single_available_bid() {
         // 9:50-10:20 CET is one full 15-minute step (10:00-10:15).
-        let bidding_interval = TimeDefinedInterval {
-            start_time: Time::new(9, 50, 0, 0).unwrap(),
-            end_time: Time::new(10, 20, 0, 0).unwrap(),
-            delta_start_end: 0.days().try_into().unwrap(),
-        };
-        let timezone = TimeZone::get("CET").unwrap();
+        let bidding_interval =
+            TimeDefinedInterval::try_new(9, 50, 10, 20, 0.days()).unwrap();
         let neutralization_delay = 0.minutes();
-        let dynamic_auction = DynamicAuctionTemporality {
+        let dynamic_auction = DynamicAuctionTemporality::try_new(
             bidding_interval,
             neutralization_delay,
-            timezone,
-        };
+            "CET",
+        )
+        .unwrap();
 
         // 2024-01-15T09:00:00Z == 10:00 CET.
         let reference_time: Timestamp = "2024-01-15T09:00:00Z".parse().unwrap();
@@ -423,14 +445,8 @@ mod tests {
         expected_bidding_start: Timestamp,
         expected_bidding_end: Timestamp,
     ) {
-        let timezone = TimeZone::get("CET").unwrap();
-        let next_day_gate_open_time = Time::new(15, 0, 0, 0).unwrap();
-        let neutralization_delay = 2.hours();
-        let continuous_auction = ContinuousAuctionTemporality {
-            neutralization_delay,
-            next_day_gate_open_time,
-            timezone,
-        };
+        let continuous_auction =
+            ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "CET").unwrap();
         let bounds = continuous_auction
             .to_bid_time_bounds(&reference_time, &bid_specs(15))
             .unwrap()
