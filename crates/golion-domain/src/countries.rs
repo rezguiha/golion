@@ -10,8 +10,6 @@ pub enum Countries {
     ES,
     IT,
     PT,
-    GB,
-    CH,
 }
 
 // endregion: Countries
