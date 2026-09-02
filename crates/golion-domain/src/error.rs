@@ -5,7 +5,7 @@ use super::units::efficiency::InvalidEfficiency;
 use super::units::soc::InvalidSocFraction;
 use jiff::Error as JiffError;
 
-use super::market::temporality::MarketTemporalityError;
+use super::market::error::MarketError;
 use derive_more::From;
 #[derive(Debug, From)]
 pub enum Error {
@@ -23,7 +23,7 @@ pub enum Error {
     Efficiency(InvalidEfficiency),
     // -- Market Errors
     #[from]
-    Market(MarketTemporalityError),
+    Market(MarketError),
     // -- External
     #[from]
     JiffConversionError(JiffError),
