@@ -62,7 +62,7 @@ async fn test_optimize_bess() -> Result<()> {
             .collect(),
     )]);
     let wholesale_commitments = HashMap::from([(
-        WholesaleMarketType::IntradayAuction,
+        WholesaleMarketType::IntradayAuction1,
         timestamps
             .iter()
             .map(|t| {
