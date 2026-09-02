@@ -2,7 +2,9 @@ use jiff::civil::Time;
 use jiff::tz::TimeZone;
 use jiff::{RoundMode, Span, Timestamp, ToSpan, Unit, Zoned, ZonedRound};
 
+use crate::countries::Countries;
 use crate::market::bid::BidSpecs;
+use crate::market::market_type::MarketType;
 use crate::temporal::step::MinuteStep;
 // region: Errors
 
@@ -11,6 +13,7 @@ pub enum MarketTemporalityError {
     InvalidDeltaDayValue { value: Span },
     InvalidTimeDefinedBound { start_time: Time, end_time: Time, delta_start_end: Span },
     EmptyContinuousBiddingBound,
+    NotImplemented { market: MarketType, country: Countries },
 }
 // endregion: Errors
 

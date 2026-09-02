@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WholesaleMarketType {
     SpotDayAhead,
-    IntradayAuction,
+    IntradayAuction1,
+    IntradayAuction2,
+    IntradayAuction3,
     IntradayContinuous,
 }
 /// A capacity ancillary market is a market where we sell "capacity"
