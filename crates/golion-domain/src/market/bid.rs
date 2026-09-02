@@ -1,7 +1,6 @@
 /// Bid Minimal Defining Characteristics
 use crate::temporal::step::MinuteStep;
 use derive_more::{Add, From, Into};
-
 /// Represents market power increments.
 /// For example:
 ///     -ancillary markets : 1000 kW

@@ -1,13 +1,17 @@
 use jiff::ToSpan;
 
 use crate::countries::Countries;
+use crate::market::error::MarketError;
 use crate::market::market_type::{
     AncillaryMarketType, CapacityAncillaryMarketType, EnergyAncillaryMarketType,
     MarketType, WholesaleMarketType,
 };
 use crate::market::temporality::{
-    ContinuousAuctionTemporality, DynamicAuctionTemporality, MarketTemporalityError,
-    StaticAuctionTemporality, TimeDefinedInterval, ToBidTimeBounds,
+    auction::{
+        ContinuousAuctionTemporality, DynamicAuctionTemporality, StaticAuctionTemporality,
+    },
+    bid_time_bounds::ToBidTimeBounds,
+    interval::TimeDefinedInterval,
 };
 
 // region: Market config
@@ -165,7 +169,7 @@ impl AllMarketConfig {
     }
 
     fn afrr(country: &Countries) -> crate::Result<Self> {
-        Err(MarketTemporalityError::NotImplemented {
+        Err(MarketError::NotImplemented {
             market: MarketType::Ancillary(AncillaryMarketType::Capacity(
                 CapacityAncillaryMarketType::Afrr,
             )),
@@ -175,7 +179,7 @@ impl AllMarketConfig {
     }
 
     fn fcr(country: &Countries) -> crate::Result<Self> {
-        Err(MarketTemporalityError::NotImplemented {
+        Err(MarketError::NotImplemented {
             market: MarketType::Ancillary(AncillaryMarketType::Capacity(
                 CapacityAncillaryMarketType::Fcr,
             )),
