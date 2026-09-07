@@ -9,6 +9,7 @@ golion-domain = { workspace = true }
 good_lp = { version = "1.15.1", features = ["highs"], default-features = false }
 jiff = { workspace = true }
 uuid = "1.23.1"
+itertools = "0.15.0"
 
 [lints]
 workspace = true
