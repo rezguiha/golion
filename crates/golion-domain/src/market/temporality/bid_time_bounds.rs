@@ -17,8 +17,8 @@ use crate::temporal::step::MinuteStep;
 /// is in [start_at,end_at[.
 #[derive(Debug)]
 pub struct BidTimeBounds {
-    start_at: Timestamp,
-    end_at: Timestamp,
+    pub start_at: Timestamp,
+    pub end_at: Timestamp,
 }
 /// Defines the ability to compute bidding start and end relative
 /// to a reference timestamp which will be in our case the run time

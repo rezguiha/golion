@@ -8,6 +8,11 @@ use jiff::Span;
 ///     -wholesale markets: 100 kW
 #[derive(PartialEq, From, Add, Into, Debug, Clone, Copy, Hash, Eq)]
 pub struct KiloWattIncrement(u16);
+impl KiloWattIncrement {
+    pub fn value(&self) -> u16 {
+        self.0
+    }
+}
 
 #[derive(Debug, Hash, Eq, PartialEq)]
 pub struct BidSpecs {
