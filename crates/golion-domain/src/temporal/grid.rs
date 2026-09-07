@@ -96,11 +96,10 @@ impl RegularTimeGrid {
             }
         }
     }
-    pub fn iter(&self) -> crate::Result<impl Iterator<Item = Timestamp>> {
-        let span = Span::try_from(*self.step.duration())
-            .map_err(MinuteStepError::JiffConversionError)?;
+    pub fn iter(&self) -> impl Iterator<Item = Timestamp> {
+        let span = Span::new().seconds(self.step.duration().as_secs());
 
-        Ok(self.start.series(span).take_while(|dt| dt <= &self.end))
+        self.start.series(span).take_while(|dt| dt <= &self.end)
     }
 }
 
