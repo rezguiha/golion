@@ -1,6 +1,6 @@
 use crate::market::variables::BidVariables;
+use golion_domain::market::bid::BidSpecs;
 use golion_domain::market::bid::KiloWattIncrement;
-use golion_domain::market::{bid::BidSpecs, temporality::bid_time_bounds::BidTimeBounds};
 use golion_domain::temporal::grid::RegularTimeGrid;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
@@ -31,10 +31,12 @@ impl Market {
         step: &MinuteStep,
         vars: &mut ProblemVariables,
         bid_specs: &BidSpecs,
-        bid_time_bounds: Option<BidTimeBounds>,
+        bid_time_bounds: Option<RegularTimeGrid>,
     ) -> crate::Result<Self> {
         let constraints: Vec<Constraint> = Vec::new();
         let Some(bounds) = bid_time_bounds else {
+            // In case market is unavailable. No bid variables are
+            // defined.
             return Ok(Market {
                 bid_step: bid_specs.step,
                 increment: bid_specs.increment,
@@ -43,27 +45,17 @@ impl Market {
             });
         };
         // Make sure bid bounds are inside time index.
-        if bounds.start_at < time_index[0]
-            || bounds.end_at > time_index[time_index.len() - 1]
-        {
+        if bounds.start < time_index[0] || bounds.end > time_index[time_index.len() - 1] {
             return Err(MarketError::TimeBoundsOutsideIndex {
                 index_start: time_index[0],
                 index_end: time_index[time_index.len() - 1],
-                bidding_start: bounds.start_at,
-                bidding_end: bounds.end_at,
+                bidding_start: bounds.start,
+                bidding_end: bounds.end,
             }
             .into());
         }
-        // Construct a regular time grid struct to make use of its validation
-        // and its iterator.
-        let regular_time_grid = RegularTimeGrid::try_new_start_end(
-            bounds.start_at,
-            bid_specs.step,
-            bounds.end_at,
-        )?;
-        let mut variable_store: Vec<BidVariables> =
-            Vec::with_capacity(regular_time_grid.length);
-        for (start, end) in regular_time_grid.iter().tuple_windows() {
+        let mut variable_store: Vec<BidVariables> = Vec::with_capacity(bounds.length);
+        for (start, end) in bounds.iter().tuple_windows() {
             let input_variable = vars.add(variable().min(0).integer());
             let output_variable = vars.add(variable().min(0).integer());
             for dt in start.series(step.span()).take_while(|dt| dt < &end) {

@@ -5,7 +5,7 @@ use super::step::{MinuteStep, MinuteStepError};
 /// without the need of using a hashmap or binary
 /// search on a timestamp index.
 use derive_more::From;
-use jiff::{Span, Timestamp};
+use jiff::Timestamp;
 
 // region: Regular Grid Errors
 
@@ -97,9 +97,7 @@ impl RegularTimeGrid {
         }
     }
     pub fn iter(&self) -> impl Iterator<Item = Timestamp> {
-        let span = Span::new().seconds(self.step.duration().as_secs());
-
-        self.start.series(span).take_while(|dt| dt <= &self.end)
+        self.start.series(self.step.span()).take_while(|dt| dt <= &self.end)
     }
 }
 
