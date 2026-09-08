@@ -31,7 +31,7 @@ impl Market {
         step: &MinuteStep,
         vars: &mut ProblemVariables,
         bid_specs: &BidSpecs,
-        bid_time_bounds: Option<RegularTimeGrid>,
+        bid_time_bounds: &Option<RegularTimeGrid>,
     ) -> crate::Result<Self> {
         let constraints: Vec<Constraint> = Vec::new();
         let Some(bounds) = bid_time_bounds else {
