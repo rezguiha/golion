@@ -6,20 +6,10 @@ use crate::market::error::MarketError;
 use crate::market::temporality::auction::{
     ContinuousAuctionTemporality, DynamicAuctionTemporality, StaticAuctionTemporality,
 };
+use crate::temporal::grid::RegularTimeGrid;
 use crate::temporal::step::MinuteStep;
 // region: Bidding Time Boundaries and its trait implementations
 
-/// Represents the time boundaries of bidding that are available
-/// at a particular reference time (optimization run time or reference time
-/// in case of backtesting).
-///
-/// Available bids are those where their timestamp dt in starting convention
-/// is in [start_at,end_at[.
-#[derive(Debug)]
-pub struct BidTimeBounds {
-    pub start_at: Timestamp,
-    pub end_at: Timestamp,
-}
 /// Defines the ability to compute bidding start and end relative
 /// to a reference timestamp which will be in our case the run time
 /// of the process.
@@ -30,7 +20,7 @@ pub trait ToBidTimeBounds {
         &self,
         reference_time: &Timestamp,
         bid_specifications: &BidSpecs,
-    ) -> crate::Result<Option<BidTimeBounds>>;
+    ) -> crate::Result<Option<RegularTimeGrid>>;
 }
 
 /// Convenience method that adds a delta in days and sets the time to the new
@@ -76,7 +66,7 @@ impl ToBidTimeBounds for StaticAuctionTemporality {
         &self,
         reference_time: &Timestamp,
         bid_specifications: &BidSpecs,
-    ) -> crate::Result<Option<BidTimeBounds>> {
+    ) -> crate::Result<Option<RegularTimeGrid>> {
         // We are using clone here on timezone as it is cheap to clone
         // and to_zoned requires to pass ownership of timezone.
         let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
@@ -103,10 +93,15 @@ impl ToBidTimeBounds for StaticAuctionTemporality {
             &bid_specifications.step,
         )?;
 
-        Ok(bounds.map(|(start_at, end_at)| BidTimeBounds {
-            start_at: start_at.into(),
-            end_at: end_at.into(),
-        }))
+        bounds
+            .map(|(start_at, end_at)| {
+                RegularTimeGrid::try_new_start_end(
+                    start_at.into(),
+                    bid_specifications.step,
+                    end_at.into(),
+                )
+            })
+            .transpose()
     }
 }
 
@@ -115,7 +110,7 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
         &self,
         reference_time: &Timestamp,
         bid_specifications: &BidSpecs,
-    ) -> crate::Result<Option<BidTimeBounds>> {
+    ) -> crate::Result<Option<RegularTimeGrid>> {
         let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
         let zoned_bidding_start = add_and_set_time(
             &zoned_reference_time,
@@ -132,10 +127,15 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
             &zoned_bidding_end,
             &bid_specifications.step,
         )?;
-        Ok(bounds.map(|(start_at, end_at)| BidTimeBounds {
-            start_at: start_at.into(),
-            end_at: end_at.into(),
-        }))
+        bounds
+            .map(|(start_at, end_at)| {
+                RegularTimeGrid::try_new_start_end(
+                    start_at.into(),
+                    bid_specifications.step,
+                    end_at.into(),
+                )
+            })
+            .transpose()
     }
 }
 
@@ -144,7 +144,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
         &self,
         reference_time: &Timestamp,
         bid_specifications: &BidSpecs,
-    ) -> crate::Result<Option<BidTimeBounds>> {
+    ) -> crate::Result<Option<RegularTimeGrid>> {
         let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
         // Compute same day bidding bounds.
         let same_day_end = zoned_reference_time.end_of_day()?;
@@ -179,24 +179,34 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
             // or next day. If there is none on both days there was an issue in computation.
             (None, None) => Err(MarketError::EmptyContinuousBiddingBound {}.into()),
             // If next bidding not still available return same day bidding bounds.
-            (Some((same_start_at, same_end_at)), None) => Ok(Some(BidTimeBounds {
-                start_at: same_start_at.into(),
-                end_at: same_end_at.into(),
-            })),
+            (Some((same_start_at, same_end_at)), None) => {
+                RegularTimeGrid::try_new_start_end(
+                    same_start_at.into(),
+                    bid_specifications.step,
+                    same_end_at.into(),
+                )
+                .map(Some)
+            }
             // If same and next bidding are available return combination of the two
             // as bidding is continuous in time.
             (Some((same_start_at, _)), Some((_, next_end_at))) => {
-                Ok(Some(BidTimeBounds {
-                    start_at: same_start_at.into(),
-                    end_at: next_end_at.into(),
-                }))
+                RegularTimeGrid::try_new_start_end(
+                    same_start_at.into(),
+                    bid_specifications.step,
+                    next_end_at.into(),
+                )
+                .map(Some)
             }
             // If only next day bidding is available return it. This may happen at the boundary
             // of the two days.
-            (None, Some((next_start_at, next_end_at))) => Ok(Some(BidTimeBounds {
-                start_at: next_start_at.into(),
-                end_at: next_end_at.into(),
-            })),
+            (None, Some((next_start_at, next_end_at))) => {
+                RegularTimeGrid::try_new_start_end(
+                    next_start_at.into(),
+                    bid_specifications.step,
+                    next_end_at.into(),
+                )
+                .map(Some)
+            }
         }
     }
 }
@@ -262,9 +272,9 @@ mod tests {
             .unwrap();
 
         // 10:00 CET is already on the step boundary == 09:00Z.
-        assert_eq!(bounds.start_at, "2024-01-15T09:00:00Z".parse().unwrap());
+        assert_eq!(bounds.start, "2024-01-15T09:00:00Z".parse().unwrap());
         // 10:20 CET truncates down to 10:15 CET == 09:15Z.
-        assert_eq!(bounds.end_at, "2024-01-15T09:15:00Z".parse().unwrap());
+        assert_eq!(bounds.end, "2024-01-15T09:15:00Z".parse().unwrap());
     }
 
     fn continuous_test(
@@ -278,8 +288,8 @@ mod tests {
             .to_bid_time_bounds(&reference_time, &bid_specs(15))
             .unwrap()
             .unwrap();
-        assert_eq!(bounds.start_at, expected_bidding_start);
-        assert_eq!(bounds.end_at, expected_bidding_end);
+        assert_eq!(bounds.start, expected_bidding_start);
+        assert_eq!(bounds.end, expected_bidding_end);
     }
     #[test]
     fn continuous_same_day_only() {
