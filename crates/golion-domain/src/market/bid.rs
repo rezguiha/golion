@@ -14,7 +14,7 @@ impl KiloWattIncrement {
     }
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub struct BidSpecs {
     pub step: MinuteStep,
     pub increment: KiloWattIncrement,

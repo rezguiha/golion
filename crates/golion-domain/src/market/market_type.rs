@@ -43,4 +43,22 @@ pub enum MarketType {
     Ancillary(AncillaryMarketType),
 }
 
+impl From<WholesaleMarketType> for MarketType {
+    fn from(value: WholesaleMarketType) -> Self {
+        Self::WholeSale(value)
+    }
+}
+
+impl From<CapacityAncillaryMarketType> for MarketType {
+    fn from(value: CapacityAncillaryMarketType) -> Self {
+        Self::Ancillary(AncillaryMarketType::Capacity(value))
+    }
+}
+
+impl From<EnergyAncillaryMarketType> for MarketType {
+    fn from(value: EnergyAncillaryMarketType) -> Self {
+        Self::Ancillary(AncillaryMarketType::Energy(value))
+    }
+}
+
 // endregion: Market types
