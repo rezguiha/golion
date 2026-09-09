@@ -27,13 +27,17 @@ async fn test_optimize_bess() -> Result<()> {
             .take(n)
             .collect();
     let market_choices = vec![
-        MarketChoice::WholeSaleChoice {
-            market: WholesaleMarketType::SpotDayAhead,
+        MarketChoice {
+            market: WholesaleMarketType::SpotDayAhead.into(),
             country: Countries::FR,
+            product_step_minutes: 15,
+            product_increment_kw: 10,
         },
-        MarketChoice::EnergyAncillaryChoice {
-            market: EnergyAncillaryMarketType::AfrrFree,
+        MarketChoice {
+            market: EnergyAncillaryMarketType::AfrrFree.into(),
             country: Countries::BE,
+            product_step_minutes: 15,
+            product_increment_kw: 1000,
         },
     ];
     let availability = timestamps

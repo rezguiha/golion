@@ -242,6 +242,20 @@ impl AllMarketConfig {
         }
         .into())
     }
+
+    /// Products allowed to bid on this configuration.
+    pub fn possible_products(&self) -> &HashSet<BidSpecs> {
+        match self {
+            Self::SpotDayAhead(c) => &c.possible_products,
+            Self::IntradayAuction1(c) => &c.possible_products,
+            Self::IntradayAuction2(c) => &c.possible_products,
+            Self::IntradayAuction3(c) => &c.possible_products,
+            Self::IntradayContinuous(c) => &c.possible_products,
+            Self::AfrrFree(c) => &c.possible_products,
+            Self::Afrr(c) => &c.possible_products,
+            Self::Fcr(c) => &c.possible_products,
+        }
+    }
 }
 
 // endregion: Market config
