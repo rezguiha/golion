@@ -1,7 +1,6 @@
 use crate::market::variables::BidVariables;
-use golion_domain::market::bid::BidSpecs;
 use golion_domain::market::bid::KiloWattIncrement;
-use golion_domain::temporal::grid::RegularTimeGrid;
+use golion_domain::market::specification::MarketSpec;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
 use good_lp::{Constraint, ProblemVariables, variable};
@@ -27,19 +26,20 @@ pub struct Market {
 
 impl Market {
     pub fn try_new(
+        reference_time: &Timestamp,
         time_index: &[Timestamp],
         step: &MinuteStep,
         vars: &mut ProblemVariables,
-        bid_specs: &BidSpecs,
-        bid_time_bounds: &Option<RegularTimeGrid>,
+        market_specs: MarketSpec,
     ) -> crate::Result<Self> {
+        let bid_time_bounds = market_specs.get_bid_time_bounds(reference_time)?;
         let constraints: Vec<Constraint> = Vec::new();
         let Some(bounds) = bid_time_bounds else {
             // In case market is unavailable. No bid variables are
             // defined.
             return Ok(Market {
-                bid_step: bid_specs.step,
-                increment: bid_specs.increment,
+                bid_step: market_specs.product.step,
+                increment: market_specs.product.increment,
                 variable_store: None,
                 constraints,
             });
@@ -54,6 +54,7 @@ impl Market {
             }
             .into());
         }
+        let increment_value = market_specs.product.increment.value();
         let mut variable_store: Vec<BidVariables> = Vec::with_capacity(bounds.length);
         for (start, end) in bounds.iter().tuple_windows() {
             let input_variable = vars.add(variable().min(0).integer());
@@ -62,14 +63,14 @@ impl Market {
                 // We associate same variables for the whole window of the bid step.
                 variable_store.push(BidVariables {
                     start_at: dt,
-                    input_power: input_variable * bid_specs.increment.value(),
-                    output_power: output_variable * bid_specs.increment.value(),
+                    input_power: input_variable * increment_value,
+                    output_power: output_variable * increment_value,
                 })
             }
         }
         Ok(Market {
-            bid_step: bid_specs.step,
-            increment: bid_specs.increment,
+            bid_step: market_specs.product.step,
+            increment: market_specs.product.increment,
             variable_store: Some(variable_store.try_into()?),
             constraints,
         })
