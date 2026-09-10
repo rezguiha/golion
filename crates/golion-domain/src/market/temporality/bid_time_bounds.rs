@@ -1,7 +1,7 @@
 use jiff::civil::Time;
 use jiff::{RoundMode, Span, Timestamp, Unit, Zoned, ZonedRound};
 
-use crate::market::bid::BidSpecs;
+use crate::market::bid::ProductSpecifications;
 use crate::market::error::MarketError;
 use crate::market::temporality::auction::{
     ContinuousAuctionTemporality, DynamicAuctionTemporality, StaticAuctionTemporality,
@@ -19,7 +19,7 @@ pub trait ToBidTimeBounds {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
-        bid_specifications: &BidSpecs,
+        product_specificationss: &ProductSpecifications,
     ) -> crate::Result<Option<RegularTimeGrid>>;
 }
 
@@ -65,7 +65,7 @@ impl ToBidTimeBounds for StaticAuctionTemporality {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
-        bid_specifications: &BidSpecs,
+        product_specificationss: &ProductSpecifications,
     ) -> crate::Result<Option<RegularTimeGrid>> {
         // We are using clone here on timezone as it is cheap to clone
         // and to_zoned requires to pass ownership of timezone.
@@ -90,14 +90,14 @@ impl ToBidTimeBounds for StaticAuctionTemporality {
         let bounds = fit_bounds_to_bid_step(
             &zoned_bidding_start,
             &zoned_bidding_end,
-            &bid_specifications.step,
+            &product_specificationss.step,
         )?;
 
         bounds
             .map(|(start_at, end_at)| {
                 RegularTimeGrid::try_new_start_end(
                     start_at.into(),
-                    bid_specifications.step,
+                    product_specificationss.step,
                     end_at.into(),
                 )
             })
@@ -109,7 +109,7 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
-        bid_specifications: &BidSpecs,
+        product_specificationss: &ProductSpecifications,
     ) -> crate::Result<Option<RegularTimeGrid>> {
         let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
         let zoned_bidding_start = add_and_set_time(
@@ -125,13 +125,13 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
         let bounds = fit_bounds_to_bid_step(
             &zoned_bidding_start,
             &zoned_bidding_end,
-            &bid_specifications.step,
+            &product_specificationss.step,
         )?;
         bounds
             .map(|(start_at, end_at)| {
                 RegularTimeGrid::try_new_start_end(
                     start_at.into(),
-                    bid_specifications.step,
+                    product_specificationss.step,
                     end_at.into(),
                 )
             })
@@ -143,7 +143,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
-        bid_specifications: &BidSpecs,
+        product_specificationss: &ProductSpecifications,
     ) -> crate::Result<Option<RegularTimeGrid>> {
         let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
         // Compute same day bidding bounds.
@@ -154,7 +154,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
         let same_day_bounds = &fit_bounds_to_bid_step(
             &same_day_start,
             &same_day_end,
-            &bid_specifications.step,
+            &product_specificationss.step,
         )?;
         // Compute next day bidding bounds.
         let next_bidding_day_start =
@@ -171,7 +171,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
         let next_day_bounds = fit_bounds_to_bid_step(
             &next_day_bidding_start,
             &next_day_bidding_end,
-            &bid_specifications.step,
+            &product_specificationss.step,
         )?;
 
         match (same_day_bounds, next_day_bounds) {
@@ -182,7 +182,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
             (Some((same_start_at, same_end_at)), None) => {
                 RegularTimeGrid::try_new_start_end(
                     same_start_at.into(),
-                    bid_specifications.step,
+                    product_specificationss.step,
                     same_end_at.into(),
                 )
                 .map(Some)
@@ -192,7 +192,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
             (Some((same_start_at, _)), Some((_, next_end_at))) => {
                 RegularTimeGrid::try_new_start_end(
                     same_start_at.into(),
-                    bid_specifications.step,
+                    product_specificationss.step,
                     next_end_at.into(),
                 )
                 .map(Some)
@@ -202,7 +202,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
             (None, Some((next_start_at, next_end_at))) => {
                 RegularTimeGrid::try_new_start_end(
                     next_start_at.into(),
-                    bid_specifications.step,
+                    product_specificationss.step,
                     next_end_at.into(),
                 )
                 .map(Some)
@@ -217,7 +217,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
 mod tests {
     use jiff::{SignedDuration, Timestamp, ToSpan};
 
-    use crate::market::bid::{BidSpecs, KiloWattIncrement};
+    use crate::market::bid::{KiloWattIncrement, ProductSpecifications};
     use crate::market::temporality::{
         auction::{ContinuousAuctionTemporality, DynamicAuctionTemporality},
         bid_time_bounds::ToBidTimeBounds,
@@ -225,8 +225,8 @@ mod tests {
     };
     use crate::temporal::step::MinuteStep;
 
-    fn bid_specs(step_minutes: i64) -> BidSpecs {
-        BidSpecs {
+    fn product_specifications(step_minutes: i64) -> ProductSpecifications {
+        ProductSpecifications {
             step: MinuteStep::try_from(SignedDuration::from_mins(step_minutes)).unwrap(),
             increment: KiloWattIncrement::from(100),
         }
@@ -246,8 +246,9 @@ mod tests {
 
         // 2024-01-15T09:00:00Z == 10:00 CET.
         let reference_time: Timestamp = "2024-01-15T09:00:00Z".parse().unwrap();
-        let bounds =
-            dynamic_auction.to_bid_time_bounds(&reference_time, &bid_specs(15)).unwrap();
+        let bounds = dynamic_auction
+            .to_bid_time_bounds(&reference_time, &product_specifications(15))
+            .unwrap();
 
         assert!(bounds.is_none());
     }
@@ -267,7 +268,7 @@ mod tests {
         // 2024-01-15T09:00:00Z == 10:00 CET.
         let reference_time: Timestamp = "2024-01-15T09:00:00Z".parse().unwrap();
         let bounds = dynamic_auction
-            .to_bid_time_bounds(&reference_time, &bid_specs(15))
+            .to_bid_time_bounds(&reference_time, &product_specifications(15))
             .unwrap()
             .unwrap();
 
@@ -285,7 +286,7 @@ mod tests {
         let continuous_auction =
             ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "CET").unwrap();
         let bounds = continuous_auction
-            .to_bid_time_bounds(&reference_time, &bid_specs(15))
+            .to_bid_time_bounds(&reference_time, &product_specifications(15))
             .unwrap()
             .unwrap();
         assert_eq!(bounds.start, expected_bidding_start);

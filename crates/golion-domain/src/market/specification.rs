@@ -2,28 +2,28 @@ use crate::temporal::grid::RegularTimeGrid;
 use crate::{
     countries::Countries,
     market::{
-        bid::BidSpecs, config::AllMarketConfig, error::MarketError,
+        bid::ProductSpecifications, config::AllMarketConfig, error::MarketError,
         market_type::MarketType, temporality::bid_time_bounds::ToBidTimeBounds,
     },
 };
 use jiff::Timestamp;
 #[derive(Debug)]
-pub struct MarketSpec {
+pub struct MarketSpecs {
     pub market: MarketType,
     pub country: Countries,
-    pub product: BidSpecs,
+    pub product: ProductSpecifications,
     pub config: AllMarketConfig,
 }
 
-impl MarketSpec {
+impl MarketSpecs {
     pub fn try_new(
         market: MarketType,
         country: Countries,
-        product: BidSpecs,
+        product: ProductSpecifications,
     ) -> crate::Result<Self> {
         let config = AllMarketConfig::try_new(&market, &country)?;
         if config.possible_products().contains(&product) {
-            Ok(MarketSpec { market, country, product, config })
+            Ok(MarketSpecs { market, country, product, config })
         } else {
             Err(MarketError::InvalidProduct {
                 market,
@@ -36,7 +36,8 @@ impl MarketSpec {
     }
 }
 
-impl MarketSpec {
+impl MarketSpecs {
+    /// Get bidding time bounds using the configuration and reference run time.
     pub fn get_bid_time_bounds(
         &self,
         reference_time: &Timestamp,

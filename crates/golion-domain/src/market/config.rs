@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use jiff::{Timestamp, ToSpan};
 
 use crate::countries::Countries;
-use crate::market::bid::BidSpecs;
+use crate::market::bid::ProductSpecifications;
 use crate::market::error::MarketError;
 use crate::market::market_type::{
     AncillaryMarketType, CapacityAncillaryMarketType, EnergyAncillaryMarketType,
@@ -27,7 +27,7 @@ pub struct MarketConfig<T: ToBidTimeBounds> {
     /// Auction temporality
     pub auction: T,
     /// Possible products
-    pub possible_products: HashSet<BidSpecs>,
+    pub possible_products: HashSet<ProductSpecifications>,
 }
 /// All market configuration representation.
 /// This struct groups all market configurations and matches it
@@ -88,8 +88,8 @@ impl AllMarketConfig {
             "CET",
         )?;
         let possible_products = HashSet::from([
-            BidSpecs::try_new(15.minutes(), 10)?,
-            BidSpecs::try_new(1.hours(), 10)?,
+            ProductSpecifications::try_new(15.minutes(), 10)?,
+            ProductSpecifications::try_new(1.hours(), 10)?,
         ]);
         let auction = match country {
             Countries::BE
@@ -114,8 +114,8 @@ impl AllMarketConfig {
             "CET",
         )?;
         let possible_products = HashSet::from([
-            BidSpecs::try_new(15.minutes(), 10)?,
-            BidSpecs::try_new(1.hours(), 10)?,
+            ProductSpecifications::try_new(15.minutes(), 10)?,
+            ProductSpecifications::try_new(1.hours(), 10)?,
         ]);
         let auction = match country {
             Countries::BE
@@ -139,8 +139,8 @@ impl AllMarketConfig {
             "CET",
         )?;
         let possible_products = HashSet::from([
-            BidSpecs::try_new(15.minutes(), 10)?,
-            BidSpecs::try_new(1.hours(), 10)?,
+            ProductSpecifications::try_new(15.minutes(), 10)?,
+            ProductSpecifications::try_new(1.hours(), 10)?,
         ]);
         let auction = match country {
             Countries::BE
@@ -164,8 +164,8 @@ impl AllMarketConfig {
             "CET",
         )?;
         let possible_products = HashSet::from([
-            BidSpecs::try_new(15.minutes(), 10)?,
-            BidSpecs::try_new(1.hours(), 10)?,
+            ProductSpecifications::try_new(15.minutes(), 10)?,
+            ProductSpecifications::try_new(1.hours(), 10)?,
         ]);
         let auction = match country {
             Countries::BE
@@ -195,9 +195,9 @@ impl AllMarketConfig {
             }
         };
         let possible_products = HashSet::from([
-            BidSpecs::try_new(15.minutes(), 10)?,
-            BidSpecs::try_new(30.minutes(), 10)?,
-            BidSpecs::try_new(1.hour(), 10)?,
+            ProductSpecifications::try_new(15.minutes(), 10)?,
+            ProductSpecifications::try_new(30.minutes(), 10)?,
+            ProductSpecifications::try_new(1.hour(), 10)?,
         ]);
 
         Ok(Self::IntradayContinuous(MarketConfig {
@@ -221,7 +221,8 @@ impl AllMarketConfig {
             | Countries::ES
             | Countries::PT => harmonized_picasso,
         };
-        let possible_products = HashSet::from([BidSpecs::try_new(15.minutes(), 10)?]);
+        let possible_products =
+            HashSet::from([ProductSpecifications::try_new(15.minutes(), 10)?]);
         Ok(Self::AfrrFree(MarketConfig { country: *country, auction, possible_products }))
     }
 
@@ -246,7 +247,7 @@ impl AllMarketConfig {
     }
 
     /// Products allowed to bid on this configuration.
-    pub fn possible_products(&self) -> &HashSet<BidSpecs> {
+    pub fn possible_products(&self) -> &HashSet<ProductSpecifications> {
         match self {
             Self::SpotDayAhead(c) => &c.possible_products,
             Self::IntradayAuction1(c) => &c.possible_products,
@@ -264,32 +265,32 @@ impl ToBidTimeBounds for AllMarketConfig {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
-        bid_specifications: &BidSpecs,
+        product_specificationss: &ProductSpecifications,
     ) -> crate::Result<Option<RegularTimeGrid>> {
         match self {
             Self::SpotDayAhead(c) => {
-                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
             }
             Self::IntradayAuction1(c) => {
-                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
             }
             Self::IntradayAuction2(c) => {
-                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
             }
             Self::IntradayAuction3(c) => {
-                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
             }
             Self::IntradayContinuous(c) => {
-                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
             }
             Self::AfrrFree(c) => {
-                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
             }
             Self::Afrr(c) => {
-                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
             }
             Self::Fcr(c) => {
-                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
             }
         }
     }
