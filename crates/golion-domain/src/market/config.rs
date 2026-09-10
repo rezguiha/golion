@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use jiff::ToSpan;
+use jiff::{Timestamp, ToSpan};
 
 use crate::countries::Countries;
 use crate::market::bid::BidSpecs;
@@ -16,6 +16,8 @@ use crate::market::temporality::{
     bid_time_bounds::ToBidTimeBounds,
     interval::TimeDefinedInterval,
 };
+use crate::temporal::grid::RegularTimeGrid;
+
 // region: Market config
 /// A particular market configuration
 #[derive(Debug)]
@@ -254,6 +256,41 @@ impl AllMarketConfig {
             Self::AfrrFree(c) => &c.possible_products,
             Self::Afrr(c) => &c.possible_products,
             Self::Fcr(c) => &c.possible_products,
+        }
+    }
+}
+
+impl ToBidTimeBounds for AllMarketConfig {
+    fn to_bid_time_bounds(
+        &self,
+        reference_time: &Timestamp,
+        bid_specifications: &BidSpecs,
+    ) -> crate::Result<Option<RegularTimeGrid>> {
+        match self {
+            Self::SpotDayAhead(c) => {
+                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+            }
+            Self::IntradayAuction1(c) => {
+                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+            }
+            Self::IntradayAuction2(c) => {
+                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+            }
+            Self::IntradayAuction3(c) => {
+                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+            }
+            Self::IntradayContinuous(c) => {
+                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+            }
+            Self::AfrrFree(c) => {
+                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+            }
+            Self::Afrr(c) => {
+                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+            }
+            Self::Fcr(c) => {
+                c.auction.to_bid_time_bounds(reference_time, bid_specifications)
+            }
         }
     }
 }
