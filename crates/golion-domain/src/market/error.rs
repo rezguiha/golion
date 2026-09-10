@@ -1,6 +1,6 @@
 use super::market_type::MarketType;
 use crate::countries::Countries;
-use crate::market::bid::BidSpecs;
+use crate::market::bid::ProductSpecifications;
 use jiff::Span;
 use jiff::civil::Time;
 use std::collections::HashSet;
@@ -20,8 +20,8 @@ pub enum MarketError {
     InvalidProduct {
         market: MarketType,
         country: Countries,
-        product: BidSpecs,
-        possible_products: HashSet<BidSpecs>,
+        product: ProductSpecifications,
+        possible_products: HashSet<ProductSpecifications>,
     },
 
     // -- config

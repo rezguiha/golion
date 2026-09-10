@@ -1,6 +1,6 @@
 use crate::market::variables::BidVariables;
 use golion_domain::market::bid::KiloWattIncrement;
-use golion_domain::market::specification::MarketSpec;
+use golion_domain::market::specification::MarketSpecs;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
 use good_lp::{Constraint, ProblemVariables, variable};
@@ -30,7 +30,7 @@ impl Market {
         time_index: &[Timestamp],
         step: &MinuteStep,
         vars: &mut ProblemVariables,
-        market_specs: MarketSpec,
+        market_specs: MarketSpecs,
     ) -> crate::Result<Self> {
         let bid_time_bounds = market_specs.get_bid_time_bounds(reference_time)?;
         let constraints: Vec<Constraint> = Vec::new();

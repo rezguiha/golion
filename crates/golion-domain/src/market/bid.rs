@@ -15,12 +15,12 @@ impl KiloWattIncrement {
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
-pub struct BidSpecs {
+pub struct ProductSpecifications {
     pub step: MinuteStep,
     pub increment: KiloWattIncrement,
 }
 
-impl BidSpecs {
+impl ProductSpecifications {
     pub fn try_new(step: Span, increment_kw: u16) -> crate::Result<Self> {
         Ok(Self { step: step.try_into()?, increment: KiloWattIncrement(increment_kw) })
     }
