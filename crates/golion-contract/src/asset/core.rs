@@ -101,9 +101,11 @@ pub struct RenewableData {
 /// use golion_domain::countries::Countries;
 /// use golion_domain::market::market_type::WholesaleMarketType;
 ///
-/// let market_choice = MarketChoice::WholeSaleChoice {
-///     market: WholesaleMarketType::SpotDayAhead,
+/// let market_choice = MarketChoice{
+///     market: WholesaleMarketType::SpotDayAhead.into(),
 ///     country: Countries::FR,
+///     product_step_minutes:15,
+///     product_increment_kw:10,
 /// };
 /// let availability = vec![
 ///     StorageAvailability::builder()
