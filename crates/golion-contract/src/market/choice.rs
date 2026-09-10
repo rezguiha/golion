@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 pub struct MarketChoice {
     pub market: MarketType,
     pub country: Countries,
-    /// Wholesale product length expressed in minutes.
     pub product_step_minutes: u16,
     pub product_increment_kw: u16,
 }
