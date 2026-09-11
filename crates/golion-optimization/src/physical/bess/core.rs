@@ -130,8 +130,6 @@ mod tests {
     use golion_domain::asset::bess::efficiency::BessPowerEfficiencies;
     use golion_domain::asset::bess::limits::{BessLimits, SocRange};
     use golion_domain::asset::bess::specification::BessSpecifications;
-    use golion_domain::temporal::grid::RegularTimeGrid;
-    use golion_domain::temporal::series::TimeSeries;
     use golion_domain::temporal::step::MinuteStep;
     use golion_domain::units::efficiency::Efficiency;
     use golion_domain::units::power::{KiloWatt, KiloWattHour};
@@ -146,26 +144,22 @@ mod tests {
             Timestamp::now().round((Unit::Minute, step.duration().as_mins())).unwrap();
         let time_index: Vec<Timestamp> =
             (0..4).map(|i| start_at + *step.duration() * i).collect();
-
-        // One availability point per slot (Availability is Copy).
-        let grid = RegularTimeGrid::try_new(start_at, step, time_index.len()).unwrap();
-        let data = vec![
-            Availability {
+        let availability: Vec<Availability> = time_index
+            .iter()
+            .map(|dt| Availability {
+                start_at: *dt,
                 max_charge_power: KiloWatt(50.0),
                 max_discharge_power: KiloWatt(50.0),
                 max_usable_energy: KiloWattHour(100.0),
-            };
-            time_index.len()
-        ];
-        let availability = TimeSeries { grid, data };
-
+            })
+            .collect();
         let mut vars = ProblemVariables::new();
         let limits = BessLimits {
             soc_range: SocRange {
                 min_soc: 0.0.try_into().unwrap(),
                 max_soc: 1.0.try_into().unwrap(),
             },
-            availability,
+            availability: availability.try_into().unwrap(),
         };
         let efficiencies = BessPowerEfficiencies {
             charge_efficiency: Efficiency::try_from(0.95).unwrap(),
