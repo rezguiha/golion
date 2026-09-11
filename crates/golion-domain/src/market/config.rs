@@ -209,7 +209,7 @@ impl AllMarketConfig {
 
     fn afrr_free(country: &Countries) -> crate::Result<Self> {
         let harmonized_picasso = DynamicAuctionTemporality::try_new(
-            TimeDefinedInterval::try_new(12, 0, 23, 59, 0.days())?,
+            TimeDefinedInterval::try_new(0, 0, 23, 59, 0.days())?,
             30.minutes(),
             "CET",
         )?;
