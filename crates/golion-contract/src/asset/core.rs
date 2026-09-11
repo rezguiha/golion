@@ -5,11 +5,10 @@ use super::specifications::{BessSpecs, CcgtSpecs, RenewableSpecs};
 use crate::market::choice::MarketChoice;
 use crate::market::commitments::{AncillaryCommitments, WholesaleCommitments};
 use garde::Validate;
-use golion_domain::asset::bess::availability::Availability;
+use golion_domain::asset::bess::availability::Availability as BessAvailability;
 use golion_domain::asset::bess::efficiency::BessPowerEfficiencies;
 use golion_domain::asset::bess::limits::{BessLimits, SocRange};
 use golion_domain::asset::bess::specification::BessSpecifications;
-use golion_domain::temporal::series::TimeSeries;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
@@ -25,6 +24,10 @@ pub struct BessData {
     /// The declared future availability level of the Bess system
     #[garde(dive)]
     pub availability: Vec<StorageAvailability>,
+    /// The current state of charge of the battery in kWh, at the start
+    /// of the optimization run.
+    #[garde(range(min = 0.0))]
+    pub initial_soc: f64,
     /// Physical specification for Bess
     #[garde(dive)]
     pub specs: BessSpecs,
@@ -124,6 +127,7 @@ pub struct RenewableData {
 /// let asset = AssetData::Bess(
 ///     BessData::builder()
 ///         .availability(availability)
+///         .initial_soc(50.0)
 ///         .specs(BessSpecs::builder().build())
 ///         .identification(AssetIdentification::builder().build())
 ///         .market_choices(vec![market_choice])
@@ -146,21 +150,17 @@ pub enum AssetData {
 
 // region: Domain Conversion
 
-impl TryInto<BessSpecifications> for BessData {
+impl TryFrom<&BessData> for BessSpecifications {
     type Error = crate::Error;
-    fn try_into(self) -> Result<BessSpecifications, Self::Error> {
-        let soc_range: SocRange = self.specs.try_into()?;
-        let availability_raw: TimeSeries<StorageAvailability> =
-            self.availability.try_into()?;
-        let availability: TimeSeries<Availability> = TimeSeries {
-            grid: availability_raw.grid,
-            data: availability_raw.data.iter().map(|x| x.into()).collect(),
-        };
+    fn try_from(value: &BessData) -> Result<Self, Self::Error> {
+        let soc_range: SocRange = value.specs.try_into()?;
+        let availability: Vec<BessAvailability> =
+            value.availability.iter().map(BessAvailability::from).collect();
         let efficiencies = BessPowerEfficiencies {
-            charge_efficiency: self.specs.charge_efficiency.try_into()?,
-            discharge_efficiency: self.specs.discharge_efficiency.try_into()?,
+            charge_efficiency: value.specs.charge_efficiency.try_into()?,
+            discharge_efficiency: value.specs.discharge_efficiency.try_into()?,
         };
-        let limits = BessLimits { soc_range, availability };
+        let limits = BessLimits { soc_range, availability: availability.try_into()? };
         Ok(BessSpecifications { limits, efficiencies })
     }
 }
