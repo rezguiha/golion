@@ -115,13 +115,15 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
         let zoned_bidding_start = add_and_set_time(
             &zoned_reference_time,
             &self.neutralization_delay,
-            self.bidding_interval.start_time,
+            // Take the latest between the reference time and the bidding start time.
+            self.bidding_interval.start_time.max(zoned_reference_time.time()),
         )?;
         let zoned_bidding_end = add_and_set_time(
             &zoned_bidding_start,
             self.bidding_interval.delta_start_end.value(),
             self.bidding_interval.end_time,
         )?;
+        let zoned_bidding_start = zoned_bidding_start.max(zoned_reference_time);
         let bounds = fit_bounds_to_bid_step(
             &zoned_bidding_start,
             &zoned_bidding_end,
