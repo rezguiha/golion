@@ -222,7 +222,7 @@ impl AllMarketConfig {
             | Countries::PT => harmonized_picasso,
         };
         let possible_products =
-            HashSet::from([ProductSpecifications::try_new(15.minutes(), 10)?]);
+            HashSet::from([ProductSpecifications::try_new(15.minutes(), 1000)?]);
         Ok(Self::AfrrFree(MarketConfig { country: *country, auction, possible_products }))
     }
 
