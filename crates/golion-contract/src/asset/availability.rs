@@ -1,6 +1,5 @@
 /// Availability structs definition.
 use garde::Validate;
-use golion_domain::temporal::series::TimeStampedUtc;
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
@@ -48,6 +47,7 @@ pub struct GeneratorAvailability {
 impl From<&StorageAvailability> for DomainBessAvailability {
     fn from(x: &StorageAvailability) -> Self {
         DomainBessAvailability {
+            start_at: x.start_at,
             max_charge_power: x.max_charge_power.into(),
             max_discharge_power: x.max_discharge_power.into(),
             max_usable_energy: x.max_usable_energy.into(),
@@ -55,9 +55,4 @@ impl From<&StorageAvailability> for DomainBessAvailability {
     }
 }
 
-impl TimeStampedUtc for StorageAvailability {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
-    }
-}
 // endregion: Domain Conversion
