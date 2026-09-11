@@ -11,7 +11,7 @@ use typed_builder::TypedBuilder;
 // region: Asset Specifications
 
 /// Bess static specifications.
-#[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder, Clone)]
+#[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder, Clone, Copy)]
 pub struct BessSpecs {
     /// Theoretical capacity expressed in kWh in grid side convention.
     #[builder(default = 7500.0)]
