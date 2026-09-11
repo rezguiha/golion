@@ -6,7 +6,9 @@ use crate::market::choice::MarketChoice;
 use crate::market::commitments::{AncillaryCommitments, WholesaleCommitments};
 use garde::Validate;
 use golion_domain::asset::bess::availability::Availability;
+use golion_domain::asset::bess::efficiency::BessPowerEfficiencies;
 use golion_domain::asset::bess::limits::{BessLimits, SocRange};
+use golion_domain::asset::bess::specification::BessSpecifications;
 use golion_domain::temporal::series::TimeSeries;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
@@ -144,9 +146,9 @@ pub enum AssetData {
 
 // region: Domain Conversion
 
-impl TryInto<BessLimits> for BessData {
+impl TryInto<BessSpecifications> for BessData {
     type Error = crate::Error;
-    fn try_into(self) -> crate::Result<BessLimits> {
+    fn try_into(self) -> Result<BessSpecifications, Self::Error> {
         let soc_range: SocRange = self.specs.try_into()?;
         let availability_raw: TimeSeries<StorageAvailability> =
             self.availability.try_into()?;
@@ -154,6 +156,11 @@ impl TryInto<BessLimits> for BessData {
             grid: availability_raw.grid,
             data: availability_raw.data.iter().map(|x| x.into()).collect(),
         };
-        Ok(BessLimits { soc_range, availability })
+        let efficiencies = BessPowerEfficiencies {
+            charge_efficiency: self.specs.charge_efficiency.try_into()?,
+            discharge_efficiency: self.specs.discharge_efficiency.try_into()?,
+        };
+        let limits = BessLimits { soc_range, availability };
+        Ok(BessSpecifications { limits, efficiencies })
     }
 }
