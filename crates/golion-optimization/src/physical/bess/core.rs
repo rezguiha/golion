@@ -16,14 +16,14 @@ pub struct Battery {
 }
 
 impl Battery {
-    pub fn new<B: BessVariableCreator>(
+    pub fn new(
         time_index: &[Timestamp],
         vars: &mut ProblemVariables,
         charge_efficiency: &Efficiency,
         discharge_efficiency: &Efficiency,
         initial_soc: KiloWattHour,
         step: MinuteStep,
-        limits: B,
+        limits: impl BessVariableCreator,
     ) -> Result<Self> {
         let time_index_length = time_index.len();
         // Initialize battery physical variables and constraints containers.

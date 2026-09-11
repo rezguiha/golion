@@ -1,5 +1,5 @@
-use golion_domain::market::bid::ProductSpecifications;
 /// Definition of market choices for assets and their inputs.
+use golion_domain::market::bid::ProductSpecifications;
 use golion_domain::market::specification::MarketSpecs;
 use golion_domain::{countries::Countries, market::market_type::MarketType};
 use jiff::Span;
