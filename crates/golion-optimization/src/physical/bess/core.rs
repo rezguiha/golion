@@ -1,11 +1,9 @@
-use super::soc::transition_constraint;
 use crate::Result;
 use crate::physical::variables::{BessVariableCreator, BessVariables};
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
-use golion_domain::units::efficiency::Efficiency;
 use golion_domain::units::power::KiloWattHour;
-use good_lp::{Constraint, Expression, ProblemVariables};
+use good_lp::{Constraint, ProblemVariables};
 use jiff::Timestamp;
 // region: Battery Definition
 pub struct Battery {
@@ -19,38 +17,17 @@ impl Battery {
     pub fn new(
         time_index: &[Timestamp],
         vars: &mut ProblemVariables,
-        charge_efficiency: &Efficiency,
-        discharge_efficiency: &Efficiency,
+        specifications: impl BessVariableCreator,
         initial_soc: KiloWattHour,
         step: MinuteStep,
-        limits: impl BessVariableCreator,
     ) -> Result<Self> {
-        let time_index_length = time_index.len();
-        // Initialize battery physical variables and constraints containers.
-        let mut constraints: Vec<Constraint> = Vec::with_capacity(time_index_length);
-        let mut variable_vec: Vec<BessVariables> = Vec::with_capacity(time_index_length);
-        // Loop over time index ,create variables with their respective limits
-        // and generate defining soc constraints.
-        for (i, dt) in time_index.iter().enumerate() {
-            // Create battery physical variables.
-            let variables_at = limits.create_variables_at(dt, vars)?;
-
-            // Create soc transition constraints.
-            let prev_soc: Expression = match i {
-                0 => initial_soc.0.into(),
-                _ => variable_vec[i - 1].soc.into(),
-            };
-            constraints.push(transition_constraint(
-                &variables_at,
-                prev_soc,
-                &step,
-                charge_efficiency,
-                discharge_efficiency,
-            ));
-            variable_vec.push(variables_at);
-        }
-        let variable_store: TimeSeries<BessVariables> = variable_vec.try_into()?;
-
+        let (variable_store, constraints) = specifications
+            .create_variables_and_minimal_constraints(
+                time_index,
+                vars,
+                initial_soc,
+                step,
+            )?;
         Ok(Self { initial_soc, step, variable_store, constraints })
     }
 }
@@ -60,7 +37,9 @@ impl Battery {
 mod tests {
     use super::Battery;
     use golion_domain::asset::bess::availability::Availability;
+    use golion_domain::asset::bess::efficiency::BessPowerEfficiencies;
     use golion_domain::asset::bess::limits::{BessLimits, SocRange};
+    use golion_domain::asset::bess::specification::BessSpecifications;
     use golion_domain::temporal::grid::RegularTimeGrid;
     use golion_domain::temporal::series::TimeSeries;
     use golion_domain::temporal::step::MinuteStep;
@@ -98,17 +77,18 @@ mod tests {
             },
             availability,
         };
-        let charge_efficiency = Efficiency::try_from(0.95).unwrap();
-        let discharge_efficiency = Efficiency::try_from(0.95).unwrap();
+        let efficiencies = BessPowerEfficiencies {
+            charge_efficiency: Efficiency::try_from(0.95).unwrap(),
+            discharge_efficiency: Efficiency::try_from(0.95).unwrap(),
+        };
+        let specifications = BessSpecifications { limits, efficiencies };
 
         let battery = Battery::new(
             &time_index,
             &mut vars,
-            &charge_efficiency,
-            &discharge_efficiency,
+            specifications,
             KiloWattHour(20.0),
             step,
-            limits,
         )
         .expect("battery construction should succeed");
 
