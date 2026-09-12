@@ -13,9 +13,9 @@ pub struct MarketChoice {
     pub product_increment_kw: u16,
 }
 
-impl TryFrom<MarketChoice> for MarketSpecs {
+impl TryFrom<&MarketChoice> for MarketSpecs {
     type Error = crate::Error;
-    fn try_from(value: MarketChoice) -> Result<Self, Self::Error> {
+    fn try_from(value: &MarketChoice) -> Result<Self, Self::Error> {
         let product = ProductSpecifications::try_new(
             Span::new().minutes(value.product_step_minutes),
             value.product_increment_kw,

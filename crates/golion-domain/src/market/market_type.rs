@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 // region: Market types
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WholesaleMarketType {
     SpotDayAhead,
     IntradayAuction1,
@@ -17,26 +17,26 @@ pub enum WholesaleMarketType {
 /// you are paid an extra variable amount depending on the level of power
 /// you and the time you spend activated. This is called the "energy"
 /// component of an ancillary market.
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CapacityAncillaryMarketType {
     Afrr,
     Fcr,
 }
 /// An energy ancillary market is a market where you opt in to participate
 /// to the energy component of the ancillary capacity market.
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EnergyAncillaryMarketType {
     AfrrFree,
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AncillaryMarketType {
     Capacity(CapacityAncillaryMarketType),
     Energy(EnergyAncillaryMarketType),
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum MarketType {
     WholeSale(WholesaleMarketType),
