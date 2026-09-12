@@ -18,5 +18,7 @@ async fn handler(
 ) -> Result<Json<OptimizationOutput>, ServerError> {
     let mut vars = ProblemVariables::new();
     let components = assembly::build_portfolio(&input, &mut vars)?;
+    println!("{:#?}", components);
+
     Ok(Json(OptimizationOutput { components_built: components.len() }))
 }
