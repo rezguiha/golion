@@ -1,5 +1,7 @@
+pub mod component;
 mod error;
-mod market;
-mod physical;
+pub mod market;
+pub mod physical;
 mod support;
 pub use self::error::{Error, Result};
+pub use good_lp::ProblemVariables;
