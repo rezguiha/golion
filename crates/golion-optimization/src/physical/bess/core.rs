@@ -95,6 +95,7 @@ impl BessVariableCreator for BessSpecifications {
 // endregion: BessVariableCreator
 
 // region: Battery Definition
+#[derive(Debug)]
 pub struct Battery {
     initial_soc: KiloWattHour,
     step: MinuteStep,
