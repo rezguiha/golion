@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 derive_more = { workspace = true }
-garde = { version = "0.22.1", features = ["derive"] }
+garde = { version = "0.23", features = ["derive"] }
 golion-domain = { workspace = true }
 jiff = { workspace = true, features = ["serde"] }
 serde = { workspace = true }
