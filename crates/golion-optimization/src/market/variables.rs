@@ -7,6 +7,8 @@ pub struct BidVariables {
     pub start_at: Timestamp,
     pub input_power: Expression,
     pub output_power: Expression,
+    pub input_energy: Expression,
+    pub output_energy: Expression,
 }
 // Implement TimeStampedUtc to enable creation
 // of TimeSeries<BidVariables> out of Vec<BidVariables>.
