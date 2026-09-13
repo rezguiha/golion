@@ -1,4 +1,4 @@
-use crate::market::variables::BidVariables;
+use crate::{market::variables::BidVariables, support::power_to_energy};
 use golion_domain::market::bid::KiloWattIncrement;
 use golion_domain::market::specification::MarketSpecs;
 use golion_domain::temporal::series::TimeSeries;
@@ -61,10 +61,17 @@ impl Market {
             let output_variable = vars.add(variable().min(0).integer());
             for dt in start.series(step.span()).take_while(|dt| dt < &end) {
                 // We associate same variables for the whole window of the bid step.
+                let input_power = input_variable * increment_value;
+                let input_energy = power_to_energy(&input_power, step.duration());
+                let output_power = output_variable * increment_value;
+                let output_energy = power_to_energy(&output_power, step.duration());
+
                 variable_store.push(BidVariables {
                     start_at: dt,
-                    input_power: input_variable * increment_value,
-                    output_power: output_variable * increment_value,
+                    input_power,
+                    output_power,
+                    input_energy,
+                    output_energy,
                 })
             }
         }
