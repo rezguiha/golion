@@ -1,9 +1,12 @@
-use crate::{market::variables::BidVariables, support::power_to_energy};
+use crate::{
+    market::{revenue::RevenueSetter, variables::BidVariables},
+    support::power_to_energy,
+};
 use golion_domain::market::bid::KiloWattIncrement;
 use golion_domain::market::specification::MarketSpecs;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
-use good_lp::{Constraint, ProblemVariables, variable};
+use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables, variable};
 use itertools::Itertools;
 use jiff::Timestamp;
 
@@ -22,6 +25,7 @@ pub struct Market {
     increment: KiloWattIncrement,
     variable_store: Option<TimeSeries<BidVariables>>,
     constraints: Vec<Constraint>,
+    revenue: Expression,
 }
 
 impl Market {
@@ -31,9 +35,11 @@ impl Market {
         step: &MinuteStep,
         vars: &mut ProblemVariables,
         market_specs: MarketSpecs,
+        market_revenues: &TimeSeries<impl RevenueSetter>,
     ) -> crate::Result<Self> {
         let bid_time_bounds = market_specs.get_bid_time_bounds(reference_time)?;
         let constraints: Vec<Constraint> = Vec::new();
+        let mut revenue: Expression = 0.0.into_expression();
         let Some(bounds) = bid_time_bounds else {
             // In case market is unavailable. No bid variables are
             // defined.
@@ -42,6 +48,7 @@ impl Market {
                 increment: market_specs.product.increment,
                 variable_store: None,
                 constraints,
+                revenue,
             });
         };
         // Make sure bid bounds are inside time index.
@@ -56,6 +63,7 @@ impl Market {
         }
         let increment_value = market_specs.product.increment.value();
         let mut variable_store: Vec<BidVariables> = Vec::with_capacity(bounds.length);
+
         for (start, end) in bounds.iter().tuple_windows() {
             let input_variable = vars.add(variable().min(0).integer());
             let output_variable = vars.add(variable().min(0).integer());
@@ -65,14 +73,16 @@ impl Market {
                 let input_energy = power_to_energy(&input_power, step.duration());
                 let output_power = output_variable * increment_value;
                 let output_energy = power_to_energy(&output_power, step.duration());
-
-                variable_store.push(BidVariables {
+                let bidding_variables = BidVariables {
                     start_at: dt,
                     input_power,
                     output_power,
                     input_energy,
                     output_energy,
-                })
+                };
+                let revenue_setter = market_revenues.at(&dt)?;
+                revenue += revenue_setter.revenue_expression(&bidding_variables);
+                variable_store.push(bidding_variables);
             }
         }
         Ok(Market {
@@ -80,6 +90,7 @@ impl Market {
             increment: market_specs.product.increment,
             variable_store: Some(variable_store.try_into()?),
             constraints,
+            revenue,
         })
     }
 }
