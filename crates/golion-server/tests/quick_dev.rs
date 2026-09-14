@@ -1,19 +1,21 @@
 use anyhow::Result;
-use golion_contract::asset::{
-    availability::StorageAvailability,
-    core::{AssetData, BessData},
-    identification::AssetIdentification,
-    specifications::BessSpecs,
-};
 use golion_contract::market::choice::MarketChoice;
 use golion_contract::market::commitments::{AncillaryCommitment, WholesaleCommitment};
 use golion_contract::optimization::OptimizationInput;
+use golion_contract::{
+    asset::{
+        availability::StorageAvailability,
+        core::{AssetData, BessData},
+        identification::AssetIdentification,
+        specifications::BessSpecs,
+    },
+    market::series::MarketSeries,
+};
 use golion_domain::countries::Countries;
 use golion_domain::market::market_type::{
     AncillaryMarketType, EnergyAncillaryMarketType, WholesaleMarketType,
 };
 use jiff::{SignedDuration, Timestamp, Unit};
-use std::collections::HashMap;
 /// Temporary simple test of sending assetdata as a payload
 /// on optimize endpoint.
 #[tokio::test]
@@ -52,10 +54,10 @@ async fn test_optimize_bess() -> Result<()> {
                 .build()
         })
         .collect();
-
-    let ancillary_commitments = HashMap::from([(
-        AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
-        timestamps
+    let ancillary_commitments = vec![MarketSeries {
+        market: AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
+        country: Countries::FR,
+        values: timestamps
             .iter()
             .map(|t| {
                 AncillaryCommitment::builder()
@@ -65,16 +67,17 @@ async fn test_optimize_bess() -> Result<()> {
                     .build()
             })
             .collect(),
-    )]);
-    let wholesale_commitments = HashMap::from([(
-        WholesaleMarketType::IntradayAuction1,
-        timestamps
+    }];
+    let wholesale_commitments = vec![MarketSeries {
+        market: WholesaleMarketType::IntradayAuction1,
+        country: Countries::FR,
+        values: timestamps
             .iter()
             .map(|t| {
                 WholesaleCommitment::builder().start_at(*t).net_position(2.6).build()
             })
             .collect(),
-    )]);
+    }];
     let asset = AssetData::Bess(
         BessData::builder()
             .availability(availability)
