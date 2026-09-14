@@ -60,5 +60,9 @@ impl From<EnergyAncillaryMarketType> for MarketType {
         Self::Ancillary(AncillaryMarketType::Energy(value))
     }
 }
-
+impl From<AncillaryMarketType> for MarketType {
+    fn from(value: AncillaryMarketType) -> Self {
+        Self::Ancillary(value)
+    }
+}
 // endregion: Market types
