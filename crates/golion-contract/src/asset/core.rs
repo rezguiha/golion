@@ -34,9 +34,9 @@ pub struct BessData {
     /// Market configuration and corresponding data.
     #[garde(skip)]
     pub market_choices: Vec<MarketChoice>,
-    #[garde(skip)]
+    #[garde(dive)]
     pub ancillary_commitments: AncillaryCommitments,
-    #[garde(skip)]
+    #[garde(dive)]
     pub wholesale_commitments: WholesaleCommitments,
 }
 
@@ -58,9 +58,9 @@ pub struct GasTurbineData {
     /// Market configuration and corresponding data.
     #[garde(skip)]
     pub market_choices: Vec<MarketChoice>,
-    #[garde(skip)]
+    #[garde(dive)]
     pub ancillary_commitments: AncillaryCommitments,
-    #[garde(skip)]
+    #[garde(dive)]
     pub wholesale_commitments: WholesaleCommitments,
 }
 
@@ -81,9 +81,9 @@ pub struct RenewableData {
     /// Market configuration and corresponding data.
     #[garde(skip)]
     pub market_choices: Vec<MarketChoice>,
-    #[garde(skip)]
+    #[garde(dive)]
     pub ancillary_commitments: AncillaryCommitments,
-    #[garde(skip)]
+    #[garde(dive)]
     pub wholesale_commitments: WholesaleCommitments,
 }
 // endregion: All asset types' physical input data.
@@ -94,8 +94,6 @@ pub struct RenewableData {
 /// # Examples
 ///
 /// ```
-/// use std::collections::HashMap;
-///
 /// use jiff::Timestamp;
 /// use golion_contract::asset::availability::StorageAvailability;
 /// use golion_contract::asset::core::{AssetData, BessData};
@@ -103,6 +101,7 @@ pub struct RenewableData {
 /// use golion_contract::asset::specifications::BessSpecs;
 /// use golion_contract::market::choice::MarketChoice;
 /// use golion_contract::market::commitments::WholesaleCommitment;
+/// use golion_contract::market::series::MarketSeries;
 /// use golion_domain::countries::Countries;
 /// use golion_domain::market::market_type::WholesaleMarketType;
 ///
@@ -120,10 +119,15 @@ pub struct RenewableData {
 ///         .max_usable_energy(100.0)
 ///         .build(),
 /// ];
-/// let wholesale_commitments = HashMap::from([(
-///     WholesaleMarketType::SpotDayAhead,
-///     vec![WholesaleCommitment::builder().start_at(Timestamp::now()).net_position(10.0).build()],
-/// )]);
+/// let wholesale_commitments = vec![
+///     MarketSeries::builder()
+///         .market(WholesaleMarketType::SpotDayAhead)
+///         .country(Countries::FR)
+///         .values(vec![
+///             WholesaleCommitment::builder().start_at(Timestamp::now()).net_position(10.0).build(),
+///         ])
+///         .build(),
+/// ];
 /// let asset = AssetData::Bess(
 ///     BessData::builder()
 ///         .availability(availability)
@@ -132,7 +136,7 @@ pub struct RenewableData {
 ///         .identification(AssetIdentification::builder().build())
 ///         .market_choices(vec![market_choice])
 ///         .wholesale_commitments(wholesale_commitments)
-///         .ancillary_commitments(HashMap::new())
+///         .ancillary_commitments(Vec::new())
 ///         .build(),
 /// );
 /// ```
