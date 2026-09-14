@@ -1,6 +1,5 @@
-use std::collections::HashSet;
-
 use jiff::{Timestamp, ToSpan};
+use std::collections::HashSet;
 
 use crate::countries::Countries;
 use crate::market::bid::ProductSpecifications;
