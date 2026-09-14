@@ -1,5 +1,5 @@
 use crate::asset::core::AssetData;
-use crate::market::revenue::{AncillaryRevenueSeries, WholeSaleRevenueSeries};
+use crate::market::revenue::{AncillaryRevenueSeries, WholesaleRevenueSeries};
 use garde::Validate;
 use golion_domain::temporal::{grid::RegularTimeGrid, step::MinuteStep};
 use jiff::{SignedDuration, Timestamp};
@@ -17,10 +17,10 @@ pub struct OptimizationInput {
     pub optimization_step: SignedDuration,
     #[garde(dive)]
     pub assets: Vec<AssetData>,
-    #[garde(skip)]
-    pub ancillary_markets: Vec<AncillaryRevenueSeries>,
-    #[garde(skip)]
-    pub wholesale_markets: Vec<WholeSaleRevenueSeries>,
+    #[garde(dive)]
+    pub ancillary_markets: AncillaryRevenueSeries,
+    #[garde(dive)]
+    pub wholesale_markets: WholesaleRevenueSeries,
 }
 /// Optimization output after solve.
 /// This is just a temporary definition as project is still

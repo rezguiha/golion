@@ -4,6 +4,8 @@ use golion_domain::market::market_type::{AncillaryMarketType, WholesaleMarketTyp
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
+
+use crate::market::series::MarketSeries;
 #[derive(Debug, Deserialize, Serialize, Validate, TypedBuilder)]
 pub struct AncillaryCommitment {
     #[garde(skip)]
@@ -25,9 +27,7 @@ pub struct WholesaleCommitment {
     pub net_position: f64,
 }
 
-pub type MarketCommitments<M, D> = std::collections::HashMap<M, Vec<D>>;
-
 pub type AncillaryCommitments =
-    MarketCommitments<AncillaryMarketType, AncillaryCommitment>;
+    Vec<MarketSeries<AncillaryMarketType, AncillaryCommitment>>;
 pub type WholesaleCommitments =
-    MarketCommitments<WholesaleMarketType, WholesaleCommitment>;
+    Vec<MarketSeries<WholesaleMarketType, WholesaleCommitment>>;
