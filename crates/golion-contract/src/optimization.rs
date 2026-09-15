@@ -18,9 +18,9 @@ pub struct OptimizationInput {
     #[garde(dive)]
     pub assets: Vec<AssetData>,
     #[garde(dive)]
-    pub ancillary_markets: AncillaryRevenueSeries,
+    pub ancillary_revenues: AncillaryRevenueSeries,
     #[garde(dive)]
-    pub wholesale_markets: WholesaleRevenueSeries,
+    pub wholesale_revenues: WholesaleRevenueSeries,
 }
 /// Optimization output after solve.
 /// This is just a temporary definition as project is still
