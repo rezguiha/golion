@@ -24,6 +24,12 @@ pub enum MarketError {
         possible_products: HashSet<ProductSpecifications>,
     },
 
+    // -- Revenue
+    MissingMarketRevenue {
+        market: MarketType,
+        country: Countries,
+    },
+
     // -- config
     NotImplemented {
         market: MarketType,

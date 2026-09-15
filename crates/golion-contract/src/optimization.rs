@@ -1,9 +1,13 @@
 use crate::asset::core::AssetData;
 use crate::market::revenue::{AncillaryRevenueSeries, WholesaleRevenueSeries};
 use garde::Validate;
-use golion_domain::temporal::{grid::RegularTimeGrid, step::MinuteStep};
+use golion_domain::market::revenue::{Revenue, RevenueStore};
+use golion_domain::temporal::{
+    grid::RegularTimeGrid, series::TimeSeries, step::MinuteStep,
+};
 use jiff::{SignedDuration, Timestamp};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 /// Optimization full payload struct.
 #[derive(Debug, Validate, Serialize, Deserialize)]
 pub struct OptimizationInput {
@@ -33,6 +37,27 @@ pub struct OptimizationOutput {
 }
 
 // region: Domain Conversions.
+impl TryFrom<&OptimizationInput> for RevenueStore {
+    type Error = crate::Error;
+    fn try_from(value: &OptimizationInput) -> crate::Result<Self> {
+        let ancillary = value.ancillary_revenues.iter().map(|revenue_series| {
+            let values: Vec<Revenue> =
+                revenue_series.values.iter().map(Revenue::from).collect();
+            let series = TimeSeries::<Revenue>::try_from(values)?;
+            Ok(((revenue_series.market.into(), revenue_series.country), series))
+        });
+        let wholesale = value.wholesale_revenues.iter().map(|revenue_series| {
+            let values: Vec<Revenue> =
+                revenue_series.values.iter().map(Revenue::from).collect();
+            let series = TimeSeries::<Revenue>::try_from(values)?;
+            Ok(((revenue_series.market.into(), revenue_series.country), series))
+        });
+        let store: HashMap<_, _> =
+            ancillary.chain(wholesale).collect::<crate::Result<_>>()?;
+        Ok(store.into())
+    }
+}
+
 impl TryFrom<&OptimizationInput> for RegularTimeGrid {
     type Error = crate::Error;
     fn try_from(value: &OptimizationInput) -> crate::Result<Self> {

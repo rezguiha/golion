@@ -1,4 +1,3 @@
-use crate::assembly::ContractToOptimizationError;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use derive_more::From;
@@ -14,18 +13,15 @@ pub enum ServerError {
     Domain(golion_domain::Error),
     #[from]
     Optimization(golion_optimization::Error),
-    #[from]
-    ContractOptimizationConversion(ContractToOptimizationError),
 }
 
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
         let status = match self {
             Self::UnsupportedAssetType => StatusCode::NOT_IMPLEMENTED,
-            Self::Contract(_)
-            | Self::Domain(_)
-            | Self::Optimization(_)
-            | Self::ContractOptimizationConversion(_) => StatusCode::BAD_REQUEST,
+            Self::Contract(_) | Self::Domain(_) | Self::Optimization(_) => {
+                StatusCode::BAD_REQUEST
+            }
         };
         (status, format!("{self:?}")).into_response()
     }
