@@ -1,6 +1,7 @@
 use anyhow::Result;
 use golion_contract::market::choice::MarketChoice;
 use golion_contract::market::commitments::{AncillaryCommitment, WholesaleCommitment};
+use golion_contract::market::revenue::{AncillaryRevenue, WholesaleRevenue};
 use golion_contract::optimization::OptimizationInput;
 use golion_contract::{
     asset::{
@@ -78,6 +79,30 @@ async fn test_optimize_bess() -> Result<()> {
             })
             .collect(),
     }];
+    let ancillary_revenues = vec![MarketSeries {
+        market: AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
+        country: Countries::BE,
+        values: timestamps
+            .iter()
+            .map(|t| AncillaryRevenue::SimplifiedAncillaryRevenue {
+                start_at: *t,
+                sell_revenue: 15.0,
+                buy_revenue: 15.0,
+            })
+            .collect(),
+    }];
+    let wholesale_revenues = vec![MarketSeries {
+        market: WholesaleMarketType::SpotDayAhead,
+        country: Countries::FR,
+        values: timestamps
+            .iter()
+            .map(|t| WholesaleRevenue::SimplifiedWholesaleRevenue {
+                start_at: *t,
+                sell_price: 80.0,
+                buy_price: 75.0,
+            })
+            .collect(),
+    }];
     let asset = AssetData::Bess(
         BessData::builder()
             .availability(availability)
@@ -95,8 +120,8 @@ async fn test_optimize_bess() -> Result<()> {
         optimization_end_at: *timestamps.last().unwrap(),
         optimization_step: SignedDuration::from_mins(15),
         assets: vec![asset],
-        ancillary_markets: vec![],
-        wholesale_markets: vec![],
+        ancillary_revenues,
+        wholesale_revenues,
     };
 
     hc.do_post("/optimize", serde_json::to_value(input)?).await?.print().await?;
