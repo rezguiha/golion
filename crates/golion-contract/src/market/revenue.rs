@@ -4,7 +4,7 @@ use garde::Validate;
 use golion_domain::{
     market::{
         market_type::{AncillaryMarketType, WholesaleMarketType},
-        revenue::{RevenuePerKiloWatt, RevenuePerKiloWattHour},
+        revenue::{Revenue, RevenueUnit},
     },
     temporal::series::TimeStampedUtc,
 };
@@ -84,7 +84,7 @@ pub(crate) type WholesaleRevenueSeries =
     Vec<MarketSeries<WholesaleMarketType, WholesaleRevenue>>;
 // region: Domain conversion
 /// Converts revenue input values to revenue values
-impl From<&AncillaryRevenue> for RevenuePerKiloWatt {
+impl From<&AncillaryRevenue> for Revenue {
     fn from(value: &AncillaryRevenue) -> Self {
         match value {
             AncillaryRevenue::SimplifiedAncillaryRevenue {
@@ -95,6 +95,7 @@ impl From<&AncillaryRevenue> for RevenuePerKiloWatt {
                 // No sign or transformation needed here as we
                 // receive revenue estimation and not forecasted market
                 // prices.
+                unit: RevenueUnit::PerKiloWatt,
                 input_revenue: buy_revenue / 1000.0,
                 output_revenue: sell_revenue / 1000.0,
                 start_at: *start_at,
@@ -103,7 +104,7 @@ impl From<&AncillaryRevenue> for RevenuePerKiloWatt {
     }
 }
 
-impl From<&WholesaleRevenue> for RevenuePerKiloWattHour {
+impl From<&WholesaleRevenue> for Revenue {
     fn from(value: &WholesaleRevenue) -> Self {
         match value {
             WholesaleRevenue::SimplifiedWholesaleRevenue {
@@ -114,6 +115,7 @@ impl From<&WholesaleRevenue> for RevenuePerKiloWattHour {
                 // No sign or transformation needed here as we
                 // receive revenue estimation and not forecasted market
                 // prices.
+                unit: RevenueUnit::PerKiloWattHour,
                 input_revenue: buy_price / 1000.0,
                 output_revenue: sell_price / 1000.0,
                 start_at: *start_at,

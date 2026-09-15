@@ -3,6 +3,7 @@ use crate::{
     support::power_to_energy,
 };
 use golion_domain::market::bid::KiloWattIncrement;
+use golion_domain::market::revenue::Revenue;
 use golion_domain::market::specification::MarketSpecs;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
@@ -35,7 +36,7 @@ impl Market {
         step: &MinuteStep,
         vars: &mut ProblemVariables,
         market_specs: MarketSpecs,
-        market_revenues: &TimeSeries<impl RevenueSetter>,
+        market_revenues: &TimeSeries<Revenue>,
     ) -> crate::Result<Self> {
         let bid_time_bounds = market_specs.get_bid_time_bounds(reference_time)?;
         let constraints: Vec<Constraint> = Vec::new();
