@@ -33,7 +33,7 @@ pub fn build_portfolio(
         (AncillaryMarketType, Countries),
         TimeSeries<RevenuePerKiloWatt>,
     > = input
-        .ancillary_markets
+        .ancillary_revenues
         .iter()
         .map(|revenue_series| {
             let values = revenue_series
@@ -49,7 +49,7 @@ pub fn build_portfolio(
         (WholesaleMarketType, Countries),
         TimeSeries<RevenuePerKiloWattHour>,
     > = input
-        .wholesale_markets
+        .wholesale_revenues
         .iter()
         .map(|revenue_series| {
             let values = revenue_series
