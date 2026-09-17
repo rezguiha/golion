@@ -36,7 +36,7 @@ impl TimeStampedUtc for Revenue {
 /// Revenue series of every market taking part in the optimization,
 /// indexed by the market and the country it is run in.
 #[derive(Debug, Default, From)]
-pub struct RevenueStore(HashMap<(MarketType, Countries), TimeSeries<Revenue>>);
+pub struct RevenueStore(HashMap<MarketType, TimeSeries<Revenue>>);
 
 impl RevenueStore {
     pub fn get(
@@ -45,7 +45,7 @@ impl RevenueStore {
         country: Countries,
     ) -> crate::Result<&TimeSeries<Revenue>> {
         self.0
-            .get(&(market, country))
+            .get(&market)
             .ok_or_else(|| MarketError::MissingMarketRevenue { market, country }.into())
     }
 }

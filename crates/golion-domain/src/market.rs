@@ -1,4 +1,5 @@
 pub mod bid;
+pub mod commitment;
 pub mod config;
 pub mod error;
 pub mod market_type;

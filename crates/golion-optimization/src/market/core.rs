@@ -22,11 +22,11 @@ pub enum MarketError {
 }
 #[derive(Debug)]
 pub struct Market {
-    bid_step: MinuteStep,
-    increment: KiloWattIncrement,
-    variable_store: Option<TimeSeries<BidVariables>>,
-    constraints: Vec<Constraint>,
-    revenue: Expression,
+    pub bid_step: MinuteStep,
+    pub increment: KiloWattIncrement,
+    pub variable_store: Option<TimeSeries<BidVariables>>,
+    pub constraints: Vec<Constraint>,
+    pub revenue: Expression,
 }
 
 impl Market {

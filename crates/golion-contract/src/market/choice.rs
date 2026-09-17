@@ -6,20 +6,21 @@ use jiff::Span;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct MarketChoice {
-    pub market: MarketType,
-    pub country: Countries,
+pub struct MarketChoice<T: Into<MarketType>> {
+    pub market: T,
     pub product_step_minutes: u16,
     pub product_increment_kw: u16,
 }
 
-impl TryFrom<&MarketChoice> for MarketSpecs {
-    type Error = crate::Error;
-    fn try_from(value: &MarketChoice) -> Result<Self, Self::Error> {
+impl<T: Into<MarketType> + Copy> MarketChoice<T> {
+    pub fn try_into_market_specs(
+        &self,
+        country: &Countries,
+    ) -> crate::Result<MarketSpecs> {
         let product = ProductSpecifications::try_new(
-            Span::new().minutes(value.product_step_minutes),
-            value.product_increment_kw,
+            Span::new().minutes(self.product_step_minutes),
+            self.product_increment_kw,
         )?;
-        Ok(MarketSpecs::try_new(value.market, value.country, product)?)
+        Ok(MarketSpecs::try_new(self.market.into(), *country, product)?)
     }
 }

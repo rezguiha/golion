@@ -3,6 +3,9 @@ use golion_contract::market::choice::MarketChoice;
 use golion_contract::market::commitments::{AncillaryCommitment, WholesaleCommitment};
 use golion_contract::market::revenue::{AncillaryRevenue, WholesaleRevenue};
 use golion_contract::optimization::OptimizationInput;
+use golion_contract::perimeter::{
+    reserve::ReservePerimeter, wholesale::WholesalePerimeter,
+};
 use golion_contract::{
     asset::{
         availability::StorageAvailability,
@@ -17,6 +20,7 @@ use golion_domain::market::market_type::{
     AncillaryMarketType, EnergyAncillaryMarketType, WholesaleMarketType,
 };
 use jiff::{SignedDuration, Timestamp, Unit};
+use uuid::Uuid;
 /// Temporary simple test of sending assetdata as a payload
 /// on optimize endpoint.
 #[tokio::test]
@@ -30,20 +34,11 @@ async fn test_optimize_bess() -> Result<()> {
         std::iter::successors(Some(start), |t| Some(*t + SignedDuration::from_mins(15)))
             .take(n)
             .collect();
-    let market_choices = vec![
-        MarketChoice {
-            market: WholesaleMarketType::SpotDayAhead.into(),
-            country: Countries::FR,
-            product_step_minutes: 15,
-            product_increment_kw: 10,
-        },
-        MarketChoice {
-            market: EnergyAncillaryMarketType::AfrrFree.into(),
-            country: Countries::BE,
-            product_step_minutes: 15,
-            product_increment_kw: 1000,
-        },
-    ];
+    let wholesale_market_choices = vec![MarketChoice {
+        market: WholesaleMarketType::SpotDayAhead,
+        product_step_minutes: 15,
+        product_increment_kw: 10,
+    }];
     let availability = timestamps
         .iter()
         .map(|t| {
@@ -55,23 +50,18 @@ async fn test_optimize_bess() -> Result<()> {
                 .build()
         })
         .collect();
-    let ancillary_commitments = vec![MarketSeries {
-        market: AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
-        country: Countries::FR,
-        values: timestamps
-            .iter()
-            .map(|t| {
-                AncillaryCommitment::builder()
-                    .start_at(*t)
-                    .upward_power(10.0)
-                    .downward_power(10.0)
-                    .build()
-            })
-            .collect(),
-    }];
+    let reserve_commitments: Vec<AncillaryCommitment> = timestamps
+        .iter()
+        .map(|t| {
+            AncillaryCommitment::builder()
+                .start_at(*t)
+                .upward_power(10.0)
+                .downward_power(10.0)
+                .build()
+        })
+        .collect();
     let wholesale_commitments = vec![MarketSeries {
         market: WholesaleMarketType::IntradayAuction1,
-        country: Countries::FR,
         values: timestamps
             .iter()
             .map(|t| {
@@ -81,7 +71,6 @@ async fn test_optimize_bess() -> Result<()> {
     }];
     let ancillary_revenues = vec![MarketSeries {
         market: AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
-        country: Countries::BE,
         values: timestamps
             .iter()
             .map(|t| AncillaryRevenue::SimplifiedAncillaryRevenue {
@@ -93,7 +82,6 @@ async fn test_optimize_bess() -> Result<()> {
     }];
     let wholesale_revenues = vec![MarketSeries {
         market: WholesaleMarketType::SpotDayAhead,
-        country: Countries::FR,
         values: timestamps
             .iter()
             .map(|t| WholesaleRevenue::SimplifiedWholesaleRevenue {
@@ -103,23 +91,40 @@ async fn test_optimize_bess() -> Result<()> {
             })
             .collect(),
     }];
+    let identification = AssetIdentification::builder().build();
+    let asset_id = identification.asset_id;
     let asset = AssetData::Bess(
         BessData::builder()
             .availability(availability)
             .initial_soc(50.0)
             .specs(BessSpecs::builder().build())
-            .identification(AssetIdentification::builder().build())
-            .market_choices(market_choices)
-            .ancillary_commitments(ancillary_commitments)
-            .wholesale_commitments(wholesale_commitments)
+            .identification(identification)
             .build(),
     );
+
+    let wholesale_perimeters = vec![WholesalePerimeter {
+        id: Uuid::new_v4(),
+        composition: vec![asset_id],
+        markets: wholesale_market_choices,
+        commitments: vec![wholesale_commitments],
+    }];
+    let reserve_perimeters = vec![
+        ReservePerimeter::builder()
+            .id(Uuid::new_v4())
+            .market(AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree))
+            .composition(vec![asset_id])
+            .commitments(reserve_commitments)
+            .build(),
+    ];
 
     let input = OptimizationInput {
         optimization_start_at: start,
         optimization_end_at: *timestamps.last().unwrap(),
         optimization_step: SignedDuration::from_mins(15),
+        country: Countries::FR,
         assets: vec![asset],
+        wholesale_perimeters,
+        reserve_perimeters,
         ancillary_revenues,
         wholesale_revenues,
     };

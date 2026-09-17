@@ -1,6 +1,9 @@
 /// Market Commitments models with their store definition.
 use garde::Validate;
-use golion_domain::market::market_type::{AncillaryMarketType, WholesaleMarketType};
+use golion_domain::market::{
+    commitment::Commitment,
+    market_type::{AncillaryMarketType, WholesaleMarketType},
+};
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
@@ -31,3 +34,16 @@ pub type AncillaryCommitments =
     Vec<MarketSeries<AncillaryMarketType, AncillaryCommitment>>;
 pub type WholesaleCommitments =
     Vec<MarketSeries<WholesaleMarketType, WholesaleCommitment>>;
+
+// region: Domain Conversion
+impl From<AncillaryCommitment> for Commitment {
+    fn from(value: AncillaryCommitment) -> Self {
+        Self {
+            start_at: value.start_at,
+            input_power: value.downward_power.into(),
+            output_power: value.upward_power.into(),
+        }
+    }
+}
+
+// endregion: Domain Conversion

@@ -1,6 +1,9 @@
 use crate::asset::core::AssetData;
 use crate::market::revenue::{AncillaryRevenueSeries, WholesaleRevenueSeries};
+use crate::perimeter::reserve::ReservePerimeter;
+use crate::perimeter::wholesale::WholesalePerimeter;
 use garde::Validate;
+use golion_domain::countries::Countries;
 use golion_domain::market::revenue::{Revenue, RevenueStore};
 use golion_domain::temporal::{
     grid::RegularTimeGrid, series::TimeSeries, step::MinuteStep,
@@ -19,8 +22,14 @@ pub struct OptimizationInput {
     pub optimization_end_at: Timestamp,
     #[garde(skip)]
     pub optimization_step: SignedDuration,
+    #[garde(skip)]
+    pub country: Countries,
     #[garde(dive)]
     pub assets: Vec<AssetData>,
+    #[garde(dive)]
+    pub reserve_perimeters: Vec<ReservePerimeter>,
+    #[garde(dive)]
+    pub wholesale_perimeters: Vec<WholesalePerimeter>,
     #[garde(dive)]
     pub ancillary_revenues: AncillaryRevenueSeries,
     #[garde(dive)]
@@ -34,6 +43,8 @@ pub struct OptimizationInput {
 #[derive(Debug, Serialize)]
 pub struct OptimizationOutput {
     pub components_built: usize,
+    pub wholesale_perimeters_built: usize,
+    pub ancillary_perimeters_built: usize,
 }
 
 // region: Domain Conversions.
@@ -44,13 +55,13 @@ impl TryFrom<&OptimizationInput> for RevenueStore {
             let values: Vec<Revenue> =
                 revenue_series.values.iter().map(Revenue::from).collect();
             let series = TimeSeries::<Revenue>::try_from(values)?;
-            Ok(((revenue_series.market.into(), revenue_series.country), series))
+            Ok((revenue_series.market.into(), series))
         });
         let wholesale = value.wholesale_revenues.iter().map(|revenue_series| {
             let values: Vec<Revenue> =
                 revenue_series.values.iter().map(Revenue::from).collect();
             let series = TimeSeries::<Revenue>::try_from(values)?;
-            Ok(((revenue_series.market.into(), revenue_series.country), series))
+            Ok((revenue_series.market.into(), series))
         });
         let store: HashMap<_, _> =
             ancillary.chain(wholesale).collect::<crate::Result<_>>()?;
