@@ -10,6 +10,7 @@ authors = ["Hamdi Rezgui <hamdi.rezgui.pro@gmail.com>"]
 
 [workspace.dependencies]
 derive_more = { version = "2", features = ["full"] }
+uuid = { version = "1.23.1", features = ["serde", "v4"] }
 golion-contract = { path = "crates/golion-contract", version = "0.0.0" }
 golion-domain = { path = "crates/golion-domain", version = "0.0.0" }
 golion-optimization = { path = "crates/golion-optimization", version = "0.0.0" }
