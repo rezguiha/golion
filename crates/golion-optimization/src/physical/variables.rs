@@ -21,3 +21,22 @@ impl TimeStampedUtc for BessVariables {
 }
 
 // endregion: Bess Variables
+
+// region: OtherAsset variables
+
+/// This is a temporary implementation of variables
+/// of types other than BESS.
+#[derive(Debug)]
+pub struct OtherAssetVariables {
+    pub start_at: Timestamp,
+    pub output_power: Variable,
+}
+// Implement TimeStampedUtc to enable creation
+// of TimeSeries<BessVariables> out of Vec<BessVariables>.
+impl TimeStampedUtc for OtherAssetVariables {
+    fn start_at(&self) -> &Timestamp {
+        &self.start_at
+    }
+}
+
+// region: OtherAsset variables

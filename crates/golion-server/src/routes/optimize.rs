@@ -20,5 +20,9 @@ async fn handler(
     let components = assembly::build_portfolio(&input, &mut vars)?;
     println!("{:#?}", components);
 
-    Ok(Json(OptimizationOutput { components_built: components.len() }))
+    Ok(Json(OptimizationOutput {
+        components_built: components.physical.len(),
+        wholesale_perimeters_built: components.wholesale_perimeters.len(),
+        ancillary_perimeters_built: components.ancillary_perimeters.len(),
+    }))
 }

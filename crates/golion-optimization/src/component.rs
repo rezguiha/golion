@@ -1,17 +1,12 @@
-use crate::market::core::Market;
-#[derive(Debug)]
-pub struct OptimizationComponent<A> {
-    physical: A,
-    wholesale_markets: Vec<Market>,
-    ancillary_markets: Vec<Market>,
-}
+use uuid::Uuid;
 
-impl<A> OptimizationComponent<A> {
-    pub fn new(
-        physical: A,
-        wholesale_markets: Vec<Market>,
-        ancillary_markets: Vec<Market>,
-    ) -> Self {
-        Self { physical, wholesale_markets, ancillary_markets }
-    }
+use crate::perimeter::ancillary::AncillaryPerimeter;
+use crate::perimeter::wholesale::WholesalePerimeter;
+use crate::physical::Asset;
+use std::collections::HashMap;
+#[derive(Debug)]
+pub struct OptimizationComponent {
+    pub physical: HashMap<Uuid, Asset>,
+    pub wholesale_perimeters: Vec<WholesalePerimeter>,
+    pub ancillary_perimeters: Vec<AncillaryPerimeter>,
 }
