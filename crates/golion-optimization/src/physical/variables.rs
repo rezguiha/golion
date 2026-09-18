@@ -8,7 +8,9 @@ use jiff::Timestamp;
 #[derive(Debug)]
 pub struct BessVariables {
     pub start_at: Timestamp,
+    /// Represents active charge power in kW.
     pub input_power: Variable,
+    /// Represents active discharge power in kW.
     pub output_power: Variable,
     pub soc: Variable,
 }
