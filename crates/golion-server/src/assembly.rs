@@ -15,7 +15,7 @@ use golion_optimization::component::OptimizationComponent;
 use golion_optimization::market::core::Market;
 use golion_optimization::perimeter::ancillary::AncillaryPerimeter;
 use golion_optimization::perimeter::wholesale::WholesalePerimeter;
-use golion_optimization::physical::{Asset, bess::core::Battery};
+use golion_optimization::physical::{Asset, PhysicalStore, bess::core::Battery};
 use jiff::Timestamp;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -35,8 +35,8 @@ fn build_physical(
     input: &OptimizationInput,
     vars: &mut ProblemVariables,
     time_index: &[Timestamp],
-) -> Result<HashMap<Uuid, Asset>, ServerError> {
-    input
+) -> Result<PhysicalStore, ServerError> {
+    let store: HashMap<Uuid, Asset> = input
         .assets
         .iter()
         .map(|asset| match asset {
@@ -48,7 +48,8 @@ fn build_physical(
                 Err(ServerError::UnsupportedAssetType)
             }
         })
-        .collect()
+        .collect::<Result<_, ServerError>>()?;
+    Ok(PhysicalStore::new(store))
 }
 
 fn build_wholesale_perimeter_markets(

@@ -4,6 +4,8 @@ use derive_more::From;
 pub enum Error {
     #[from]
     Market(crate::market::core::MarketError),
+    #[from]
+    Physical(crate::physical::PhysicalError),
     // External
     #[from]
     Domain(golion_domain::Error),
