@@ -20,5 +20,5 @@ pub struct WholesalePerimeter {
     pub markets: Vec<MarketChoice<WholesaleMarketType>>,
     /// List of wholesale market commitments at the perimeter.
     #[garde(dive)]
-    pub commitments: Vec<WholesaleCommitments>,
+    pub commitments: WholesaleCommitments,
 }

@@ -1,8 +1,11 @@
 /// Market Commitments models with their store definition.
 use garde::Validate;
-use golion_domain::market::{
-    commitment::Commitment,
-    market_type::{AncillaryMarketType, WholesaleMarketType},
+use golion_domain::{
+    market::{
+        commitment::Commitment,
+        market_type::{AncillaryMarketType, WholesaleMarketType},
+    },
+    temporal::step::MinuteStep,
 };
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
@@ -27,6 +30,8 @@ pub struct WholesaleCommitment {
     pub start_at: Timestamp,
     #[garde(skip)]
     /// Net position in kWH
+    /// Positive in case of charge net position
+    /// and negative otherwise.
     pub net_position: f64,
 }
 
@@ -45,5 +50,14 @@ impl From<AncillaryCommitment> for Commitment {
         }
     }
 }
-
+impl WholesaleCommitment {
+    pub fn into_commitment(&self, step: &MinuteStep) -> Commitment {
+        let power = self.net_position * step.duration().as_secs_f64() / 3600.0_f64;
+        Commitment {
+            start_at: self.start_at,
+            input_power: power.max(0.0).into(),
+            output_power: power.min(0.0).abs().into(),
+        }
+    }
+}
 // endregion: Domain Conversion

@@ -106,7 +106,7 @@ async fn test_optimize_bess() -> Result<()> {
         id: Uuid::new_v4(),
         composition: vec![asset_id],
         markets: wholesale_market_choices,
-        commitments: vec![wholesale_commitments],
+        commitments: wholesale_commitments,
     }];
     let reserve_perimeters = vec![
         ReservePerimeter::builder()
