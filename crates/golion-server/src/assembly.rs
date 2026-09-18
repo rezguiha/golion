@@ -9,7 +9,6 @@ use golion_domain::asset::bess::specification::BessSpecifications;
 use golion_domain::countries::Countries;
 use golion_domain::market::revenue::RevenueStore;
 use golion_domain::temporal::grid::RegularTimeGrid;
-use golion_domain::temporal::step::MinuteStep;
 use golion_domain::units::power::KiloWattHour;
 use golion_optimization::ProblemVariables;
 use golion_optimization::component::OptimizationComponent;
@@ -58,8 +57,7 @@ fn build_wholesale_perimeter_markets(
     revenue_store: &RevenueStore,
     vars: &mut ProblemVariables,
     time_index: &[Timestamp],
-    step: MinuteStep,
-    reference_time: Timestamp,
+    time_grid: &RegularTimeGrid,
 ) -> Result<Vec<Market>, ServerError> {
     let mut markets = Vec::<Market>::with_capacity(perimeter_data.markets.len());
     for market_choice in &perimeter_data.markets {
@@ -67,9 +65,9 @@ fn build_wholesale_perimeter_markets(
         let market_type = market_specs.market;
         let revenue = revenue_store.get(market_type, market_specs.country)?;
         let market = Market::try_new(
-            &reference_time,
+            &time_grid.start,
             time_index,
-            &step,
+            &time_grid.step,
             vars,
             market_specs,
             revenue,
@@ -84,6 +82,7 @@ fn build_wholesale(
     vars: &mut ProblemVariables,
     revenue_store: &RevenueStore,
     time_index: &[Timestamp],
+    time_grid: &RegularTimeGrid,
 ) -> Result<Vec<WholesalePerimeter>, ServerError> {
     input
         .wholesale_perimeters
@@ -95,10 +94,23 @@ fn build_wholesale(
                 revenue_store,
                 vars,
                 time_index,
-                input.optimization_step.try_into()?,
-                input.optimization_start_at,
+                time_grid,
             )?;
-            Ok(WholesalePerimeter { markets, composition: perimeter.composition.clone() })
+            Ok(WholesalePerimeter::try_new(
+                time_index,
+                time_grid,
+                perimeter
+                    .commitments
+                    .iter()
+                    .flat_map(|series| {
+                        series.values.iter().map(|wholsale_commitment| {
+                            wholsale_commitment.into_commitment(&time_grid.step)
+                        })
+                    })
+                    .collect(),
+                markets,
+                perimeter.composition.clone(),
+            )?)
         })
         .collect()
 }
@@ -115,7 +127,8 @@ pub fn build_portfolio(
     let time_index: Vec<Timestamp> = time_grid.iter().collect();
     let revenue_store = RevenueStore::try_from(input)?;
     let physical = build_physical(input, vars, &time_index)?;
-    let wholesale_perimeters = build_wholesale(input, vars, &revenue_store, &time_index)?;
+    let wholesale_perimeters =
+        build_wholesale(input, vars, &revenue_store, &time_index, &time_grid)?;
     // Temporarily use an empty list of ancillary perimeters.
     let ancillary_perimeters = Vec::<AncillaryPerimeter>::new();
     Ok(OptimizationComponent { physical, wholesale_perimeters, ancillary_perimeters })
