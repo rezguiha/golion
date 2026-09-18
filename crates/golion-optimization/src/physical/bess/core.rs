@@ -70,7 +70,7 @@ pub trait BessVariableCreator {
     ) -> crate::Result<(TimeSeries<BessVariables>, Vec<Constraint>)> {
         let time_index_length = time_index.len();
         // Initialize battery physical variables and constraints containers.
-        let mut constraints: Vec<Constraint> = Vec::with_capacity(2 * time_index_length);
+        let mut constraints: Vec<Constraint> = Vec::with_capacity(3 * time_index_length);
         let mut variable_vec: Vec<BessVariables> = Vec::with_capacity(time_index_length);
         // Loop over time index ,create variables with their respective limits
         // and generate defining soc constraints.
@@ -205,7 +205,7 @@ mod tests {
         // One physical-variable triple per slot.
         assert_eq!(battery.variable_store.data.len(), 4);
         // One soc-transition constraint per slot.
-        assert_eq!(battery.constraints.len(), 4);
+        assert_eq!(battery.constraints.len(), 12);
     }
 }
 // endregion: Tests
