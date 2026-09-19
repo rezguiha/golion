@@ -2,8 +2,9 @@ pub mod bess;
 pub mod ccgt;
 pub mod ren;
 pub mod variables;
-
 use crate::physical::{bess::core::Battery, ccgt::GasTurbine, ren::Renewable};
+use good_lp::{Expression, IntoAffineExpression};
+use jiff::Timestamp;
 use std::collections::HashMap;
 use uuid::Uuid;
 // region: Asset Enum
@@ -30,6 +31,22 @@ impl From<Renewable> for Asset {
     }
 }
 
+impl Asset {
+    pub fn input_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
+        Ok(match self {
+            Self::Bess(b) => b.variable_store.at(dt)?.input_power.into_expression(),
+            // Non-storage assets never charge.
+            Self::Ccgt(_) | Self::Ren(_) => 0.0.into_expression(),
+        })
+    }
+    pub fn output_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
+        Ok(match self {
+            Self::Bess(b) => b.variable_store.at(dt)?.output_power.into_expression(),
+            Self::Ccgt(c) => c.variable_store.at(dt)?.output_power.into_expression(),
+            Self::Ren(r) => r.variable_store.at(dt)?.output_power.into_expression(),
+        })
+    }
+}
 // endregion: Asset Enum
 
 // region: Asset store
