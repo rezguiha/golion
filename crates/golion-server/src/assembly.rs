@@ -84,6 +84,7 @@ fn build_wholesale(
     revenue_store: &RevenueStore,
     time_index: &[Timestamp],
     time_grid: &RegularTimeGrid,
+    physical_store: &PhysicalStore,
 ) -> Result<Vec<WholesalePerimeter>, ServerError> {
     input
         .wholesale_perimeters
@@ -111,6 +112,7 @@ fn build_wholesale(
                     .collect(),
                 markets,
                 perimeter.composition.clone(),
+                physical_store,
             )?)
         })
         .collect()
@@ -127,10 +129,20 @@ pub fn build_portfolio(
     )?;
     let time_index: Vec<Timestamp> = time_grid.iter().collect();
     let revenue_store = RevenueStore::try_from(input)?;
-    let physical = build_physical(input, vars, &time_index)?;
-    let wholesale_perimeters =
-        build_wholesale(input, vars, &revenue_store, &time_index, &time_grid)?;
+    let physical_store = build_physical(input, vars, &time_index)?;
+    let wholesale_perimeters = build_wholesale(
+        input,
+        vars,
+        &revenue_store,
+        &time_index,
+        &time_grid,
+        &physical_store,
+    )?;
     // Temporarily use an empty list of ancillary perimeters.
     let ancillary_perimeters = Vec::<AncillaryPerimeter>::new();
-    Ok(OptimizationComponent { physical, wholesale_perimeters, ancillary_perimeters })
+    Ok(OptimizationComponent {
+        physical: physical_store,
+        wholesale_perimeters,
+        ancillary_perimeters,
+    })
 }
