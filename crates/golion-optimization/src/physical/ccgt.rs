@@ -7,7 +7,7 @@ use good_lp::Constraint;
 
 #[derive(Debug)]
 pub struct GasTurbine {
-    step: MinuteStep,
-    variable_store: TimeSeries<OtherAssetVariables>,
-    constraints: Vec<Constraint>,
+    pub step: MinuteStep,
+    pub variable_store: TimeSeries<OtherAssetVariables>,
+    pub constraints: Vec<Constraint>,
 }
