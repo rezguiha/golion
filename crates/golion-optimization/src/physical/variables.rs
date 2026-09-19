@@ -33,6 +33,7 @@ pub struct OtherAssetVariables {
     pub start_at: Timestamp,
     pub output_power: Variable,
 }
+
 // Implement TimeStampedUtc to enable creation
 // of TimeSeries<BessVariables> out of Vec<BessVariables>.
 impl TimeStampedUtc for OtherAssetVariables {
@@ -41,4 +42,4 @@ impl TimeStampedUtc for OtherAssetVariables {
     }
 }
 
-// region: OtherAsset variables
+// endregion: OtherAsset variables
