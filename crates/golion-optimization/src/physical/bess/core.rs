@@ -122,10 +122,10 @@ impl BessVariableCreator for BessSpecifications {
 // region: Battery Definition
 #[derive(Debug)]
 pub struct Battery {
-    initial_soc: KiloWattHour,
-    step: MinuteStep,
-    variable_store: TimeSeries<BessVariables>,
-    constraints: Vec<Constraint>,
+    pub initial_soc: KiloWattHour,
+    pub step: MinuteStep,
+    pub variable_store: TimeSeries<BessVariables>,
+    pub constraints: Vec<Constraint>,
 }
 
 impl Battery {
