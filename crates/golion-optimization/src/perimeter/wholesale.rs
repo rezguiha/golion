@@ -13,16 +13,16 @@ use uuid::Uuid;
 #[derive(Debug)]
 pub struct WholesalePerimeter {
     /// List of markets to bid on
-    pub markets: Vec<Market>,
+    pub(crate) markets: Vec<Market>,
     /// List of ids of assets inside the perimeter
-    pub composition: Vec<Uuid>,
+    pub(crate) composition: Vec<Uuid>,
     /// List of commitments on all wholesale markets
     /// for the perimeter.
-    pub commitments: Vec<Commitment>,
+    pub(crate) commitments: Vec<Commitment>,
     /// Perimeter level bidding variables.
-    pub variable_store: TimeSeries<BidVariables>,
+    pub(crate) variable_store: TimeSeries<BidVariables>,
     /// Perimeter constraints.
-    pub constraints: Vec<Constraint>,
+    pub(crate) constraints: Vec<Constraint>,
 }
 
 impl WholesalePerimeter {

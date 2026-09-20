@@ -9,20 +9,20 @@ use jiff::Timestamp;
 /// Bess Variables container with time information
 #[derive(Debug)]
 pub struct BessVariables {
-    pub start_at: Timestamp,
+    pub(crate) start_at: Timestamp,
     /// Represents active charge power in kW.
-    pub input_power: Variable,
+    pub(crate) input_power: Variable,
     /// Represents active discharge power in kW.
-    pub output_power: Variable,
+    pub(crate) output_power: Variable,
     /// Represents state of charge in kWh with starting
     /// interval convention.
-    pub soc: Variable,
+    pub(crate) soc: Variable,
     /// Represents ancillary portion of charge (downward)
     /// commitments and bids that asset can deliver.
-    pub input_ancillary: Variable,
+    pub(crate) input_ancillary: Variable,
     /// Represents ancillary portion of discharge (upward)
     /// commitments and bids that asset can deliver.
-    pub output_ancillary: Variable,
+    pub(crate) output_ancillary: Variable,
 }
 impl BessVariables {
     pub fn try_new(
@@ -69,8 +69,8 @@ impl TimeStampedUtc for BessVariables {
 /// of types other than BESS.
 #[derive(Debug)]
 pub struct OtherAssetVariables {
-    pub start_at: Timestamp,
-    pub output_power: Variable,
+    pub(crate) start_at: Timestamp,
+    pub(crate) output_power: Variable,
 }
 
 // Implement TimeStampedUtc to enable creation
