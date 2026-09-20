@@ -184,7 +184,7 @@ mod tests {
         .expect("battery construction should succeed");
 
         // One physical-variable triple per slot.
-        assert_eq!(battery.variable_store.data.len(), 4);
+        assert_eq!(battery.variable_store.data().len(), 4);
         // One soc-transition constraint per slot.
         assert_eq!(battery.constraints.len(), 12);
     }

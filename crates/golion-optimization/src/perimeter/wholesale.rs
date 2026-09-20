@@ -70,7 +70,7 @@ impl WholesalePerimeter {
         }
         for market in markets.iter() {
             if let Some(market_variables) = &market.variable_store {
-                for bid_variables in market_variables.data.iter() {
+                for bid_variables in market_variables.data().iter() {
                     let index = time_grid.index_of(&bid_variables.start_at)?;
                     input_power_targets[index] += &bid_variables.input_power;
                     output_power_targets[index] += &bid_variables.output_power;
@@ -85,8 +85,11 @@ impl WholesalePerimeter {
             .zip(output_power_targets)
             .map(|((start_at, input_power), output_power)| BidVariables {
                 start_at: *start_at,
-                input_energy: power_to_energy(&input_power, time_grid.step.duration()),
-                output_energy: power_to_energy(&output_power, time_grid.step.duration()),
+                input_energy: power_to_energy(&input_power, time_grid.step().duration()),
+                output_energy: power_to_energy(
+                    &output_power,
+                    time_grid.step().duration(),
+                ),
                 input_power,
                 output_power,
             })

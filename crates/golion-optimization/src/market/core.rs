@@ -53,17 +53,19 @@ impl Market {
             });
         };
         // Make sure bid bounds are inside time index.
-        if bounds.start < time_index[0] || bounds.end > time_index[time_index.len() - 1] {
+        if *bounds.start() < time_index[0]
+            || *bounds.end() > time_index[time_index.len() - 1]
+        {
             return Err(MarketError::TimeBoundsOutsideIndex {
                 index_start: time_index[0],
                 index_end: time_index[time_index.len() - 1],
-                bidding_start: bounds.start,
-                bidding_end: bounds.end,
+                bidding_start: *bounds.start(),
+                bidding_end: *bounds.end(),
             }
             .into());
         }
         let increment_value = market_specs.product.increment.value();
-        let mut variable_store: Vec<BidVariables> = Vec::with_capacity(bounds.length);
+        let mut variable_store: Vec<BidVariables> = Vec::with_capacity(bounds.length());
 
         for (start, end) in bounds.iter().tuple_windows() {
             let input_variable = vars.add(variable().min(0).integer());
