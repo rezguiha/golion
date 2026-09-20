@@ -26,7 +26,7 @@ fn build_bess_component(
     time_index: &[Timestamp],
 ) -> Result<Battery, ServerError> {
     let specifications: BessSpecifications = data.try_into()?;
-    let step = specifications.limits.availability.grid.step;
+    let step = *specifications.limits.availability.grid().step();
     let initial_soc = KiloWattHour(data.initial_soc);
     Ok(Battery::new(time_index, vars, specifications, initial_soc, step)?)
 }
@@ -66,9 +66,9 @@ fn build_wholesale_perimeter_markets(
         let market_type = market_specs.market;
         let revenue = revenue_store.get(market_type, market_specs.country)?;
         let market = Market::try_new(
-            &time_grid.start,
+            time_grid.start(),
             time_index,
-            &time_grid.step,
+            time_grid.step(),
             vars,
             market_specs,
             revenue,
@@ -106,7 +106,7 @@ fn build_wholesale(
                     .iter()
                     .flat_map(|series| {
                         series.values.iter().map(|wholsale_commitment| {
-                            wholsale_commitment.into_commitment(&time_grid.step)
+                            wholsale_commitment.into_commitment(time_grid.step())
                         })
                     })
                     .collect(),

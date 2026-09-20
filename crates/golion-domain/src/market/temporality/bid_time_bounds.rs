@@ -275,9 +275,9 @@ mod tests {
             .unwrap();
 
         // 10:00 CET is already on the step boundary == 09:00Z.
-        assert_eq!(bounds.start, "2024-01-15T09:00:00Z".parse().unwrap());
+        assert_eq!(*bounds.start(), "2024-01-15T09:00:00Z".parse().unwrap());
         // 10:20 CET truncates down to 10:15 CET == 09:15Z.
-        assert_eq!(bounds.end, "2024-01-15T09:15:00Z".parse().unwrap());
+        assert_eq!(*bounds.end(), "2024-01-15T09:15:00Z".parse().unwrap());
     }
 
     fn continuous_test(
@@ -291,8 +291,8 @@ mod tests {
             .to_bid_time_bounds(&reference_time, &product_specifications(15))
             .unwrap()
             .unwrap();
-        assert_eq!(bounds.start, expected_bidding_start);
-        assert_eq!(bounds.end, expected_bidding_end);
+        assert_eq!(*bounds.start(), expected_bidding_start);
+        assert_eq!(*bounds.end(), expected_bidding_end);
     }
     #[test]
     fn continuous_same_day_only() {

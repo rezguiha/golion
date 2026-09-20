@@ -21,12 +21,18 @@ pub enum TimeSeriesError {
 #[derive(Debug)]
 pub struct TimeSeries<T> {
     // Continuous time grid.
-    pub grid: RegularTimeGrid,
+    grid: RegularTimeGrid,
     // Array of struct container.
-    pub data: Vec<T>,
+    data: Vec<T>,
 }
 
 impl<T> TimeSeries<T> {
+    pub fn grid(&self) -> &RegularTimeGrid {
+        &self.grid
+    }
+    pub fn data(&self) -> &[T] {
+        &self.data
+    }
     pub fn at(&self, dt: &Timestamp) -> Result<&T> {
         let index = self.grid.index_of(dt)?;
         self.data
@@ -59,12 +65,13 @@ impl<T: TimeStampedUtc> TryFrom<Vec<T>> for TimeSeries<T> {
         let end = data.last().unwrap().start_at();
         let grid = RegularTimeGrid::try_new(*start, step, length)?;
 
-        match grid.end.eq(end) {
+        match grid.end().eq(end) {
             true => Ok(Self { grid, data }),
-            _ => {
-                Err(TimeSeriesError::GridEndMismatch { expected: *end, actual: grid.end }
-                    .into())
+            _ => Err(TimeSeriesError::GridEndMismatch {
+                expected: *end,
+                actual: *grid.end(),
             }
+            .into()),
         }
     }
 }

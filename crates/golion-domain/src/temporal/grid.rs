@@ -36,16 +36,28 @@ pub enum TimeGridError {
 #[derive(Debug)]
 pub struct RegularTimeGrid {
     /// First timestamp of timeseries.
-    pub start: Timestamp,
+    start: Timestamp,
     /// Granularity of timeseries.
-    pub step: MinuteStep,
+    step: MinuteStep,
     /// Length of timeseries.
-    pub length: usize,
+    length: usize,
     /// Computed end of timeseries.
-    pub end: Timestamp,
+    end: Timestamp,
 }
 
 impl RegularTimeGrid {
+    pub fn start(&self) -> &Timestamp {
+        &self.start
+    }
+    pub fn step(&self) -> &MinuteStep {
+        &self.step
+    }
+    pub fn end(&self) -> &Timestamp {
+        &self.end
+    }
+    pub fn length(&self) -> usize {
+        self.length
+    }
     pub fn try_new(
         start: Timestamp,
         step: MinuteStep,
