@@ -1,11 +1,13 @@
 use crate::{
     market::{core::Market, variables::BidVariables},
     physical::PhysicalStore,
-    support::power_to_energy,
 };
 use golion_domain::{
     market::commitment::Commitment,
-    temporal::{grid::RegularTimeGrid, series::TimeSeries},
+    temporal::{
+        grid::RegularTimeGrid,
+        series::{TimeSeries, TimeStampedUtc},
+    },
 };
 use good_lp::{Constraint, Expression, IntoAffineExpression, constraint};
 use jiff::Timestamp;
@@ -71,9 +73,9 @@ impl WholesalePerimeter {
         for market in markets.iter() {
             if let Some(market_variables) = &market.variable_store {
                 for bid_variables in market_variables.data().iter() {
-                    let index = time_grid.index_of(&bid_variables.start_at)?;
-                    input_power_targets[index] += &bid_variables.input_power;
-                    output_power_targets[index] += &bid_variables.output_power;
+                    let index = time_grid.index_of(bid_variables.start_at())?;
+                    input_power_targets[index] += bid_variables.input_power();
+                    output_power_targets[index] += bid_variables.output_power();
                 }
             }
         }
@@ -83,15 +85,13 @@ impl WholesalePerimeter {
             .iter()
             .zip(input_power_targets)
             .zip(output_power_targets)
-            .map(|((start_at, input_power), output_power)| BidVariables {
-                start_at: *start_at,
-                input_energy: power_to_energy(&input_power, time_grid.step().duration()),
-                output_energy: power_to_energy(
-                    &output_power,
+            .map(|((start_at, input_power), output_power)| {
+                BidVariables::new(
+                    *start_at,
+                    input_power,
+                    output_power,
                     time_grid.step().duration(),
-                ),
-                input_power,
-                output_power,
+                )
             })
             .collect();
         let variable_store: TimeSeries<BidVariables> = bid_variables.try_into()?;
@@ -111,8 +111,8 @@ impl WholesalePerimeter {
             // and subtract output power to avoid moving values behind them.
             // This enables us to avoid that.
             let mut perimeter_net = 0.0.into_expression();
-            perimeter_net.add_mul(1.0, &perimeter_variables.input_power);
-            perimeter_net.add_mul(-1.0, &perimeter_variables.output_power);
+            perimeter_net.add_mul(1.0, perimeter_variables.input_power());
+            perimeter_net.add_mul(-1.0, perimeter_variables.output_power());
             let mut sum_asset_net = 0.0.into_expression();
             for asset_id in composition.iter() {
                 let asset = physical_store.get(asset_id)?;
