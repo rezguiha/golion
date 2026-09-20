@@ -19,14 +19,19 @@ pub enum MarketError {
 }
 #[derive(Debug)]
 pub struct Market {
-    pub(crate) bid_step: MinuteStep,
-    pub(crate) increment: KiloWattIncrement,
-    pub(crate) variable_store: Option<TimeSeries<BidVariables>>,
-    pub(crate) constraints: Vec<Constraint>,
-    pub(crate) revenue: Expression,
+    bid_step: MinuteStep,
+    increment: KiloWattIncrement,
+    variable_store: Option<TimeSeries<BidVariables>>,
+    constraints: Vec<Constraint>,
+    revenue: Expression,
 }
 
 impl Market {
+    /// Bids placed on this market, empty while the market is unavailable.
+    pub fn bid_variables(&self) -> impl Iterator<Item = &BidVariables> {
+        self.variable_store.iter().flat_map(|store| store.data().iter())
+    }
+
     pub fn try_new(
         reference_time: &Timestamp,
         time_index: &[Timestamp],
