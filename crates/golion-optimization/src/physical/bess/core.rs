@@ -23,26 +23,7 @@ pub trait BessVariableCreator {
         avail_point: &Availability,
         variable_generator: &mut ProblemVariables,
     ) -> Result<BessVariables> {
-        Ok(BessVariables {
-            start_at: *dt,
-            input_power: variable_generator
-                .add(variable().min(0.0).max(avail_point.max_charge_power)),
-            output_power: variable_generator
-                .add(variable().min(0.0).max(avail_point.max_discharge_power)),
-            soc: variable_generator.add(
-                variable()
-                    .min(
-                        self.soc_range()
-                            .min_soc
-                            .into_energy_kwh(&avail_point.max_usable_energy),
-                    )
-                    .max(
-                        self.soc_range()
-                            .max_soc
-                            .into_energy_kwh(&avail_point.max_usable_energy),
-                    ),
-            ),
-        })
+        BessVariables::try_new(dt, avail_point, self.soc_range(), variable_generator)
     }
     /// Sets exclusivity constraints between input power and output power.
     /// This is necessary to be able to apply the right efficiency to the active power
