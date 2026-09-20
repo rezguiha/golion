@@ -9,17 +9,17 @@ use uuid::Uuid;
 #[derive(Debug)]
 pub struct ReservePerimeter {
     /// Ancillary Service
-    pub market: Market,
+    pub(crate) market: Market,
     /// Repartition variables/expressions per asset of ancillary commitments and bidding
     /// over each timestamp in time index
-    pub repartition: HashMap<Uuid, TimeSeries<BidVariables>>,
+    pub(crate) repartition: HashMap<Uuid, TimeSeries<BidVariables>>,
     /// Container for constraints for repartition.
-    pub constraints: Vec<Constraint>,
+    pub(crate) constraints: Vec<Constraint>,
     /// Commitments of the perimeter for the ancillary service.
-    pub commitments: Vec<Commitment>,
+    pub(crate) commitments: Vec<Commitment>,
 }
 /// Container of all ancillary service perimeters.
 #[derive(Debug)]
 pub struct AncillaryPerimeter {
-    pub reserve_perimiters: Vec<ReservePerimeter>,
+    pub(crate) reserve_perimiters: Vec<ReservePerimeter>,
 }

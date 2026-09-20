@@ -7,7 +7,7 @@ use good_lp::Constraint;
 
 #[derive(Debug)]
 pub struct Renewable {
-    pub step: MinuteStep,
-    pub variable_store: TimeSeries<OtherAssetVariables>,
-    pub constraints: Vec<Constraint>,
+    pub(crate) step: MinuteStep,
+    pub(crate) variable_store: TimeSeries<OtherAssetVariables>,
+    pub(crate) constraints: Vec<Constraint>,
 }
