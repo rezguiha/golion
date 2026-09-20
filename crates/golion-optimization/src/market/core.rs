@@ -1,7 +1,4 @@
-use crate::{
-    market::{revenue::RevenueSetter, variables::BidVariables},
-    support::power_to_energy,
-};
+use crate::market::{revenue::RevenueSetter, variables::BidVariables};
 use golion_domain::market::bid::KiloWattIncrement;
 use golion_domain::market::revenue::Revenue;
 use golion_domain::market::specification::MarketSpecs;
@@ -73,16 +70,9 @@ impl Market {
             for dt in start.series(step.span()).take_while(|dt| dt < &end) {
                 // We associate same variables for the whole window of the bid step.
                 let input_power = input_variable * increment_value;
-                let input_energy = power_to_energy(&input_power, step.duration());
                 let output_power = output_variable * increment_value;
-                let output_energy = power_to_energy(&output_power, step.duration());
-                let bidding_variables = BidVariables {
-                    start_at: dt,
-                    input_power,
-                    output_power,
-                    input_energy,
-                    output_energy,
-                };
+                let bidding_variables =
+                    BidVariables::new(dt, input_power, output_power, step.duration());
                 let revenue_setter = market_revenues.at(&dt)?;
                 revenue += revenue_setter.revenue_expression(&bidding_variables);
                 variable_store.push(bidding_variables);
