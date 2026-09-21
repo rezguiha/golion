@@ -2,6 +2,7 @@ use crate::support::power_to_energy;
 use golion_domain::temporal::series::TimeStampedUtc;
 use good_lp::Expression;
 use jiff::{SignedDuration, Timestamp};
+
 /// Bidding Variables container with time information
 #[derive(Debug)]
 pub struct BidVariables {
