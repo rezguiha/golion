@@ -72,5 +72,8 @@ impl PhysicalStore {
             PhysicalError::MissingAssetInStore { asset_id: *asset_id }.into()
         })
     }
+    pub fn iter(&self) -> impl Iterator<Item = (&Uuid, &Asset)> {
+        self.0.iter()
+    }
 }
 // endregion: Asset store
