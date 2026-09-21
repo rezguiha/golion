@@ -1,15 +1,13 @@
+use super::support::aggregate_bidding_and_commitments;
 use crate::{
     market::{core::Market, variables::BidVariables},
     physical::PhysicalStore,
 };
 use golion_domain::{
     market::commitment::Commitment,
-    temporal::{
-        grid::RegularTimeGrid,
-        series::{TimeSeries, TimeStampedUtc},
-    },
+    temporal::{grid::RegularTimeGrid, series::TimeSeries},
 };
-use good_lp::{Constraint, Expression, IntoAffineExpression, constraint};
+use good_lp::{Constraint, IntoAffineExpression, constraint};
 use jiff::Timestamp;
 use uuid::Uuid;
 #[derive(Debug)]
@@ -21,7 +19,7 @@ pub struct WholesalePerimeter {
     /// List of commitments on all wholesale markets
     /// for the perimeter.
     pub(crate) commitments: Vec<Commitment>,
-    /// Perimeter level bidding variables.
+    /// Perimeter level aggregated bidding and commitments variables.
     pub(crate) variable_store: TimeSeries<BidVariables>,
     /// Perimeter constraints.
     pub(crate) constraints: Vec<Constraint>,
@@ -36,8 +34,12 @@ impl WholesalePerimeter {
         composition: Vec<Uuid>,
         physical_store: &PhysicalStore,
     ) -> crate::Result<Self> {
-        let variable_store =
-            Self::build_variable_store(time_index, time_grid, &commitments, &markets)?;
+        let variable_store = aggregate_bidding_and_commitments(
+            time_index,
+            time_grid,
+            &commitments,
+            &markets,
+        )?;
 
         // Add Repartition Constraints
         let mut constraints = Vec::<Constraint>::with_capacity(time_index.len());
@@ -50,52 +52,6 @@ impl WholesalePerimeter {
         )?;
         Ok(Self { markets, composition, commitments, variable_store, constraints })
     }
-
-    /// Aggregates perimeter commitments and market bids into one
-    /// perimeter level bidding series, indexed on the optimization grid.
-    fn build_variable_store(
-        time_index: &[Timestamp],
-        time_grid: &RegularTimeGrid,
-        commitments: &[Commitment],
-        markets: &[Market],
-    ) -> crate::Result<TimeSeries<BidVariables>> {
-        // Initialize perimiter target powers to 0.0
-        let mut input_power_targets: Vec<Expression> =
-            time_index.iter().map(|_| 0.0.into_expression()).collect();
-        let mut output_power_targets: Vec<Expression> =
-            time_index.iter().map(|_| 0.0.into_expression()).collect();
-        // Aggregate commitments and market bids.
-        for commitment in commitments.iter() {
-            let index = time_grid.index_of(&commitment.start_at)?;
-            input_power_targets[index] += commitment.input_power.0;
-            output_power_targets[index] += commitment.output_power.0;
-        }
-        for market in markets.iter() {
-            for bid_variables in market.bid_variables() {
-                let index = time_grid.index_of(bid_variables.start_at())?;
-                input_power_targets[index] += bid_variables.input_power();
-                output_power_targets[index] += bid_variables.output_power();
-            }
-        }
-        // Create Bid Variables structs, walking time_index so the resulting
-        // series stays chronologically ordered.
-        let bid_variables: Vec<BidVariables> = time_index
-            .iter()
-            .zip(input_power_targets)
-            .zip(output_power_targets)
-            .map(|((start_at, input_power), output_power)| {
-                BidVariables::new(
-                    *start_at,
-                    input_power,
-                    output_power,
-                    time_grid.step().duration(),
-                )
-            })
-            .collect();
-        let variable_store: TimeSeries<BidVariables> = bid_variables.try_into()?;
-        Ok(variable_store)
-    }
-
     fn build_repartition_constraints(
         constraints: &mut Vec<Constraint>,
         variable_store: &TimeSeries<BidVariables>,
