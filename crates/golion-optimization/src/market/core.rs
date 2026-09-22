@@ -1,6 +1,6 @@
 use crate::market::{revenue::RevenueSetter, variables::BidVariables};
+use crate::model::BuildEnv;
 use golion_domain::market::bid::KiloWattIncrement;
-use golion_domain::market::revenue::Revenue;
 use golion_domain::market::specification::MarketSpecs;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
@@ -32,15 +32,18 @@ impl Market {
         self.variable_store.iter().flat_map(|store| store.data().iter())
     }
 
-    pub fn try_new(
-        reference_time: &Timestamp,
-        time_index: &[Timestamp],
-        step: &MinuteStep,
+    /// Builds the market bid variables, valued with the market revenues.
+    pub(crate) fn try_new(
+        market_specs: &MarketSpecs,
+        env: &BuildEnv<'_>,
         vars: &mut ProblemVariables,
-        market_specs: MarketSpecs,
-        market_revenues: &TimeSeries<Revenue>,
     ) -> crate::Result<Self> {
-        let bid_time_bounds = market_specs.get_bid_time_bounds(reference_time)?;
+        let market_revenues =
+            env.revenues().get(market_specs.market, market_specs.country)?;
+        let time_index = env.horizon().timestamps();
+        let grid = env.horizon().grid();
+        let step = grid.step();
+        let bid_time_bounds = market_specs.get_bid_time_bounds(grid.start())?;
         let constraints: Vec<Constraint> = Vec::new();
         let mut revenue: Expression = 0.0.into_expression();
         let Some(bounds) = bid_time_bounds else {

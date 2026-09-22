@@ -7,8 +7,11 @@ use golion_domain::asset::bess::availability::Availability as BessAvailability;
 use golion_domain::asset::bess::efficiency::BessPowerEfficiencies;
 use golion_domain::asset::bess::limits::{BessLimits, SocRange};
 use golion_domain::asset::bess::specification::BessSpecifications;
+use golion_domain::problem::definition::AssetDefinition;
+use golion_domain::units::power::KiloWattHour;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
+use uuid::Uuid;
 
 // region: All asset types' physical input data.
 /// Bess system representing a
@@ -121,5 +124,25 @@ impl TryFrom<&BessData> for BessSpecifications {
         };
         let limits = BessLimits { soc_range, availability: availability.try_into()? };
         Ok(BessSpecifications { limits, efficiencies })
+    }
+}
+
+impl AssetData {
+    /// Converts the asset payload into its id and domain definition.
+    pub fn try_into_definition(self) -> crate::Result<(Uuid, AssetDefinition)> {
+        match self {
+            Self::Bess(data) => {
+                let specifications = BessSpecifications::try_from(&data)?;
+                let initial_soc = KiloWattHour(data.initial_soc);
+                let definition = AssetDefinition::Bess { specifications, initial_soc };
+                Ok((data.identification.asset_id, definition))
+            }
+            Self::GasTurbine(GasTurbineData { identification, .. })
+            | Self::Renewable(RenewableData { identification, .. }) => {
+                Err(crate::Error::UnsupportedAssetType {
+                    asset_id: identification.asset_id,
+                })
+            }
+        }
     }
 }

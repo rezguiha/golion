@@ -6,8 +6,6 @@ pub enum Error {
     Market(crate::market::core::MarketError),
     #[from]
     Physical(crate::physical::PhysicalError),
-    #[from]
-    Perimeter(crate::perimeter::wholesale::WholesalePerimeterError),
     // External
     #[from]
     Domain(golion_domain::Error),

@@ -110,10 +110,10 @@ pub struct Battery {
 }
 
 impl Battery {
-    pub fn new(
+    pub(crate) fn new(
         time_index: &[Timestamp],
         vars: &mut ProblemVariables,
-        specifications: impl BessVariableCreator,
+        specifications: &impl BessVariableCreator,
         initial_soc: KiloWattHour,
         step: MinuteStep,
     ) -> Result<Self> {
@@ -177,7 +177,7 @@ mod tests {
         let battery = Battery::new(
             &time_index,
             &mut vars,
-            specifications,
+            &specifications,
             KiloWattHour(20.0),
             step,
         )

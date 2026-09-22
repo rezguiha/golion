@@ -6,6 +6,7 @@ use super::units::soc::InvalidSocFraction;
 use jiff::Error as JiffError;
 
 use super::market::error::MarketError;
+use super::problem::error::ProblemError;
 use derive_more::From;
 #[derive(Debug, From)]
 pub enum Error {
@@ -24,6 +25,9 @@ pub enum Error {
     // -- Market Errors
     #[from]
     Market(MarketError),
+    // -- Problem Errors
+    #[from]
+    Problem(ProblemError),
     // -- External
     #[from]
     JiffConversionError(JiffError),
