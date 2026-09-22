@@ -165,11 +165,7 @@ pub fn build_portfolio(
     input: &OptimizationInput,
     vars: &mut ProblemVariables,
 ) -> Result<OptimizationComponent, ServerError> {
-    let time_grid = RegularTimeGrid::try_new_start_end(
-        input.optimization_start_at,
-        input.optimization_step.try_into()?,
-        input.optimization_end_at,
-    )?;
+    let time_grid = RegularTimeGrid::try_from(input)?;
     let time_index: Vec<Timestamp> = time_grid.iter().collect();
     let revenue_store = RevenueStore::try_from(input)?;
     let physical_store = build_physical(input, vars, &time_index)?;
