@@ -51,7 +51,7 @@ impl From<&AncillaryCommitment> for Commitment {
     }
 }
 impl WholesaleCommitment {
-    pub fn into_commitment(&self, step: &MinuteStep) -> Commitment {
+    pub fn to_commitment(&self, step: &MinuteStep) -> Commitment {
         let power = self.net_position * step.duration().as_secs_f64() / 3600.0_f64;
         Commitment {
             start_at: self.start_at,

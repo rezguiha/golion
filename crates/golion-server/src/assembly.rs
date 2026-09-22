@@ -108,7 +108,7 @@ fn build_wholesale(
                     .iter()
                     .flat_map(|series| {
                         series.values.iter().map(|wholsale_commitment| {
-                            wholsale_commitment.into_commitment(time_grid.step())
+                            wholsale_commitment.to_commitment(time_grid.step())
                         })
                     })
                     .collect(),
