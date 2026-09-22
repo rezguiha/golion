@@ -5,7 +5,7 @@ use golion_contract::asset::core::{AssetData, BessData};
 
 use golion_contract::optimization::OptimizationInput;
 use golion_contract::perimeter::reserve::ReservePerimeter as ContractReservePerimeter;
-use golion_contract::perimeter::wholesale::WholesalePerimeter as ContractWholesalePerimeter;
+use golion_contract::perimeter::wholesale::BrpPerimeter as ContractBrpPerimeter;
 use golion_domain::asset::bess::specification::BessSpecifications;
 use golion_domain::countries::Countries;
 use golion_domain::market::commitment::Commitment;
@@ -16,7 +16,7 @@ use golion_optimization::ProblemVariables;
 use golion_optimization::component::OptimizationComponent;
 use golion_optimization::market::core::Market;
 use golion_optimization::perimeter::ancillary::{AncillaryPerimeter, ReservePerimeter};
-use golion_optimization::perimeter::wholesale::WholesalePerimeter;
+use golion_optimization::perimeter::wholesale::{BrpPerimeter, WholesalePerimeter};
 use golion_optimization::physical::{Asset, PhysicalStore, bess::core::Battery};
 use jiff::Timestamp;
 use std::collections::HashMap;
@@ -55,7 +55,7 @@ fn build_physical(
 }
 
 fn build_wholesale_perimeter_markets(
-    perimeter_data: &ContractWholesalePerimeter,
+    perimeter_data: &ContractBrpPerimeter,
     country: &Countries,
     revenue_store: &RevenueStore,
     vars: &mut ProblemVariables,
@@ -81,15 +81,15 @@ fn build_wholesale_perimeter_markets(
 }
 
 fn build_wholesale(
-    wholesale_perimeters: &[ContractWholesalePerimeter],
+    brp_perimeters: &[ContractBrpPerimeter],
     country: &Countries,
     vars: &mut ProblemVariables,
     revenue_store: &RevenueStore,
     time_index: &[Timestamp],
     time_grid: &RegularTimeGrid,
     physical_store: &PhysicalStore,
-) -> Result<Vec<WholesalePerimeter>, ServerError> {
-    wholesale_perimeters
+) -> Result<WholesalePerimeter, ServerError> {
+    let perimeters = brp_perimeters
         .iter()
         .map(|perimeter| {
             let markets = build_wholesale_perimeter_markets(
@@ -100,7 +100,7 @@ fn build_wholesale(
                 time_index,
                 time_grid,
             )?;
-            Ok(WholesalePerimeter::try_new(
+            Ok(BrpPerimeter::try_new(
                 time_index,
                 time_grid,
                 perimeter
@@ -117,7 +117,8 @@ fn build_wholesale(
                 physical_store,
             )?)
         })
-        .collect()
+        .collect::<Result<_, ServerError>>()?;
+    Ok(WholesalePerimeter::try_new(perimeters)?)
 }
 
 fn build_ancillary_perimeter(
@@ -172,8 +173,8 @@ pub fn build_portfolio(
     let time_index: Vec<Timestamp> = time_grid.iter().collect();
     let revenue_store = RevenueStore::try_from(input)?;
     let physical_store = build_physical(input, vars, &time_index)?;
-    let wholesale_perimeters = build_wholesale(
-        &input.wholesale_perimeters,
+    let wholesale_perimeter = build_wholesale(
+        &input.brp_perimeters,
         &input.country,
         vars,
         &revenue_store,
@@ -192,7 +193,7 @@ pub fn build_portfolio(
     )?;
     Ok(OptimizationComponent {
         physical: physical_store,
-        wholesale_perimeters,
+        wholesale_perimeter,
         ancillary_perimeter,
     })
 }

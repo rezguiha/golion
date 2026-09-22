@@ -4,11 +4,11 @@ use uuid::Uuid;
 
 use crate::market::{choice::MarketChoice, commitments::WholesaleCommitments};
 use garde::Validate;
-/// Represents the balancing responsible party identification.
+/// Represents the balance responsible party identification.
 /// It is the entity facing the TSOs and on which imbalances
 /// are measured and paid.
 #[derive(Debug, Serialize, Deserialize, Validate)]
-pub struct WholesalePerimeter {
+pub struct BrpPerimeter {
     #[garde(skip)]
     pub id: Uuid,
     /// List of asset ids composing the perimiter on which the balancing

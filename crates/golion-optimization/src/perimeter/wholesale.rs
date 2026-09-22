@@ -1,3 +1,5 @@
+use std::{collections::HashMap, ops::Not};
+
 use super::support::aggregate_bidding_and_commitments;
 use crate::{
     market::{core::Market, variables::BidVariables},
@@ -10,22 +12,24 @@ use golion_domain::{
 use good_lp::{Constraint, IntoAffineExpression, constraint};
 use jiff::Timestamp;
 use uuid::Uuid;
+
+// region: Balance Responsible Party Perimeter
 #[derive(Debug)]
-pub struct WholesalePerimeter {
-    /// List of markets to bid on
-    pub(crate) markets: Vec<Market>,
+pub struct BrpPerimeter {
+    /// List of wholesale markets to bid on
+    markets: Vec<Market>,
     /// List of ids of assets inside the perimeter
-    pub(crate) composition: Vec<Uuid>,
+    composition: Vec<Uuid>,
     /// List of commitments on all wholesale markets
     /// for the perimeter.
-    pub(crate) commitments: Vec<Commitment>,
+    commitments: Vec<Commitment>,
     /// Perimeter level aggregated bidding and commitments variables.
-    pub(crate) variable_store: TimeSeries<BidVariables>,
+    variable_store: TimeSeries<BidVariables>,
     /// Perimeter constraints.
-    pub(crate) constraints: Vec<Constraint>,
+    constraints: Vec<Constraint>,
 }
 
-impl WholesalePerimeter {
+impl BrpPerimeter {
     pub fn try_new(
         time_index: &[Timestamp],
         time_grid: &RegularTimeGrid,
@@ -77,3 +81,43 @@ impl WholesalePerimeter {
         Ok(())
     }
 }
+// endregion: Balance Responsible Party Perimeter
+
+// region:  Wholesale Perimeter
+/// Container of all balancing responsible party perimeters.
+#[derive(Debug)]
+pub enum WholesalePerimeterError {
+    AssetInMultipleBrps { asset_ids: Vec<Uuid> },
+}
+#[derive(Debug)]
+pub struct WholesalePerimeter {
+    brp_perimeters: Vec<BrpPerimeter>,
+}
+
+impl WholesalePerimeter {
+    pub fn try_new(brp_perimeters: Vec<BrpPerimeter>) -> crate::Result<Self> {
+        // Make sure an asset can be in at most one balance responsible party
+        // perimeter.
+        let mut counter = HashMap::new();
+        for brp_perimeter in brp_perimeters.iter() {
+            for id in brp_perimeter.composition.iter() {
+                *counter.entry(*id).or_insert(0) += 1;
+            }
+        }
+        let duplicated: Vec<_> = counter
+            .into_iter()
+            .filter(|(_, count)| *count > 1)
+            .map(|(id, _)| id)
+            .collect();
+        if duplicated.is_empty().not() {
+            Err(WholesalePerimeterError::AssetInMultipleBrps { asset_ids: duplicated }
+                .into())
+        } else {
+            Ok(Self { brp_perimeters })
+        }
+    }
+    pub fn brp_perimeters(&self) -> &[BrpPerimeter] {
+        &self.brp_perimeters
+    }
+}
+// endregion:  Wholesale Perimeter
