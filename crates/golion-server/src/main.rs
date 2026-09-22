@@ -1,5 +1,4 @@
 mod app;
-mod assembly;
 mod error;
 mod routes;
 

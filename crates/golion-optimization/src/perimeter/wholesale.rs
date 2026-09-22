@@ -1,15 +1,11 @@
-use std::{collections::HashMap, ops::Not};
-
 use super::support::aggregate_bidding_and_commitments;
 use crate::{
     market::{core::Market, variables::BidVariables},
+    model::BuildEnv,
     physical::PhysicalStore,
 };
-use golion_domain::{
-    market::commitment::Commitment,
-    temporal::{grid::RegularTimeGrid, series::TimeSeries},
-};
-use good_lp::{Constraint, IntoAffineExpression, constraint};
+use golion_domain::{problem::definition::BrpDefinition, temporal::series::TimeSeries};
+use good_lp::{Constraint, IntoAffineExpression, ProblemVariables, constraint};
 use jiff::Timestamp;
 use uuid::Uuid;
 
@@ -18,11 +14,6 @@ use uuid::Uuid;
 pub struct BrpPerimeter {
     /// List of wholesale markets to bid on
     markets: Vec<Market>,
-    /// List of ids of assets inside the perimeter
-    composition: Vec<Uuid>,
-    /// List of commitments on all wholesale markets
-    /// for the perimeter.
-    commitments: Vec<Commitment>,
     /// Perimeter level aggregated bidding and commitments variables.
     variable_store: TimeSeries<BidVariables>,
     /// Perimeter constraints.
@@ -30,31 +21,38 @@ pub struct BrpPerimeter {
 }
 
 impl BrpPerimeter {
-    pub fn try_new(
-        time_index: &[Timestamp],
-        time_grid: &RegularTimeGrid,
-        commitments: Vec<Commitment>,
-        markets: Vec<Market>,
-        composition: Vec<Uuid>,
+    /// Builds the perimeter markets and links the perimeter net position
+    /// to its assets.
+    pub(crate) fn try_new(
+        definition: &BrpDefinition,
         physical_store: &PhysicalStore,
+        env: &BuildEnv<'_>,
+        vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
+        let horizon = env.horizon();
+        let markets: Vec<Market> = definition
+            .markets
+            .iter()
+            .map(|market_specs| Market::try_new(market_specs, env, vars))
+            .collect::<crate::Result<_>>()?;
         let variable_store = aggregate_bidding_and_commitments(
-            time_index,
-            time_grid,
-            &commitments,
+            horizon.timestamps(),
+            horizon.grid(),
+            &definition.commitments,
             &markets,
         )?;
 
         // Add Repartition Constraints
-        let mut constraints = Vec::<Constraint>::with_capacity(time_index.len());
+        let mut constraints =
+            Vec::<Constraint>::with_capacity(horizon.timestamps().len());
         Self::build_repartition_constraints(
             &mut constraints,
             &variable_store,
-            &composition,
-            time_index,
+            &definition.composition,
+            horizon.timestamps(),
             physical_store,
         )?;
-        Ok(Self { markets, composition, commitments, variable_store, constraints })
+        Ok(Self { markets, variable_store, constraints })
     }
     fn build_repartition_constraints(
         constraints: &mut Vec<Constraint>,
@@ -85,36 +83,26 @@ impl BrpPerimeter {
 
 // region:  Wholesale Perimeter
 /// Container of all balancing responsible party perimeters.
-#[derive(Debug)]
-pub enum WholesalePerimeterError {
-    AssetInMultipleBrps { asset_ids: Vec<Uuid> },
-}
+/// Assets belonging to at most one of them is guaranteed by the problem.
 #[derive(Debug)]
 pub struct WholesalePerimeter {
     brp_perimeters: Vec<BrpPerimeter>,
 }
 
 impl WholesalePerimeter {
-    pub fn try_new(brp_perimeters: Vec<BrpPerimeter>) -> crate::Result<Self> {
-        // Make sure an asset can be in at most one balance responsible party
-        // perimeter.
-        let mut counter = HashMap::new();
-        for brp_perimeter in brp_perimeters.iter() {
-            for id in brp_perimeter.composition.iter() {
-                *counter.entry(*id).or_insert(0) += 1;
-            }
-        }
-        let duplicated: Vec<_> = counter
-            .into_iter()
-            .filter(|(_, count)| *count > 1)
-            .map(|(id, _)| id)
-            .collect();
-        if duplicated.is_empty().not() {
-            Err(WholesalePerimeterError::AssetInMultipleBrps { asset_ids: duplicated }
-                .into())
-        } else {
-            Ok(Self { brp_perimeters })
-        }
+    pub(crate) fn try_new(
+        definitions: &[BrpDefinition],
+        physical_store: &PhysicalStore,
+        env: &BuildEnv<'_>,
+        vars: &mut ProblemVariables,
+    ) -> crate::Result<Self> {
+        let brp_perimeters = definitions
+            .iter()
+            .map(|definition| {
+                BrpPerimeter::try_new(definition, physical_store, env, vars)
+            })
+            .collect::<crate::Result<_>>()?;
+        Ok(Self { brp_perimeters })
     }
     pub fn brp_perimeters(&self) -> &[BrpPerimeter] {
         &self.brp_perimeters

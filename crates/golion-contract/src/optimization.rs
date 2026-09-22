@@ -5,6 +5,7 @@ use crate::perimeter::wholesale::BrpPerimeter;
 use garde::Validate;
 use golion_domain::countries::Countries;
 use golion_domain::market::revenue::{Revenue, RevenueStore};
+use golion_domain::problem::OptimizationProblem;
 use golion_domain::temporal::{
     grid::RegularTimeGrid, series::TimeSeries, step::MinuteStep,
 };
@@ -79,6 +80,36 @@ impl TryFrom<&OptimizationInput> for RegularTimeGrid {
             value.optimization_end_at,
         )?;
         Ok(grid)
+    }
+}
+
+impl TryFrom<OptimizationInput> for OptimizationProblem {
+    type Error = crate::Error;
+    fn try_from(value: OptimizationInput) -> crate::Result<Self> {
+        let grid = RegularTimeGrid::try_from(&value)?;
+        let revenues = RevenueStore::try_from(&value)?;
+        let OptimizationInput {
+            country, assets, brp_perimeters, reserve_perimeters, ..
+        } = value;
+        let assets = assets
+            .into_iter()
+            .map(AssetData::try_into_definition)
+            .collect::<crate::Result<HashMap<_, _>>>()?;
+        let brp_perimeters = brp_perimeters
+            .into_iter()
+            .map(|perimeter| perimeter.try_into_definition(&country, grid.step()))
+            .collect::<crate::Result<_>>()?;
+        let reserve_perimeters = reserve_perimeters
+            .into_iter()
+            .map(|perimeter| perimeter.try_into_definition(&country))
+            .collect::<crate::Result<_>>()?;
+        Ok(OptimizationProblem::try_new(
+            grid,
+            assets,
+            brp_perimeters,
+            reserve_perimeters,
+            revenues,
+        )?)
     }
 }
 // endregion: Domain Conversions.

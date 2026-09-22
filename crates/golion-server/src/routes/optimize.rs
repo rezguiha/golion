@@ -1,31 +1,32 @@
-use crate::assembly;
 use crate::error::ServerError;
 use axum::{Json, Router, routing::post};
 use axum_valid::Garde;
 use golion_contract::optimization::{OptimizationInput, OptimizationOutput};
-use golion_optimization::ProblemVariables;
+use golion_domain::problem::OptimizationProblem;
+use golion_optimization::Model;
 
 pub fn router() -> Router {
     Router::new().route("/optimize", post(handler))
 }
 
-/// Builds the LP-facing components for every asset in the request. Actually
-/// solving the resulting optimization problem isn't wired up yet (no
-/// objective function exists in golion-optimization), so this only proves
-/// out the conversion pipeline end to end.
+/// Builds the optimization model of the request. Actually solving it
+/// isn't wired up yet (no objective function exists in golion-optimization),
+/// so this only proves out the conversion pipeline end to end.
 async fn handler(
     Garde(Json(input)): Garde<Json<OptimizationInput>>,
 ) -> Result<Json<OptimizationOutput>, ServerError> {
-    let mut vars = ProblemVariables::new();
-    let components = assembly::build_portfolio(&input, &mut vars)?;
-    println!("{:#?}", components);
+    let problem = OptimizationProblem::try_from(input)?;
+    let model = golion_optimization::build(&problem)?;
+    Ok(Json(output_from(&model)))
+}
 
-    Ok(Json(OptimizationOutput {
-        components_built: components.physical.len(),
-        wholesale_perimeters_built: components.wholesale_perimeter.brp_perimeters().len(),
-        ancillary_perimeters_built: components
-            .ancillary_perimeter
+fn output_from(model: &Model) -> OptimizationOutput {
+    OptimizationOutput {
+        components_built: model.physical().len(),
+        wholesale_perimeters_built: model.wholesale_perimeter().brp_perimeters().len(),
+        ancillary_perimeters_built: model
+            .ancillary_perimeter()
             .reserve_perimeters()
             .len(),
-    }))
+    }
 }

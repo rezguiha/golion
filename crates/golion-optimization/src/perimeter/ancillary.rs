@@ -1,11 +1,11 @@
 use super::support::aggregate_bidding_and_commitments;
 use crate::{
     market::{core::Market, variables::BidVariables},
+    model::BuildEnv,
     physical::PhysicalStore,
 };
 use golion_domain::{
-    market::commitment::Commitment,
-    temporal::{grid::RegularTimeGrid, series::TimeSeries},
+    problem::definition::ReserveDefinition, temporal::series::TimeSeries,
 };
 use good_lp::{Constraint, IntoAffineExpression, ProblemVariables, constraint, variable};
 use jiff::{SignedDuration, Timestamp};
@@ -25,44 +25,44 @@ pub struct ReservePerimeter {
     repartition: HashMap<Uuid, TimeSeries<BidVariables>>,
     /// Container for constraints for repartition.
     constraints: Vec<Constraint>,
-    /// Commitments of the perimeter for the ancillary service.
-    commitments: Vec<Commitment>,
 }
 
 impl ReservePerimeter {
-    pub fn try_new(
-        market: Market,
-        composition: Vec<Uuid>,
-        commitments: Vec<Commitment>,
-        time_index: &[Timestamp],
-        time_grid: &RegularTimeGrid,
+    /// Builds the perimeter ancillary market and the repartition of its
+    /// bids and commitments over its assets.
+    pub(crate) fn try_new(
+        definition: &ReserveDefinition,
+        env: &BuildEnv<'_>,
         vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
+        let horizon = env.horizon();
+        let market = Market::try_new(&definition.market, env, vars)?;
         let variable_store = aggregate_bidding_and_commitments(
-            time_index,
-            time_grid,
-            &commitments,
+            horizon.timestamps(),
+            horizon.grid(),
+            &definition.commitments,
             std::slice::from_ref(&market),
         )?;
-        let repartition = composition
-            .into_iter()
+        let repartition = definition
+            .composition
+            .iter()
             .map(|id| {
                 Self::create_asset_repartition_variables(
                     vars,
-                    time_index,
-                    time_grid.step().duration(),
+                    horizon.timestamps(),
+                    horizon.grid().step().duration(),
                 )
-                .map(|series| (id, series))
+                .map(|series| (*id, series))
             })
             .collect::<crate::Result<HashMap<Uuid, TimeSeries<BidVariables>>>>()?;
         let mut constraints: Vec<Constraint> = Vec::new();
         Self::create_repartition_constraints(
-            time_index,
+            horizon.timestamps(),
             &mut constraints,
             &variable_store,
             &repartition,
         )?;
-        Ok(Self { market, variable_store, repartition, constraints, commitments })
+        Ok(Self { market, variable_store, repartition, constraints })
     }
     /// Creates reserve aggregated bidding and commitments
     /// repartition per asset.
@@ -119,15 +119,20 @@ pub struct AncillaryPerimeter {
 }
 
 impl AncillaryPerimeter {
-    pub fn try_new(
-        reserve_perimiters: Vec<ReservePerimeter>,
-        time_index: &[Timestamp],
+    pub(crate) fn try_new(
+        definitions: &[ReserveDefinition],
         physical_store: &PhysicalStore,
+        env: &BuildEnv<'_>,
+        vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
+        let reserve_perimiters: Vec<ReservePerimeter> = definitions
+            .iter()
+            .map(|definition| ReservePerimeter::try_new(definition, env, vars))
+            .collect::<crate::Result<_>>()?;
         let mut constraints = Vec::<Constraint>::new();
         Self::physical_reserve_perimeters_constraints(
             &reserve_perimiters,
-            time_index,
+            env.horizon().timestamps(),
             physical_store,
             &mut constraints,
         )?;

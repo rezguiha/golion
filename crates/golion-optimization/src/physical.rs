@@ -2,8 +2,10 @@ pub mod bess;
 pub mod ccgt;
 pub mod ren;
 pub mod variables;
+use crate::model::BuildEnv;
 use crate::physical::{bess::core::Battery, ccgt::GasTurbine, ren::Renewable};
-use good_lp::{Expression, IntoAffineExpression};
+use golion_domain::problem::definition::AssetDefinition;
+use good_lp::{Expression, IntoAffineExpression, ProblemVariables};
 use jiff::Timestamp;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -58,8 +60,32 @@ pub enum PhysicalError {
 #[derive(Debug)]
 pub struct PhysicalStore(HashMap<Uuid, Asset>);
 impl PhysicalStore {
-    pub fn new(store: HashMap<Uuid, Asset>) -> Self {
-        Self(store)
+    /// Builds the physical variables and constraints of every asset.
+    pub(crate) fn try_new(
+        assets: &HashMap<Uuid, AssetDefinition>,
+        env: &BuildEnv<'_>,
+        vars: &mut ProblemVariables,
+    ) -> crate::Result<Self> {
+        let store = assets
+            .iter()
+            .map(|(asset_id, definition)| {
+                let asset = match definition {
+                    AssetDefinition::Bess { specifications, initial_soc } => {
+                        let step = *specifications.limits.availability.grid().step();
+                        let battery = Battery::new(
+                            env.horizon().timestamps(),
+                            vars,
+                            specifications,
+                            *initial_soc,
+                            step,
+                        )?;
+                        Asset::from(battery)
+                    }
+                };
+                Ok((*asset_id, asset))
+            })
+            .collect::<crate::Result<_>>()?;
+        Ok(Self(store))
     }
     pub fn len(&self) -> usize {
         self.0.len()
