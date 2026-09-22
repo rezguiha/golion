@@ -1,9 +1,9 @@
+use crate::market::choice::MarketChoice;
+use garde::Validate;
 use golion_domain::market::market_type::AncillaryMarketType;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-
-use garde::Validate;
 use typed_builder::TypedBuilder;
+use uuid::Uuid;
 
 use crate::market::commitments::AncillaryCommitment;
 /// Represents the reserve perimeter
@@ -12,7 +12,7 @@ pub struct ReservePerimeter {
     #[garde(skip)]
     pub id: Uuid,
     #[garde(skip)]
-    pub market: AncillaryMarketType,
+    pub market: MarketChoice<AncillaryMarketType>,
     /// List of reserve units/groups composing the reserve perimeter
     /// for that particular ancillary service.
     #[garde(skip)]

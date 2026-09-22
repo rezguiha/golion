@@ -41,8 +41,8 @@ pub type WholesaleCommitments =
     Vec<MarketSeries<WholesaleMarketType, WholesaleCommitment>>;
 
 // region: Domain Conversion
-impl From<AncillaryCommitment> for Commitment {
-    fn from(value: AncillaryCommitment) -> Self {
+impl From<&AncillaryCommitment> for Commitment {
+    fn from(value: &AncillaryCommitment) -> Self {
         Self {
             start_at: value.start_at,
             input_power: value.downward_power.into(),

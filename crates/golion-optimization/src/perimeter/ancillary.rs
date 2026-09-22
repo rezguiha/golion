@@ -114,22 +114,36 @@ impl ReservePerimeter {
 /// Container of all ancillary service perimeters.
 #[derive(Debug)]
 pub struct AncillaryPerimeter {
-    pub(crate) reserve_perimiters: Vec<ReservePerimeter>,
+    reserve_perimiters: Vec<ReservePerimeter>,
+    constraints: Vec<Constraint>,
 }
 
 impl AncillaryPerimeter {
+    pub fn try_new(
+        reserve_perimiters: Vec<ReservePerimeter>,
+        time_index: &[Timestamp],
+        physical_store: &PhysicalStore,
+    ) -> crate::Result<Self> {
+        let mut constraints = Vec::<Constraint>::new();
+        Self::physical_reserve_perimeters_constraints(
+            &reserve_perimiters,
+            time_index,
+            physical_store,
+            &mut constraints,
+        )?;
+        Ok(Self { reserve_perimiters, constraints })
+    }
     /// Links each asset's physical ancillary variables to the sum of its
     /// repartition over every reserve perimeter it belongs to.
     fn physical_reserve_perimeters_constraints(
-        &self,
+        reserve_perimiters: &[ReservePerimeter],
         time_index: &[Timestamp],
         physical_store: &PhysicalStore,
         constraints: &mut Vec<Constraint>,
     ) -> crate::Result<()> {
         for (asset_id, asset) in physical_store.iter() {
             // Determine the reserve perimeters in which the asset is present
-            let repartitions: Vec<&TimeSeries<BidVariables>> = self
-                .reserve_perimiters
+            let repartitions: Vec<&TimeSeries<BidVariables>> = reserve_perimiters
                 .iter()
                 .filter_map(|perimeter| perimeter.repartition.get(asset_id))
                 .collect();
@@ -149,5 +163,8 @@ impl AncillaryPerimeter {
             }
         }
         Ok(())
+    }
+    pub fn reserve_perimeters(&self) -> &[ReservePerimeter] {
+        &self.reserve_perimiters
     }
 }

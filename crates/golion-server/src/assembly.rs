@@ -4,16 +4,18 @@ use crate::error::ServerError;
 use golion_contract::asset::core::{AssetData, BessData};
 
 use golion_contract::optimization::OptimizationInput;
+use golion_contract::perimeter::reserve::ReservePerimeter as ContractReservePerimeter;
 use golion_contract::perimeter::wholesale::WholesalePerimeter as ContractWholesalePerimeter;
 use golion_domain::asset::bess::specification::BessSpecifications;
 use golion_domain::countries::Countries;
+use golion_domain::market::commitment::Commitment;
 use golion_domain::market::revenue::RevenueStore;
 use golion_domain::temporal::grid::RegularTimeGrid;
 use golion_domain::units::power::KiloWattHour;
 use golion_optimization::ProblemVariables;
 use golion_optimization::component::OptimizationComponent;
 use golion_optimization::market::core::Market;
-use golion_optimization::perimeter::ancillary::AncillaryPerimeter;
+use golion_optimization::perimeter::ancillary::{AncillaryPerimeter, ReservePerimeter};
 use golion_optimization::perimeter::wholesale::WholesalePerimeter;
 use golion_optimization::physical::{Asset, PhysicalStore, bess::core::Battery};
 use jiff::Timestamp;
@@ -79,20 +81,20 @@ fn build_wholesale_perimeter_markets(
 }
 
 fn build_wholesale(
-    input: &OptimizationInput,
+    wholesale_perimeters: &[ContractWholesalePerimeter],
+    country: &Countries,
     vars: &mut ProblemVariables,
     revenue_store: &RevenueStore,
     time_index: &[Timestamp],
     time_grid: &RegularTimeGrid,
     physical_store: &PhysicalStore,
 ) -> Result<Vec<WholesalePerimeter>, ServerError> {
-    input
-        .wholesale_perimeters
+    wholesale_perimeters
         .iter()
         .map(|perimeter| {
             let markets = build_wholesale_perimeter_markets(
                 perimeter,
-                &input.country,
+                country,
                 revenue_store,
                 vars,
                 time_index,
@@ -118,6 +120,46 @@ fn build_wholesale(
         .collect()
 }
 
+fn build_ancillary_perimeter(
+    reserve_perimeters: &[ContractReservePerimeter],
+    time_index: &[Timestamp],
+    time_grid: &RegularTimeGrid,
+    country: &Countries,
+    vars: &mut ProblemVariables,
+    revenue_store: &RevenueStore,
+    physical_store: &PhysicalStore,
+) -> Result<AncillaryPerimeter, ServerError> {
+    let perimeters: Vec<ReservePerimeter> = reserve_perimeters
+        .iter()
+        .map(|perimeter| {
+            let market_specs = perimeter.market.try_into_market_specs(country)?;
+            let revenue = revenue_store.get(market_specs.market, market_specs.country)?;
+            let market = Market::try_new(
+                time_grid.start(),
+                time_index,
+                time_grid.step(),
+                vars,
+                market_specs,
+                revenue,
+            )?;
+            let commitments: Vec<Commitment> = perimeter
+                .commitments
+                .iter()
+                .map(|ancillary_commitment| ancillary_commitment.into())
+                .collect();
+            Ok(ReservePerimeter::try_new(
+                market,
+                perimeter.composition.clone(),
+                commitments,
+                time_index,
+                time_grid,
+                vars,
+            )?)
+        })
+        .collect::<Result<_, ServerError>>()?;
+    Ok(AncillaryPerimeter::try_new(perimeters, time_index, physical_store)?)
+}
+
 pub fn build_portfolio(
     input: &OptimizationInput,
     vars: &mut ProblemVariables,
@@ -131,18 +173,26 @@ pub fn build_portfolio(
     let revenue_store = RevenueStore::try_from(input)?;
     let physical_store = build_physical(input, vars, &time_index)?;
     let wholesale_perimeters = build_wholesale(
-        input,
+        &input.wholesale_perimeters,
+        &input.country,
         vars,
         &revenue_store,
         &time_index,
         &time_grid,
         &physical_store,
     )?;
-    // Temporarily use an empty list of ancillary perimeters.
-    let ancillary_perimeters = Vec::<AncillaryPerimeter>::new();
+    let ancillary_perimeter = build_ancillary_perimeter(
+        &input.reserve_perimeters,
+        &time_index,
+        &time_grid,
+        &input.country,
+        vars,
+        &revenue_store,
+        &physical_store,
+    )?;
     Ok(OptimizationComponent {
         physical: physical_store,
         wholesale_perimeters,
-        ancillary_perimeters,
+        ancillary_perimeter,
     })
 }
