@@ -23,6 +23,9 @@ async fn handler(
     Ok(Json(OptimizationOutput {
         components_built: components.physical.len(),
         wholesale_perimeters_built: components.wholesale_perimeters.len(),
-        ancillary_perimeters_built: components.ancillary_perimeters.len(),
+        ancillary_perimeters_built: components
+            .ancillary_perimeter
+            .reserve_perimeters()
+            .len(),
     }))
 }

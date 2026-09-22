@@ -111,7 +111,11 @@ async fn test_optimize_bess() -> Result<()> {
     let reserve_perimeters = vec![
         ReservePerimeter::builder()
             .id(Uuid::new_v4())
-            .market(AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree))
+            .market(MarketChoice {
+                market: AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
+                product_increment_kw: 1000,
+                product_step_minutes: 15,
+            })
             .composition(vec![asset_id])
             .commitments(reserve_commitments)
             .build(),
