@@ -3,9 +3,7 @@ use golion_contract::market::choice::MarketChoice;
 use golion_contract::market::commitments::{AncillaryCommitment, WholesaleCommitment};
 use golion_contract::market::revenue::{AncillaryRevenue, WholesaleRevenue};
 use golion_contract::optimization::OptimizationInput;
-use golion_contract::perimeter::{
-    reserve::ReservePerimeter, wholesale::WholesalePerimeter,
-};
+use golion_contract::perimeter::{reserve::ReservePerimeter, wholesale::BrpPerimeter};
 use golion_contract::{
     asset::{
         availability::StorageAvailability,
@@ -102,7 +100,7 @@ async fn test_optimize_bess() -> Result<()> {
             .build(),
     );
 
-    let wholesale_perimeters = vec![WholesalePerimeter {
+    let brp_perimeters = vec![BrpPerimeter {
         id: Uuid::new_v4(),
         composition: vec![asset_id],
         markets: wholesale_market_choices,
@@ -127,7 +125,7 @@ async fn test_optimize_bess() -> Result<()> {
         optimization_step: SignedDuration::from_mins(15),
         country: Countries::FR,
         assets: vec![asset],
-        wholesale_perimeters,
+        brp_perimeters,
         reserve_perimeters,
         ancillary_revenues,
         wholesale_revenues,

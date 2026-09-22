@@ -1,7 +1,7 @@
 use crate::asset::core::AssetData;
 use crate::market::revenue::{AncillaryRevenueSeries, WholesaleRevenueSeries};
 use crate::perimeter::reserve::ReservePerimeter;
-use crate::perimeter::wholesale::WholesalePerimeter;
+use crate::perimeter::wholesale::BrpPerimeter;
 use garde::Validate;
 use golion_domain::countries::Countries;
 use golion_domain::market::revenue::{Revenue, RevenueStore};
@@ -29,7 +29,7 @@ pub struct OptimizationInput {
     #[garde(dive)]
     pub reserve_perimeters: Vec<ReservePerimeter>,
     #[garde(dive)]
-    pub wholesale_perimeters: Vec<WholesalePerimeter>,
+    pub brp_perimeters: Vec<BrpPerimeter>,
     #[garde(dive)]
     pub ancillary_revenues: AncillaryRevenueSeries,
     #[garde(dive)]

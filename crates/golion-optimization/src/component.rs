@@ -5,6 +5,6 @@ use crate::physical::PhysicalStore;
 #[derive(Debug)]
 pub struct OptimizationComponent {
     pub physical: PhysicalStore,
-    pub wholesale_perimeters: Vec<WholesalePerimeter>,
+    pub wholesale_perimeter: WholesalePerimeter,
     pub ancillary_perimeter: AncillaryPerimeter,
 }
