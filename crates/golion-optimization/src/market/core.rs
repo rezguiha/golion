@@ -32,6 +32,10 @@ impl Market {
         self.variable_store.iter().flat_map(|store| store.data().iter())
     }
 
+    /// Market Revenue Expression
+    pub fn revenue(&self) -> &Expression {
+        &self.revenue
+    }
     /// Builds the market bid variables, valued with the market revenues.
     pub(crate) fn try_new(
         market_specs: &MarketSpecs,

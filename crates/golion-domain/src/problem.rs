@@ -57,11 +57,11 @@ impl OptimizationProblem {
     ) -> crate::Result<()> {
         let compositions = brp_perimeters
             .iter()
-            .map(|perimeter| (perimeter.id, &perimeter.composition))
+            .map(|perimeter| (*perimeter.id(), perimeter.composition()))
             .chain(
                 reserve_perimeters
                     .iter()
-                    .map(|perimeter| (perimeter.id, &perimeter.composition)),
+                    .map(|perimeter| (*perimeter.id(), perimeter.composition())),
             );
         for (perimeter_id, composition) in compositions {
             let asset_ids: Vec<Uuid> = composition
@@ -86,7 +86,7 @@ impl OptimizationProblem {
     ) -> crate::Result<()> {
         let mut counter = HashMap::new();
         for perimeter in brp_perimeters.iter() {
-            for id in perimeter.composition.iter() {
+            for id in perimeter.composition().iter() {
                 *counter.entry(*id).or_insert(0) += 1;
             }
         }
@@ -109,8 +109,8 @@ impl OptimizationProblem {
     ) -> crate::Result<()> {
         let markets = brp_perimeters
             .iter()
-            .flat_map(|perimeter| perimeter.markets.iter())
-            .chain(reserve_perimeters.iter().map(|perimeter| &perimeter.market));
+            .flat_map(|perimeter| perimeter.markets().iter())
+            .chain(reserve_perimeters.iter().map(|perimeter| perimeter.market()));
         for specs in markets {
             revenues.get(specs.market, specs.country)?;
         }
@@ -179,13 +179,8 @@ mod tests {
             initial_soc: KiloWattHour(20.0),
         }
     }
-    fn brp(composition: Vec<Uuid>) -> BrpDefinition {
-        BrpDefinition {
-            id: Uuid::new_v4(),
-            composition,
-            markets: Vec::new(),
-            commitments: Vec::new(),
-        }
+    fn brp(composition: Vec<Uuid>, markets: Vec<MarketSpecs>) -> BrpDefinition {
+        BrpDefinition::new(Uuid::new_v4(), markets, composition, vec![])
     }
 
     #[test]
@@ -195,7 +190,7 @@ mod tests {
         let problem = OptimizationProblem::try_new(
             grid(),
             assets,
-            vec![brp(vec![asset_id])],
+            vec![brp(vec![asset_id], vec![])],
             Vec::new(),
             RevenueStore::default(),
         );
@@ -209,7 +204,7 @@ mod tests {
         let problem = OptimizationProblem::try_new(
             grid(),
             assets,
-            vec![brp(vec![unknown_id])],
+            vec![brp(vec![unknown_id], vec![])],
             Vec::new(),
             RevenueStore::default(),
         );
@@ -227,7 +222,7 @@ mod tests {
         let problem = OptimizationProblem::try_new(
             grid(),
             assets,
-            vec![brp(vec![asset_id]), brp(vec![asset_id])],
+            vec![brp(vec![asset_id], vec![]), brp(vec![asset_id], vec![])],
             Vec::new(),
             RevenueStore::default(),
         );
@@ -249,8 +244,7 @@ mod tests {
             product,
         )
         .unwrap();
-        let mut perimeter = brp(vec![asset_id]);
-        perimeter.markets.push(specs);
+        let perimeter = brp(vec![asset_id], vec![specs]);
         let problem = OptimizationProblem::try_new(
             grid(),
             assets,

@@ -1,4 +1,7 @@
-use super::support::aggregate_bidding_and_commitments;
+use super::support::{
+    aggregate_bidding_and_commitments, build_penalization_expression,
+    build_penalization_variables,
+};
 use crate::{
     market::{core::Market, variables::BidVariables},
     model::BuildEnv,
@@ -7,11 +10,14 @@ use crate::{
 use golion_domain::{
     problem::definition::ReserveDefinition, temporal::series::TimeSeries,
 };
-use good_lp::{Constraint, IntoAffineExpression, ProblemVariables, constraint, variable};
+use good_lp::{
+    Constraint, Expression, IntoAffineExpression, ProblemVariables, constraint, variable,
+};
 use jiff::{SignedDuration, Timestamp};
 use std::collections::HashMap;
 
 use uuid::Uuid;
+
 /// Perimeter for the ancillary service containing
 /// assets certified together for it.
 #[derive(Debug)]
@@ -25,6 +31,11 @@ pub struct ReservePerimeter {
     repartition: HashMap<Uuid, TimeSeries<BidVariables>>,
     /// Container for constraints for repartition.
     constraints: Vec<Constraint>,
+    /// Reserve level penalization in order to avoid violations.
+    /// This represents the imbalance.
+    penalization_store: TimeSeries<BidVariables>,
+    /// Reserve level revenue expression
+    revenue: Expression,
 }
 
 impl ReservePerimeter {
@@ -36,15 +47,15 @@ impl ReservePerimeter {
         vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
         let horizon = env.horizon();
-        let market = Market::try_new(&definition.market, env, vars)?;
+        let market = Market::try_new(definition.market(), env, vars)?;
         let variable_store = aggregate_bidding_and_commitments(
             horizon.timestamps(),
             horizon.grid(),
-            &definition.commitments,
+            definition.commitments(),
             std::slice::from_ref(&market),
         )?;
         let repartition = definition
-            .composition
+            .composition()
             .iter()
             .map(|id| {
                 Self::create_asset_repartition_variables(
@@ -62,7 +73,20 @@ impl ReservePerimeter {
             &variable_store,
             &repartition,
         )?;
-        Ok(Self { market, variable_store, repartition, constraints })
+        // Build penalization Variables.
+        let penalization_store = build_penalization_variables(horizon, vars)?;
+        // Build revenue expression
+        let revenue =
+            build_penalization_expression(&variable_store, *definition.penalty())
+                + market.revenue();
+        Ok(Self {
+            market,
+            variable_store,
+            repartition,
+            constraints,
+            penalization_store,
+            revenue,
+        })
     }
     /// Creates reserve aggregated bidding and commitments
     /// repartition per asset.

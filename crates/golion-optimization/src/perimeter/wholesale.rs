@@ -1,4 +1,4 @@
-use super::support::aggregate_bidding_and_commitments;
+use super::support::{aggregate_bidding_and_commitments, build_penalization_variables};
 use crate::{
     market::{core::Market, variables::BidVariables},
     model::BuildEnv,
@@ -18,6 +18,9 @@ pub struct BrpPerimeter {
     variable_store: TimeSeries<BidVariables>,
     /// Perimeter constraints.
     constraints: Vec<Constraint>,
+    /// Perimeter level penalization in order to avoid violations.
+    /// This represents the imbalance.
+    penalization_store: TimeSeries<BidVariables>,
 }
 
 impl BrpPerimeter {
@@ -31,14 +34,14 @@ impl BrpPerimeter {
     ) -> crate::Result<Self> {
         let horizon = env.horizon();
         let markets: Vec<Market> = definition
-            .markets
+            .markets()
             .iter()
             .map(|market_specs| Market::try_new(market_specs, env, vars))
             .collect::<crate::Result<_>>()?;
         let variable_store = aggregate_bidding_and_commitments(
             horizon.timestamps(),
             horizon.grid(),
-            &definition.commitments,
+            definition.commitments(),
             &markets,
         )?;
 
@@ -48,11 +51,12 @@ impl BrpPerimeter {
         Self::build_repartition_constraints(
             &mut constraints,
             &variable_store,
-            &definition.composition,
+            definition.composition(),
             horizon.timestamps(),
             physical_store,
         )?;
-        Ok(Self { markets, variable_store, constraints })
+        let penalization_store = build_penalization_variables(horizon, vars)?;
+        Ok(Self { markets, variable_store, constraints, penalization_store })
     }
     fn build_repartition_constraints(
         constraints: &mut Vec<Constraint>,
