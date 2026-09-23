@@ -47,12 +47,7 @@ impl BrpPerimeter {
                 series.values.iter().map(|commitment| commitment.to_commitment(step))
             })
             .collect();
-        Ok(BrpDefinition {
-            id: self.id,
-            composition: self.composition,
-            markets,
-            commitments,
-        })
+        Ok(BrpDefinition::new(self.id, markets, self.composition, commitments))
     }
 }
 // endregion: Domain Conversion

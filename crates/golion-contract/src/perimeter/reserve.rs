@@ -33,12 +33,12 @@ impl ReservePerimeter {
         self,
         country: &Countries,
     ) -> crate::Result<ReserveDefinition> {
-        Ok(ReserveDefinition {
-            id: self.id,
-            market: self.market.try_into_market_specs(country)?,
-            composition: self.composition,
-            commitments: self.commitments.iter().map(Commitment::from).collect(),
-        })
+        Ok(ReserveDefinition::new(
+            self.id,
+            self.market.try_into_market_specs(country)?,
+            self.composition,
+            self.commitments.iter().map(Commitment::from).collect(),
+        ))
     }
 }
 // endregion: Domain Conversion
