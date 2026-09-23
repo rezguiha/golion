@@ -155,14 +155,16 @@ impl AncillaryPerimeter {
             for dt in time_index.iter() {
                 let mut reserve_input_power = 0.0.into_expression();
                 let mut reserve_output_power = 0.0.into_expression();
-                let asset_input_power = asset.input_power_at(dt)?;
-                let asset_output_power = asset.output_power_at(dt)?;
+                let asset_input_power = asset.ancillary_input_power_at(dt)?;
+                let asset_output_power = asset.ancillary_output_power_at(dt)?;
                 // Aggregate asset repartition on all reserve perimeters it belong to.
                 for repartition in &repartitions {
                     let asset_reserve_variables = repartition.at(dt)?;
                     reserve_input_power += asset_reserve_variables.input_power();
                     reserve_output_power += asset_reserve_variables.output_power();
                 }
+                // Make sure aggregation is equal to the reserved signal on the asset
+                // for ancillary services.
                 constraints.push(constraint!(asset_input_power == reserve_input_power));
                 constraints.push(constraint!(asset_output_power == reserve_output_power));
             }

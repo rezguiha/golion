@@ -34,6 +34,7 @@ impl From<Renewable> for Asset {
 }
 
 impl Asset {
+    /// Active charge power in kW.
     pub fn input_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
         Ok(match self {
             Self::Bess(b) => b.variable_store.at(dt)?.input_power.into_expression(),
@@ -41,7 +42,28 @@ impl Asset {
             Self::Ccgt(_) | Self::Ren(_) => 0.0.into_expression(),
         })
     }
+    /// Active discharge power in kW.
     pub fn output_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
+        Ok(match self {
+            Self::Bess(b) => b.variable_store.at(dt)?.output_power.into_expression(),
+            Self::Ccgt(c) => c.variable_store.at(dt)?.output_power.into_expression(),
+            Self::Ren(r) => r.variable_store.at(dt)?.output_power.into_expression(),
+        })
+    }
+    /// Asset level ancillary signal for charge in kW.
+    /// Represents the how much we reserve on asset to deliver
+    /// the perimeter commitments and bids.
+    pub fn ancillary_input_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
+        Ok(match self {
+            Self::Bess(b) => b.variable_store.at(dt)?.input_power.into_expression(),
+            // Non-storage assets never charge.
+            Self::Ccgt(_) | Self::Ren(_) => 0.0.into_expression(),
+        })
+    }
+    /// Asset level ancillary signal for discharge in kW.
+    /// Represents the how much we reserve on asset to deliver
+    /// the perimeter commitments and bids.
+    pub fn ancillary_output_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
         Ok(match self {
             Self::Bess(b) => b.variable_store.at(dt)?.output_power.into_expression(),
             Self::Ccgt(c) => c.variable_store.at(dt)?.output_power.into_expression(),
