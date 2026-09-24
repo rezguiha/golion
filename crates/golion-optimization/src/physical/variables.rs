@@ -50,10 +50,16 @@ impl BessVariables {
                             .into_energy_kwh(&avail_point.max_usable_energy),
                     ),
             ),
-            input_ancillary: variable_generator
-                .add(variable().min(0.0).max(avail_point.max_charge_power)),
-            output_ancillary: variable_generator
-                .add(variable().min(0.0).max(avail_point.max_discharge_power)),
+            input_ancillary: variable_generator.add(
+                variable()
+                    .min(0.0)
+                    .max(avail_point.max_discharge_power + avail_point.max_charge_power),
+            ),
+            output_ancillary: variable_generator.add(
+                variable()
+                    .min(0.0)
+                    .max(avail_point.max_discharge_power + avail_point.max_charge_power),
+            ),
         })
     }
 }
