@@ -135,6 +135,9 @@ impl WholesalePerimeter {
     pub fn brp_perimeters(&self) -> &[BrpPerimeter] {
         &self.brp_perimeters
     }
+    pub(crate) fn revenue(&self) -> &Expression {
+        &self.revenue
+    }
     /// Moves every perimeter's constraints out, leaving them empty.
     pub(crate) fn take_constraints(&mut self) -> impl Iterator<Item = Constraint> {
         self.brp_perimeters.iter_mut().flat_map(BrpPerimeter::take_constraints)

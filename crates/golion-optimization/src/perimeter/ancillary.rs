@@ -210,6 +210,9 @@ impl AncillaryPerimeter {
     pub fn reserve_perimeters(&self) -> &[ReservePerimeter] {
         &self.reserve_perimeters
     }
+    pub(crate) fn revenue(&self) -> &Expression {
+        &self.revenue
+    }
     /// Moves the ancillary constraints and those of every reserve perimeter
     /// out, leaving them empty.
     pub(crate) fn take_constraints(&mut self) -> impl Iterator<Item = Constraint> {

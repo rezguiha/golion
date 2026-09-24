@@ -5,7 +5,10 @@ use crate::physical::PhysicalStore;
 use golion_domain::market::revenue::RevenueStore;
 use golion_domain::problem::OptimizationProblem;
 use golion_domain::temporal::grid::RegularTimeGrid;
-use good_lp::ProblemVariables;
+use good_lp::solvers::highs::HighsSolution;
+use good_lp::{
+    Constraint, Expression, IntoAffineExpression, ProblemVariables, SolverModel, highs,
+};
 use jiff::Timestamp;
 
 // region: Horizon
@@ -52,7 +55,6 @@ impl<'a> BuildEnv<'a> {
 
 // region: Model
 pub struct Model {
-    vars: ProblemVariables,
     physical: PhysicalStore,
     wholesale_perimeter: WholesalePerimeter,
     ancillary_perimeter: AncillaryPerimeter,
@@ -68,11 +70,27 @@ impl Model {
     pub fn ancillary_perimeter(&self) -> &AncillaryPerimeter {
         &self.ancillary_perimeter
     }
+    /// Objective of the problem: the revenue of every perimeter, penalizations
+    /// included.
+    fn revenue(&self) -> Expression {
+        let mut revenue = 0.0.into_expression();
+        revenue += self.ancillary_perimeter.revenue();
+        revenue += self.wholesale_perimeter.revenue();
+        revenue
+    }
+    /// Empties every store of its constraints, in one iterator for the solver.
+    fn constraints(&mut self) -> impl Iterator<Item = Constraint> {
+        self.physical
+            .take_constraints()
+            .chain(self.wholesale_perimeter.take_constraints())
+            .chain(self.ancillary_perimeter.take_constraints())
+    }
 }
 
-/// Builds the optimization model of a problem. Physical assets are built
-/// first as perimeters link their variables to them.
-pub fn build(problem: &OptimizationProblem) -> crate::Result<Model> {
+/// Builds the optimization model of a problem and solves it. Physical assets
+/// are built first as perimeters link their variables to them. The model is
+/// returned alongside the solution, as its variables are what reads it.
+pub fn solve(problem: &OptimizationProblem) -> crate::Result<(Model, HighsSolution)> {
     let env = BuildEnv::new(problem.grid(), problem.revenues());
     let mut vars = ProblemVariables::new();
     let physical = PhysicalStore::try_new(problem.assets(), &env, &mut vars)?;
@@ -88,7 +106,11 @@ pub fn build(problem: &OptimizationProblem) -> crate::Result<Model> {
         &env,
         &mut vars,
     )?;
-    Ok(Model { vars, physical, wholesale_perimeter, ancillary_perimeter })
+    let mut model = Model { physical, wholesale_perimeter, ancillary_perimeter };
+    let objective = model.revenue();
+    let solution =
+        vars.maximise(objective).using(highs).with_all(model.constraints()).solve()?;
+    Ok((model, solution))
 }
 
 // endregion: Model
