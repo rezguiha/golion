@@ -40,10 +40,14 @@ impl BessVariables {
             soc: variable_generator.add(
                 variable()
                     .min(
-                        soc_range.min_soc.into_energy_kwh(&avail_point.max_usable_energy),
+                        soc_range
+                            .min_soc()
+                            .into_energy_kwh(&avail_point.max_usable_energy),
                     )
                     .max(
-                        soc_range.max_soc.into_energy_kwh(&avail_point.max_usable_energy),
+                        soc_range
+                            .max_soc()
+                            .into_energy_kwh(&avail_point.max_usable_energy),
                     ),
             ),
             input_ancillary: variable_generator
@@ -71,6 +75,9 @@ impl TimeStampedUtc for BessVariables {
 pub struct OtherAssetVariables {
     pub(crate) start_at: Timestamp,
     pub(crate) output_power: Variable,
+    /// Represents ancillary portion of discharge (upward)
+    /// commitments and bids that asset can deliver.
+    pub(crate) output_ancillary: Variable,
 }
 
 // Implement TimeStampedUtc to enable creation

@@ -1,3 +1,4 @@
+use super::asset::bess::limits::InvalidSocRange;
 use super::temporal::grid::TimeGridError;
 use super::temporal::series::TimeSeriesError;
 use super::temporal::step::MinuteStepError;
@@ -22,6 +23,9 @@ pub enum Error {
     SOC(InvalidSocFraction),
     #[from]
     Efficiency(InvalidEfficiency),
+    // -- Asset Errors
+    #[from]
+    SocRange(InvalidSocRange),
     // -- Market Errors
     #[from]
     Market(MarketError),

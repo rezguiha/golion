@@ -42,9 +42,9 @@ async fn test_optimize_bess() -> Result<()> {
         .map(|t| {
             StorageAvailability::builder()
                 .start_at(*t)
-                .max_charge_power(20.0)
-                .max_discharge_power(20.0)
-                .max_usable_energy(100.0)
+                .max_charge_power(20_000.0)
+                .max_discharge_power(20_000.0)
+                .max_usable_energy(100_000.0)
                 .build()
         })
         .collect();
@@ -53,8 +53,8 @@ async fn test_optimize_bess() -> Result<()> {
         .map(|t| {
             AncillaryCommitment::builder()
                 .start_at(*t)
-                .upward_power(10.0)
-                .downward_power(10.0)
+                .upward_power(1000.0)
+                .downward_power(1000.0)
                 .build()
         })
         .collect();
@@ -94,7 +94,7 @@ async fn test_optimize_bess() -> Result<()> {
     let asset = AssetData::Bess(
         BessData::builder()
             .availability(availability)
-            .initial_soc(50.0)
+            .initial_soc(50_000.0)
             .specs(BessSpecs::builder().build())
             .identification(identification)
             .build(),
