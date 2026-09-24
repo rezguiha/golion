@@ -9,14 +9,14 @@ pub fn router() -> Router {
     Router::new().route("/optimize", post(handler))
 }
 
-/// Builds the optimization model of the request. Actually solving it
-/// isn't wired up yet (no objective function exists in golion-optimization),
-/// so this only proves out the conversion pipeline end to end.
+/// Builds and solves the optimization model of the request. The solution
+/// itself isn't reported back yet, so this only proves out the conversion
+/// pipeline end to end.
 async fn handler(
     Garde(Json(input)): Garde<Json<OptimizationInput>>,
 ) -> Result<Json<OptimizationOutput>, ServerError> {
     let problem = OptimizationProblem::try_from(input)?;
-    let model = golion_optimization::build(&problem)?;
+    let (model, _solution) = golion_optimization::solve(&problem)?;
     Ok(Json(output_from(&model)))
 }
 
