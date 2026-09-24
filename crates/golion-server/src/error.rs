@@ -12,9 +12,12 @@ pub enum ServerError {
 
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
-        let status = match self {
+        let status = match &self {
             Self::Contract(golion_contract::Error::UnsupportedAssetType { .. }) => {
                 StatusCode::NOT_IMPLEMENTED
+            }
+            Self::Optimization(golion_optimization::Error::Solver(_)) => {
+                StatusCode::UNPROCESSABLE_ENTITY
             }
             Self::Contract(_) | Self::Optimization(_) => StatusCode::BAD_REQUEST,
         };
