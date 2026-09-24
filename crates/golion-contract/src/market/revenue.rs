@@ -116,7 +116,7 @@ impl From<&WholesaleRevenue> for Revenue {
                 // receive revenue estimation and not forecasted market
                 // prices.
                 unit: RevenueUnit::PerKiloWattHour,
-                input_revenue: buy_price / 1000.0,
+                input_revenue: -buy_price / 1000.0,
                 output_revenue: sell_price / 1000.0,
                 start_at: *start_at,
             },
