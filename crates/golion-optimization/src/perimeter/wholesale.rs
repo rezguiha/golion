@@ -2,10 +2,13 @@ use super::support::{aggregate_bidding_and_commitments, build_penalization_varia
 use crate::{
     market::{core::Market, variables::BidVariables},
     model::BuildEnv,
+    perimeter::support::build_penalization_expression,
     physical::PhysicalStore,
 };
 use golion_domain::{problem::definition::BrpDefinition, temporal::series::TimeSeries};
-use good_lp::{Constraint, IntoAffineExpression, ProblemVariables, constraint};
+use good_lp::{
+    Constraint, Expression, IntoAffineExpression, ProblemVariables, constraint,
+};
 use jiff::Timestamp;
 use uuid::Uuid;
 
@@ -21,6 +24,8 @@ pub struct BrpPerimeter {
     /// Perimeter level penalization in order to avoid violations.
     /// This represents the imbalance.
     penalization_store: TimeSeries<BidVariables>,
+    /// BRP level revenue expression including penalization
+    revenue: Expression,
 }
 
 impl BrpPerimeter {
@@ -56,7 +61,14 @@ impl BrpPerimeter {
             physical_store,
         )?;
         let penalization_store = build_penalization_variables(horizon, vars)?;
-        Ok(Self { markets, variable_store, constraints, penalization_store })
+        // Initialize revenue expression with penalization
+        let mut revenue =
+            build_penalization_expression(&penalization_store, *definition.penalty());
+        // Add market revenues.
+        for market in markets.iter() {
+            revenue += market.revenue();
+        }
+        Ok(Self { markets, variable_store, constraints, penalization_store, revenue })
     }
     fn build_repartition_constraints(
         constraints: &mut Vec<Constraint>,

@@ -34,7 +34,7 @@ pub struct ReservePerimeter {
     /// Reserve level penalization in order to avoid violations.
     /// This represents the imbalance.
     penalization_store: TimeSeries<BidVariables>,
-    /// Reserve level revenue expression
+    /// Reserve level revenue expression including penalization.
     revenue: Expression,
 }
 
