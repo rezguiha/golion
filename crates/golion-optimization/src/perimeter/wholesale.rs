@@ -82,6 +82,12 @@ impl BrpPerimeter {
         }
         Ok(())
     }
+    /// Moves the perimeter and its markets constraints out, leaving them empty.
+    pub(crate) fn take_constraints(&mut self) -> impl Iterator<Item = Constraint> {
+        std::mem::take(&mut self.constraints)
+            .into_iter()
+            .chain(self.markets.iter_mut().flat_map(Market::take_constraints))
+    }
 }
 // endregion: Balance Responsible Party Perimeter
 
@@ -111,5 +117,10 @@ impl WholesalePerimeter {
     pub fn brp_perimeters(&self) -> &[BrpPerimeter] {
         &self.brp_perimeters
     }
+    /// Moves every perimeter's constraints out, leaving them empty.
+    pub(crate) fn take_constraints(&mut self) -> impl Iterator<Item = Constraint> {
+        self.brp_perimeters.iter_mut().flat_map(BrpPerimeter::take_constraints)
+    }
 }
+
 // endregion:  Wholesale Perimeter

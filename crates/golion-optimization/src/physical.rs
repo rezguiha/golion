@@ -5,7 +5,7 @@ pub mod variables;
 use crate::model::BuildEnv;
 use crate::physical::{bess::core::Battery, ccgt::GasTurbine, ren::Renewable};
 use golion_domain::problem::definition::AssetDefinition;
-use good_lp::{Expression, IntoAffineExpression, ProblemVariables};
+use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables};
 use jiff::Timestamp;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -70,6 +70,14 @@ impl Asset {
             Self::Ren(r) => r.variable_store.at(dt)?.output_power.into_expression(),
         })
     }
+    /// Moves  asset physical constraints out leaving it empty
+    pub(crate) fn take_constraints(&mut self) -> Vec<Constraint> {
+        match self {
+            Self::Bess(b) => std::mem::take(&mut b.constraints),
+            Self::Ccgt(c) => std::mem::take(&mut c.constraints),
+            Self::Ren(r) => std::mem::take(&mut r.constraints),
+        }
+    }
 }
 // endregion: Asset Enum
 
@@ -122,6 +130,10 @@ impl PhysicalStore {
     }
     pub fn iter(&self) -> impl Iterator<Item = (&Uuid, &Asset)> {
         self.0.iter()
+    }
+    /// Moves all asset physical constraints out into an iterator leaving each one empty.
+    pub(crate) fn take_constraints(&mut self) -> impl Iterator<Item = Constraint> {
+        self.0.values_mut().flat_map(|asset| asset.take_constraints())
     }
 }
 // endregion: Asset store
