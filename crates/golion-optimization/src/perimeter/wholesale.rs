@@ -38,6 +38,8 @@ impl BrpPerimeter {
         vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
         let horizon = env.horizon();
+        // Create aggregate expressions of bids and commitments at brp perimeter
+        // level.
         let markets: Vec<Market> = definition
             .markets()
             .iter()
@@ -49,18 +51,21 @@ impl BrpPerimeter {
             definition.commitments(),
             &markets,
         )?;
-
+        // Create penalization variables
+        let penalization_store = build_penalization_variables(horizon, vars)?;
         // Add Repartition Constraints
         let mut constraints =
             Vec::<Constraint>::with_capacity(horizon.timestamps().len());
+
         Self::build_repartition_constraints(
             &mut constraints,
             &variable_store,
+            &penalization_store,
             definition.composition(),
             horizon.timestamps(),
             physical_store,
         )?;
-        let penalization_store = build_penalization_variables(horizon, vars)?;
+
         // Initialize revenue expression with penalization
         let mut revenue =
             build_penalization_expression(&penalization_store, *definition.penalty());
@@ -73,18 +78,23 @@ impl BrpPerimeter {
     fn build_repartition_constraints(
         constraints: &mut Vec<Constraint>,
         variable_store: &TimeSeries<BidVariables>,
+        penalization_store: &TimeSeries<BidVariables>,
         composition: &[Uuid],
         time_index: &[Timestamp],
         physical_store: &PhysicalStore,
     ) -> crate::Result<()> {
         for dt in time_index.iter() {
             let perimeter_variables = variable_store.at(dt)?;
+            let penalization_variables = penalization_store.at(dt)?;
             // We defined perimeter net as a 0 expression and add to it input power
             // and subtract output power to avoid moving values behind them.
             // This enables us to avoid that.
+
             let mut perimeter_net = 0.0.into_expression();
             perimeter_net.add_mul(1.0, perimeter_variables.input_power());
             perimeter_net.add_mul(-1.0, perimeter_variables.output_power());
+            perimeter_net.add_mul(1.0, penalization_variables.input_power());
+            perimeter_net.add_mul(-1.0, penalization_variables.output_power());
             let mut sum_asset_net = 0.0.into_expression();
             for asset_id in composition.iter() {
                 let asset = physical_store.get(asset_id)?;
