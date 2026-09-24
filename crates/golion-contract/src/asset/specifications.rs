@@ -14,15 +14,15 @@ use typed_builder::TypedBuilder;
 #[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder, Clone, Copy)]
 pub struct BessSpecs {
     /// Theoretical capacity expressed in kWh in grid side convention.
-    #[builder(default = 7500.0)]
+    #[builder(default = 100_000.0)]
     #[garde(range(min = 0.0))]
     pub rated_energy: f64,
     /// Theoretical maximum charge power in kW in grid side convention.
-    #[builder(default = 2500.0)]
+    #[builder(default = 25_000.0)]
     #[garde(range(min = 0.0))]
     pub rated_charge_power: f64,
     /// Theoretical maximum discharge power in kW in grid side convention.
-    #[builder(default = 2500.0)]
+    #[builder(default = 25_000.0)]
     #[garde(range(min = 0.0))]
     pub rated_discharge_power: f64,
     /// The charging efficiency expressed in percentage in \[0,1\]
@@ -36,11 +36,11 @@ pub struct BessSpecs {
     /// Minimal state of charge to not go under expressed in \[0,1\] and represents
     /// the energy stored in available modules divided by capacity of those available
     /// modules.
-    #[builder(default = 0.95)]
+    #[builder(default = 0.05)]
     #[garde(range(min = 0.0, max = 1.0))]
     pub soc_min: f64,
     /// Maximal state of charge with same convention as soc_max
-    #[builder(default = 0.05)]
+    #[builder(default = 0.95)]
     #[garde(range(min = 0.0, max = 1.0))]
     pub soc_max: f64,
 }
@@ -51,7 +51,7 @@ pub struct RenewableSpecs {
     /// Nominal power output for renewable asset.
     /// This is a minimal implementation serving just
     /// for the skeleton of the generic architecture.
-    #[builder(default = 2500.0)]
+    #[builder(default = 25_000.0)]
     #[garde(range(min = 0.0))]
     pub rated_power: f64,
 }
@@ -62,7 +62,7 @@ pub struct CcgtSpecs {
     /// Nominal power output for Gas Turbine asset.
     /// /// This is a minimal implementation serving just
     /// for the skeleton of the generic architecture.
-    #[builder(default = 2500.0)]
+    #[builder(default = 25_000.0)]
     #[garde(range(min = 0.0))]
     pub rated_power: f64,
 }
@@ -74,7 +74,7 @@ impl TryInto<SocRange> for BessSpecs {
     fn try_into(self) -> crate::Result<SocRange> {
         let min_soc_fraction: SocFraction = self.soc_min.try_into()?;
         let max_soc_fraction: SocFraction = self.soc_max.try_into()?;
-        Ok(SocRange { min_soc: min_soc_fraction, max_soc: max_soc_fraction })
+        Ok(SocRange::try_new(min_soc_fraction, max_soc_fraction)?)
     }
 }
 

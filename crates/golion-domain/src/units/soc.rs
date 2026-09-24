@@ -1,6 +1,6 @@
 use super::power::KiloWattHour;
 use derive_more::{Add, Display, Div, Mul};
-#[derive(Debug, Add, Div, Mul)]
+#[derive(Debug, Add, Div, Mul, PartialEq, PartialOrd)]
 pub struct SocFraction(f64);
 #[derive(Debug, Display)]
 #[display("Invalid Soc Fraction:{value}.Value must be in [0,1]")]
@@ -20,6 +20,9 @@ impl TryFrom<f64> for SocFraction {
 }
 
 impl SocFraction {
+    pub fn value(&self) -> &f64 {
+        &self.0
+    }
     pub fn into_energy_kwh(&self, available_energy_kw: &KiloWattHour) -> KiloWattHour {
         KiloWattHour(self.0 * available_energy_kw.0)
     }

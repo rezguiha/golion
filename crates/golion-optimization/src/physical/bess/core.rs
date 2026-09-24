@@ -162,10 +162,11 @@ mod tests {
             .collect();
         let mut vars = ProblemVariables::new();
         let limits = BessLimits {
-            soc_range: SocRange {
-                min_soc: 0.0.try_into().unwrap(),
-                max_soc: 1.0.try_into().unwrap(),
-            },
+            soc_range: SocRange::try_new(
+                0.0.try_into().unwrap(),
+                1.0.try_into().unwrap(),
+            )
+            .unwrap(),
             availability: availability.try_into().unwrap(),
         };
         let efficiencies = BessPowerEfficiencies {
