@@ -144,8 +144,9 @@ impl ReservePerimeter {
 /// Container of all ancillary service perimeters.
 #[derive(Debug)]
 pub struct AncillaryPerimeter {
-    reserve_perimiters: Vec<ReservePerimeter>,
+    reserve_perimeters: Vec<ReservePerimeter>,
     constraints: Vec<Constraint>,
+    revenue: Expression,
 }
 
 impl AncillaryPerimeter {
@@ -155,18 +156,23 @@ impl AncillaryPerimeter {
         env: &BuildEnv<'_>,
         vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
-        let reserve_perimiters: Vec<ReservePerimeter> = definitions
+        let reserve_perimeters: Vec<ReservePerimeter> = definitions
             .iter()
             .map(|definition| ReservePerimeter::try_new(definition, env, vars))
             .collect::<crate::Result<_>>()?;
         let mut constraints = Vec::<Constraint>::new();
         Self::physical_reserve_perimeters_constraints(
-            &reserve_perimiters,
+            &reserve_perimeters,
             env.horizon().timestamps(),
             physical_store,
             &mut constraints,
         )?;
-        Ok(Self { reserve_perimiters, constraints })
+        // Compute Overall Revnue.
+        let mut revenue = 0.0.into_expression();
+        for reserve in reserve_perimeters.iter() {
+            revenue += &reserve.revenue;
+        }
+        Ok(Self { reserve_perimeters, constraints, revenue })
     }
     /// Links each asset's physical ancillary variables to the sum of its
     /// repartition over every reserve perimeter it belongs to.
@@ -202,13 +208,13 @@ impl AncillaryPerimeter {
         Ok(())
     }
     pub fn reserve_perimeters(&self) -> &[ReservePerimeter] {
-        &self.reserve_perimiters
+        &self.reserve_perimeters
     }
     /// Moves the ancillary constraints and those of every reserve perimeter
     /// out, leaving them empty.
     pub(crate) fn take_constraints(&mut self) -> impl Iterator<Item = Constraint> {
         std::mem::take(&mut self.constraints).into_iter().chain(
-            self.reserve_perimiters
+            self.reserve_perimeters
                 .iter_mut()
                 .flat_map(ReservePerimeter::take_constraints),
         )
