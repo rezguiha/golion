@@ -109,6 +109,7 @@ impl BrpPerimeter {
 #[derive(Debug)]
 pub struct WholesalePerimeter {
     brp_perimeters: Vec<BrpPerimeter>,
+    revenue: Expression,
 }
 
 impl WholesalePerimeter {
@@ -123,8 +124,13 @@ impl WholesalePerimeter {
             .map(|definition| {
                 BrpPerimeter::try_new(definition, physical_store, env, vars)
             })
-            .collect::<crate::Result<_>>()?;
-        Ok(Self { brp_perimeters })
+            .collect::<crate::Result<Vec<BrpPerimeter>>>()?;
+        // Compute overall revenue.
+        let mut revenue = 0.0.into_expression();
+        for brp in brp_perimeters.iter() {
+            revenue += &brp.revenue;
+        }
+        Ok(Self { brp_perimeters, revenue })
     }
     pub fn brp_perimeters(&self) -> &[BrpPerimeter] {
         &self.brp_perimeters
