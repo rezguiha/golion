@@ -77,7 +77,7 @@ impl ReservePerimeter {
         let penalization_store = build_penalization_variables(horizon, vars)?;
         // Build revenue expression
         let revenue =
-            build_penalization_expression(&variable_store, *definition.penalty())
+            build_penalization_expression(&penalization_store, *definition.penalty())
                 + market.revenue();
         Ok(Self {
             market,
