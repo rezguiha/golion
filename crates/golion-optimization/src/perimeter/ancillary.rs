@@ -66,15 +66,17 @@ impl ReservePerimeter {
                 .map(|series| (*id, series))
             })
             .collect::<crate::Result<HashMap<Uuid, TimeSeries<BidVariables>>>>()?;
+        // Build penalization Variables.
+        let penalization_store = build_penalization_variables(horizon, vars)?;
+        // Build penalization constraints.
         let mut constraints: Vec<Constraint> = Vec::new();
-        Self::create_repartition_constraints(
+        Self::build_repartition_constraints(
             horizon.timestamps(),
             &mut constraints,
             &variable_store,
+            &penalization_store,
             &repartition,
         )?;
-        // Build penalization Variables.
-        let penalization_store = build_penalization_variables(horizon, vars)?;
         // Build revenue expression
         let revenue =
             build_penalization_expression(&penalization_store, *definition.penalty())
@@ -110,18 +112,22 @@ impl ReservePerimeter {
     }
     /// Set perimeter aggregation being equal to sum of asset
     /// repartition of that market
-    fn create_repartition_constraints(
+    fn build_repartition_constraints(
         time_index: &[Timestamp],
         constraints: &mut Vec<Constraint>,
         perimeter_aggregation: &TimeSeries<BidVariables>,
+        penalization_store: &TimeSeries<BidVariables>,
         asset_level_repartition_variables: &HashMap<Uuid, TimeSeries<BidVariables>>,
     ) -> crate::Result<()> {
         for dt in time_index.iter() {
             let perimeter = perimeter_aggregation.at(dt)?;
+            let penalization = penalization_store.at(dt)?;
             let mut perimeter_input_power = 0.0.into_expression();
-            perimeter_input_power += perimeter.input_power();
             let mut perimeter_output_power = 0.0.into_expression();
+            perimeter_input_power += perimeter.input_power();
             perimeter_output_power += perimeter.output_power();
+            perimeter_input_power += penalization.input_power();
+            perimeter_output_power += penalization.output_power();
             let mut assets_input_power = 0.0.into_expression();
             let mut assets_output_power = 0.0.into_expression();
             for asset_series in asset_level_repartition_variables.values() {
