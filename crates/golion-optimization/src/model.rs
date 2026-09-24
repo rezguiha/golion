@@ -90,4 +90,5 @@ pub fn build(problem: &OptimizationProblem) -> crate::Result<Model> {
     )?;
     Ok(Model { vars, physical, wholesale_perimeter, ancillary_perimeter })
 }
+
 // endregion: Model

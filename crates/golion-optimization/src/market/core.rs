@@ -98,4 +98,8 @@ impl Market {
             revenue,
         })
     }
+    /// Moves the market constraints out, leaving it empty.
+    pub(crate) fn take_constraints(&mut self) -> Vec<Constraint> {
+        std::mem::take(&mut self.constraints)
+    }
 }

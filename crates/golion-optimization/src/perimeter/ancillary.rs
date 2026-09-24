@@ -134,6 +134,12 @@ impl ReservePerimeter {
         }
         Ok(())
     }
+    /// Moves the perimeter and its market constraints out, leaving them empty.
+    pub(crate) fn take_constraints(&mut self) -> impl Iterator<Item = Constraint> {
+        std::mem::take(&mut self.constraints)
+            .into_iter()
+            .chain(self.market.take_constraints())
+    }
 }
 /// Container of all ancillary service perimeters.
 #[derive(Debug)]
@@ -197,5 +203,14 @@ impl AncillaryPerimeter {
     }
     pub fn reserve_perimeters(&self) -> &[ReservePerimeter] {
         &self.reserve_perimiters
+    }
+    /// Moves the ancillary constraints and those of every reserve perimeter
+    /// out, leaving them empty.
+    pub(crate) fn take_constraints(&mut self) -> impl Iterator<Item = Constraint> {
+        std::mem::take(&mut self.constraints).into_iter().chain(
+            self.reserve_perimiters
+                .iter_mut()
+                .flat_map(ReservePerimeter::take_constraints),
+        )
     }
 }
