@@ -8,7 +8,7 @@ use golion_domain::asset::bess::{
 };
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
-use golion_domain::units::power::KiloWattHour;
+use golion_domain::units::power::{KiloWatt, KiloWattHour};
 use good_lp::{Constraint, Expression, ProblemVariables};
 use jiff::Timestamp;
 // region: BessVariableCreator
@@ -16,6 +16,8 @@ pub trait BessVariableCreator {
     fn efficiencies(&self) -> &BessPowerEfficiencies;
     fn soc_range(&self) -> &SocRange;
     fn availability(&self) -> &TimeSeries<Availability>;
+    fn rated_input_power(&self) -> &KiloWatt;
+    fn rated_output_power(&self) -> &KiloWatt;
     // Creates variables at a particular timestamp t.
     fn create_variables_at(
         &self,
@@ -25,7 +27,6 @@ pub trait BessVariableCreator {
     ) -> Result<BessVariables> {
         BessVariables::try_new(dt, avail_point, self.soc_range(), variable_generator)
     }
-
     fn create_variables_and_minimal_constraints(
         &self,
         time_index: &[Timestamp],
@@ -44,6 +45,8 @@ pub trait BessVariableCreator {
             let avail_point = self.availability().at(dt)?;
             let variables_at = self.create_variables_at(dt, avail_point, vars)?;
             // Set exclusivity between active input power and output power.
+            // This is necessary to be able to apply the right efficiency to the active power
+            // of the battery during charge and during discharge.
             constraints.extend(variables_at.exclusivity_constraint(
                 vars,
                 &avail_point.max_charge_power,
@@ -85,6 +88,12 @@ impl BessVariableCreator for BessSpecifications {
     fn availability(&self) -> &TimeSeries<Availability> {
         &self.limits.availability
     }
+    fn rated_input_power(&self) -> &KiloWatt {
+        &self.rated_charge_power
+    }
+    fn rated_output_power(&self) -> &KiloWatt {
+        &self.rated_discharge_power
+    }
 }
 // endregion: BessVariableCreator
 
@@ -95,6 +104,8 @@ pub struct Battery {
     pub(crate) step: MinuteStep,
     pub(crate) variable_store: TimeSeries<BessVariables>,
     pub(crate) constraints: Vec<Constraint>,
+    pub(crate) rated_input_power: KiloWatt,
+    pub(crate) rated_output_power: KiloWatt,
 }
 
 impl Battery {
@@ -112,7 +123,14 @@ impl Battery {
                 initial_soc,
                 step,
             )?;
-        Ok(Self { initial_soc, step, variable_store, constraints })
+        Ok(Self {
+            initial_soc,
+            step,
+            variable_store,
+            constraints,
+            rated_input_power: *specifications.rated_input_power(),
+            rated_output_power: *specifications.rated_output_power(),
+        })
     }
 }
 // endregion: Battery Definition
@@ -139,13 +157,16 @@ mod tests {
             Timestamp::now().round((Unit::Minute, step.duration().as_mins())).unwrap();
         let time_index: Vec<Timestamp> =
             (0..4).map(|i| start_at + *step.duration() * i).collect();
+        let rated_charge_power = KiloWatt(50.0);
+        let rated_discharge_power = KiloWatt(50.0);
+        let rated_energy = KiloWattHour(100.0);
         let availability: Vec<Availability> = time_index
             .iter()
             .map(|dt| Availability {
                 start_at: *dt,
-                max_charge_power: KiloWatt(50.0),
-                max_discharge_power: KiloWatt(50.0),
-                max_usable_energy: KiloWattHour(100.0),
+                max_charge_power: rated_charge_power,
+                max_discharge_power: rated_discharge_power,
+                max_usable_energy: rated_energy,
             })
             .collect();
         let mut vars = ProblemVariables::new();
@@ -161,7 +182,13 @@ mod tests {
             charge_efficiency: Efficiency::try_from(0.95).unwrap(),
             discharge_efficiency: Efficiency::try_from(0.95).unwrap(),
         };
-        let specifications = BessSpecifications { limits, efficiencies };
+        let specifications = BessSpecifications {
+            limits,
+            efficiencies,
+            rated_charge_power,
+            rated_discharge_power,
+            rated_energy,
+        };
 
         let battery = Battery::new(
             &time_index,

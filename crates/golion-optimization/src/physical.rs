@@ -5,6 +5,7 @@ pub mod variables;
 use crate::model::BuildEnv;
 use crate::physical::{bess::core::Battery, ccgt::GasTurbine, ren::Renewable};
 use golion_domain::problem::definition::AssetDefinition;
+use golion_domain::units::power::KiloWatt;
 use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables};
 use jiff::Timestamp;
 use std::collections::HashMap;
@@ -70,12 +71,26 @@ impl Asset {
             Self::Ren(r) => r.variable_store.at(dt)?.output_ancillary.into_expression(),
         })
     }
+
     /// Moves  asset physical constraints out leaving it empty
     pub(crate) fn take_constraints(&mut self) -> Vec<Constraint> {
         match self {
             Self::Bess(b) => std::mem::take(&mut b.constraints),
             Self::Ccgt(c) => std::mem::take(&mut c.constraints),
             Self::Ren(r) => std::mem::take(&mut r.constraints),
+        }
+    }
+    pub(crate) fn max_input_power(&self) -> KiloWatt {
+        match self {
+            Self::Bess(b) => b.rated_input_power,
+            Self::Ccgt(_) | Self::Ren(_) => KiloWatt(0.0),
+        }
+    }
+    pub(crate) fn max_output_power(&self) -> KiloWatt {
+        match self {
+            Self::Bess(b) => b.rated_output_power,
+            Self::Ccgt(c) => c.rated_output_power,
+            Self::Ren(r) => r.rated_output_power,
         }
     }
 }
@@ -130,6 +145,20 @@ impl PhysicalStore {
     }
     pub fn iter(&self) -> impl Iterator<Item = (&Uuid, &Asset)> {
         self.0.iter()
+    }
+    /// Computes Maximal physical input and output power limits
+    pub fn maximum_physical_limits(
+        &self,
+        asset_ids: &[Uuid],
+    ) -> crate::Result<(KiloWatt, KiloWatt)> {
+        let mut sum_asset_input = KiloWatt(0.0);
+        let mut sum_asset_output = KiloWatt(0.0);
+        for asset_id in asset_ids {
+            let asset = self.get(asset_id)?;
+            sum_asset_input += asset.max_input_power();
+            sum_asset_output += asset.max_output_power();
+        }
+        Ok((sum_asset_input, sum_asset_output))
     }
     /// Moves all asset physical constraints out into an iterator leaving each one empty.
     pub(crate) fn take_constraints(&mut self) -> impl Iterator<Item = Constraint> {

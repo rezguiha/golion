@@ -123,7 +123,13 @@ impl TryFrom<&BessData> for BessSpecifications {
             discharge_efficiency: value.specs.discharge_efficiency.try_into()?,
         };
         let limits = BessLimits { soc_range, availability: availability.try_into()? };
-        Ok(BessSpecifications { limits, efficiencies })
+        Ok(BessSpecifications {
+            limits,
+            efficiencies,
+            rated_charge_power: value.specs.rated_charge_power.into(),
+            rated_discharge_power: value.specs.rated_discharge_power.into(),
+            rated_energy: value.specs.rated_energy.into(),
+        })
     }
 }
 

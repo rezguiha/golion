@@ -154,13 +154,16 @@ mod tests {
         RegularTimeGrid::try_new(start(), step(), 2).unwrap()
     }
     fn bess() -> AssetDefinition {
+        let rated_charge_power = KiloWatt(50.0);
+        let rated_discharge_power = KiloWatt(50.0);
+        let rated_energy = KiloWattHour(100.0);
         let availability: Vec<Availability> = grid()
             .iter()
             .map(|dt| Availability {
                 start_at: dt,
-                max_charge_power: KiloWatt(50.0),
-                max_discharge_power: KiloWatt(50.0),
-                max_usable_energy: KiloWattHour(100.0),
+                max_charge_power: rated_charge_power,
+                max_discharge_power: rated_discharge_power,
+                max_usable_energy: rated_energy,
             })
             .collect();
         let limits = BessLimits {
@@ -176,7 +179,13 @@ mod tests {
             discharge_efficiency: Efficiency::try_from(0.95).unwrap(),
         };
         AssetDefinition::Bess {
-            specifications: BessSpecifications { limits, efficiencies },
+            specifications: BessSpecifications {
+                limits,
+                efficiencies,
+                rated_charge_power,
+                rated_discharge_power,
+                rated_energy,
+            },
             initial_soc: KiloWattHour(20.0),
         }
     }

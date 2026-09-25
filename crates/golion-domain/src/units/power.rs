@@ -1,11 +1,11 @@
-use derive_more::{Add, From, Into};
+use derive_more::{Add, AddAssign, From, Into};
 use jiff::SignedDuration;
 // region: Power Units
 
-#[derive(PartialEq, From, Add, Into, Debug, Clone, Copy)]
+#[derive(PartialEq, From, Add, Into, Debug, Clone, Copy, AddAssign)]
 pub struct KiloWatt(pub f64);
 
-#[derive(PartialEq, From, Add, Into, Debug, Clone, Copy)]
+#[derive(PartialEq, From, Add, AddAssign, Into, Debug, Clone, Copy)]
 pub struct MegaWatt(pub f64);
 
 impl From<KiloWatt> for MegaWatt {
@@ -17,10 +17,10 @@ impl From<KiloWatt> for MegaWatt {
 // endregion: Power Units
 
 // region: Energy units
-#[derive(PartialEq, From, Add, Into, Debug, Clone, Copy)]
+#[derive(PartialEq, From, Add, Into, Debug, Clone, Copy, AddAssign)]
 pub struct KiloWattHour(pub f64);
 
-#[derive(PartialEq, From, Add, Into, Debug, Clone, Copy)]
+#[derive(PartialEq, From, Add, Into, Debug, Clone, Copy, AddAssign)]
 pub struct MegaWattHour(pub f64);
 
 impl From<KiloWattHour> for MegaWattHour {

@@ -1,5 +1,5 @@
 use crate::support::power_to_energy;
-use golion_domain::temporal::series::TimeStampedUtc;
+use golion_domain::{temporal::series::TimeStampedUtc, units::power::KiloWatt};
 use good_lp::{Constraint, Expression, ProblemVariables, constraint, variable};
 use jiff::{SignedDuration, Timestamp};
 
@@ -40,12 +40,15 @@ impl BidVariables {
     pub fn exclusivity_constraint(
         &self,
         vars: &mut ProblemVariables,
-        big_m: f64,
+        big_m_input: KiloWatt,
+        big_m_output: KiloWatt,
     ) -> [Constraint; 2] {
         let exclusivity_binary = vars.add(variable().binary());
         [
-            constraint!(self.input_power.clone() <= exclusivity_binary * big_m),
-            constraint!(self.output_power.clone() <= (1 - exclusivity_binary) * big_m),
+            constraint!(self.input_power.clone() <= exclusivity_binary * big_m_input.0),
+            constraint!(
+                self.output_power.clone() <= (1 - exclusivity_binary) * big_m_output.0
+            ),
         ]
     }
 }
