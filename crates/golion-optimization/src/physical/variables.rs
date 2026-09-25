@@ -1,10 +1,12 @@
-use golion_domain::asset::bess::availability::Availability;
-use golion_domain::asset::bess::limits::SocRange;
 /// Physical Variables definition.
 /// It includes also their creation trait.
+use golion_domain::asset::bess::availability::Availability;
+use golion_domain::asset::bess::limits::SocRange;
 use golion_domain::temporal::series::TimeStampedUtc;
-use good_lp::{ProblemVariables, Variable, variable};
+use golion_domain::units::power::KiloWatt;
+use good_lp::{Constraint, ProblemVariables, Variable, constraint, variable};
 use jiff::Timestamp;
+
 // region: Bess Variables
 /// Bess Variables container with time information
 #[derive(Debug)]
@@ -61,6 +63,43 @@ impl BessVariables {
                     .max(avail_point.max_discharge_power + avail_point.max_charge_power),
             ),
         })
+    }
+}
+// Implement Constraints on BessVariables
+impl BessVariables {
+    /// Sets exclusivity constraints between input power and output power.
+    /// This is necessary to be able to apply the right efficiency to the active power
+    /// of the battery during charge and during discharge.
+    pub(super) fn exclusivity_constraint(
+        &self,
+        vars: &mut ProblemVariables,
+        max_charge_power: &KiloWatt,
+        max_discharge_power: &KiloWatt,
+    ) -> [Constraint; 2] {
+        let exclusivity_binary = vars.add(variable().binary());
+        let big_m = max_charge_power.0 + max_discharge_power.0;
+        [
+            constraint!(self.input_power <= exclusivity_binary * big_m),
+            constraint!(self.output_power <= (1 - exclusivity_binary) * big_m),
+        ]
+    }
+    /// Makes sure that the net signal between dispatch(active) power and ancillary
+    /// activation signal at asset stay within availability range in power.
+    pub(super) fn ancillary_active_power_link_constraint(
+        &self,
+        max_charge_power: &KiloWatt,
+        max_discharge_power: &KiloWatt,
+    ) -> [Constraint; 2] {
+        [
+            constraint!(
+                self.input_ancillary + self.input_power - self.output_power
+                    <= max_charge_power.0
+            ),
+            constraint!(
+                self.output_ancillary + self.output_power - self.input_power
+                    <= max_discharge_power.0
+            ),
+        ]
     }
 }
 // Implement TimeStampedUtc to enable creation
