@@ -57,7 +57,8 @@ impl BrpPerimeter {
         let mut constraints =
             Vec::<Constraint>::with_capacity(horizon.timestamps().len());
 
-        Self::build_repartition_constraints(
+        Self::build_exclusivity_and_repartition_constraints(
+            vars,
             &mut constraints,
             &variable_store,
             &penalization_store,
@@ -75,7 +76,8 @@ impl BrpPerimeter {
         }
         Ok(Self { markets, variable_store, constraints, penalization_store, revenue })
     }
-    fn build_repartition_constraints(
+    fn build_exclusivity_and_repartition_constraints(
+        vars: &mut ProblemVariables,
         constraints: &mut Vec<Constraint>,
         variable_store: &TimeSeries<BidVariables>,
         penalization_store: &TimeSeries<BidVariables>,
@@ -85,6 +87,8 @@ impl BrpPerimeter {
     ) -> crate::Result<()> {
         for dt in time_index.iter() {
             let perimeter_variables = variable_store.at(dt)?;
+            // Set perimeter exclusivity constraints
+            perimeter_variables.exclusivity_constraint(vars, 1_000_000.0);
             let penalization_variables = penalization_store.at(dt)?;
             // We defined perimeter net as a 0 expression and add to it input power
             // and subtract output power to avoid moving values behind them.

@@ -1,6 +1,6 @@
 use crate::support::power_to_energy;
 use golion_domain::temporal::series::TimeStampedUtc;
-use good_lp::Expression;
+use good_lp::{Constraint, Expression, ProblemVariables, constraint, variable};
 use jiff::{SignedDuration, Timestamp};
 
 /// Bidding Variables container with time information
@@ -34,6 +34,19 @@ impl BidVariables {
     }
     pub fn output_energy(&self) -> &Expression {
         &self.output_energy
+    }
+    /// Set Exclusivity between input and output power with big M constraint.
+    /// This is needed for wholesale market biding for example.
+    pub fn exclusivity_constraint(
+        &self,
+        vars: &mut ProblemVariables,
+        big_m: f64,
+    ) -> [Constraint; 2] {
+        let exclusivity_binary = vars.add(variable().binary());
+        [
+            constraint!(self.input_power.clone() <= exclusivity_binary * big_m),
+            constraint!(self.output_power.clone() <= (1 - exclusivity_binary) * big_m),
+        ]
     }
 }
 
