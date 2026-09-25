@@ -53,8 +53,8 @@ async fn test_optimize_bess() -> Result<()> {
         .map(|t| {
             AncillaryCommitment::builder()
                 .start_at(*t)
-                .upward_power(1000.0)
-                .downward_power(1000.0)
+                .upward_power(0.0)
+                .downward_power(0.0)
                 .build()
         })
         .collect();
@@ -63,7 +63,7 @@ async fn test_optimize_bess() -> Result<()> {
         values: timestamps
             .iter()
             .map(|t| {
-                WholesaleCommitment::builder().start_at(*t).net_position(2.6).build()
+                WholesaleCommitment::builder().start_at(*t).net_position(0.0).build()
             })
             .collect(),
     }];
