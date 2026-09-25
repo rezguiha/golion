@@ -51,5 +51,5 @@ From the repository root:
 
 For fast iteration, consider running in two separate terminals:
 
-- 👷 `make server` — launch the server with live reload via `cargo watch`
-- 🤙 `make test-client` — run the server test loop via `cargo watch`
+- 👷 `make server` — launch the server with live reload via `bacon`
+- 🤙 `make test-client` — run the server test loop via `bacon`
