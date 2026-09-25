@@ -3,7 +3,7 @@
 use crate::asset::bess::specification::BessSpecifications;
 use crate::market::commitment::Commitment;
 use crate::market::specification::MarketSpecs;
-use crate::units::power::KiloWattHour;
+use crate::units::power::{KiloWatt, KiloWattHour};
 use uuid::Uuid;
 // Fixed penalty for now set here. May change if having it as an input of
 // optimization may be relevant.
@@ -16,6 +16,18 @@ const WHOLESALE_PENALTY_EURO_PER_KW: f64 = -4.0;
 #[derive(Debug)]
 pub enum AssetDefinition {
     Bess { specifications: BessSpecifications, initial_soc: KiloWattHour },
+}
+impl AssetDefinition {
+    pub(crate) fn max_input_power(&self) -> KiloWatt {
+        match self {
+            Self::Bess { specifications, .. } => specifications.rated_charge_power,
+        }
+    }
+    pub(crate) fn max_output_power(&self) -> KiloWatt {
+        match self {
+            Self::Bess { specifications, .. } => specifications.rated_discharge_power,
+        }
+    }
 }
 // endregion: Asset Definition
 
@@ -46,7 +58,7 @@ impl BrpDefinition {
             markets,
             composition,
             commitments,
-            penalty: ANCILLARY_PENALTY_EURO_PER_KW,
+            penalty: WHOLESALE_PENALTY_EURO_PER_KW,
         }
     }
     pub fn id(&self) -> &Uuid {

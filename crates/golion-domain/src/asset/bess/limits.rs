@@ -12,9 +12,6 @@ pub struct InvalidSocRange {
 }
 
 /// Bess state of charge operating range.
-/// This is a limitation set by the asset operators. Built through
-/// [`SocRange::try_new`], the only way to get one, so a range always has
-/// its minimum at or below its maximum.
 #[derive(Debug)]
 pub struct SocRange {
     min_soc: SocFraction,

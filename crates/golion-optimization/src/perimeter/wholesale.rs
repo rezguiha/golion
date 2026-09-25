@@ -56,7 +56,6 @@ impl BrpPerimeter {
         // Add Repartition Constraints
         let mut constraints =
             Vec::<Constraint>::with_capacity(horizon.timestamps().len());
-
         Self::build_exclusivity_and_repartition_constraints(
             vars,
             &mut constraints,
@@ -85,10 +84,16 @@ impl BrpPerimeter {
         time_index: &[Timestamp],
         physical_store: &PhysicalStore,
     ) -> crate::Result<()> {
+        let (sum_rated_input_power, sum_rated_output_power) =
+            physical_store.maximum_physical_limits(composition)?;
         for dt in time_index.iter() {
             let perimeter_variables = variable_store.at(dt)?;
             // Set perimeter exclusivity constraints
-            perimeter_variables.exclusivity_constraint(vars, 1_000_000.0);
+            constraints.extend(perimeter_variables.exclusivity_constraint(
+                vars,
+                sum_rated_input_power,
+                sum_rated_output_power,
+            ));
             let penalization_variables = penalization_store.at(dt)?;
             // We defined perimeter net as a 0 expression and add to it input power
             // and subtract output power to avoid moving values behind them.
