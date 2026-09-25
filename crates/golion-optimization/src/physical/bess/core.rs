@@ -8,8 +8,8 @@ use golion_domain::asset::bess::{
 };
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
-use golion_domain::units::power::{KiloWatt, KiloWattHour};
-use good_lp::{Constraint, Expression, ProblemVariables, Variable, constraint, variable};
+use golion_domain::units::power::KiloWattHour;
+use good_lp::{Constraint, Expression, ProblemVariables};
 use jiff::Timestamp;
 // region: BessVariableCreator
 pub trait BessVariableCreator {
@@ -25,23 +25,7 @@ pub trait BessVariableCreator {
     ) -> Result<BessVariables> {
         BessVariables::try_new(dt, avail_point, self.soc_range(), variable_generator)
     }
-    /// Sets exclusivity constraints between input power and output power.
-    /// This is necessary to be able to apply the right efficiency to the active power
-    /// of the battery during charge and during discharge.
-    fn exclusivity_constraint(
-        vars: &mut ProblemVariables,
-        input_power: &Variable,
-        output_power: &Variable,
-        max_charge_power: &KiloWatt,
-        max_discharge_power: &KiloWatt,
-    ) -> [Constraint; 2] {
-        let exclusivity_binary = vars.add(variable().binary());
-        let big_m = max_charge_power.0 + max_discharge_power.0;
-        [
-            constraint!(*input_power <= exclusivity_binary * big_m),
-            constraint!(*output_power <= (1 - exclusivity_binary) * big_m),
-        ]
-    }
+
     fn create_variables_and_minimal_constraints(
         &self,
         time_index: &[Timestamp],
@@ -51,7 +35,7 @@ pub trait BessVariableCreator {
     ) -> crate::Result<(TimeSeries<BessVariables>, Vec<Constraint>)> {
         let time_index_length = time_index.len();
         // Initialize battery physical variables and constraints containers.
-        let mut constraints: Vec<Constraint> = Vec::with_capacity(3 * time_index_length);
+        let mut constraints: Vec<Constraint> = Vec::with_capacity(5 * time_index_length);
         let mut variable_vec: Vec<BessVariables> = Vec::with_capacity(time_index_length);
         // Loop over time index ,create variables with their respective limits
         // and generate defining soc constraints.
@@ -60,10 +44,14 @@ pub trait BessVariableCreator {
             let avail_point = self.availability().at(dt)?;
             let variables_at = self.create_variables_at(dt, avail_point, vars)?;
             // Set exclusivity between active input power and output power.
-            constraints.extend(Self::exclusivity_constraint(
+            constraints.extend(variables_at.exclusivity_constraint(
                 vars,
-                &variables_at.input_power,
-                &variables_at.output_power,
+                &avail_point.max_charge_power,
+                &avail_point.max_discharge_power,
+            ));
+            // Set net (active power + ancillary signal) stay within
+            // availability range.
+            constraints.extend(variables_at.ancillary_active_power_link_constraint(
                 &avail_point.max_charge_power,
                 &avail_point.max_discharge_power,
             ));
