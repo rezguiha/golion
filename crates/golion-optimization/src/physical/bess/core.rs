@@ -175,7 +175,9 @@ mod tests {
         // One physical-variable triple per slot.
         assert_eq!(battery.variable_store.data().len(), 4);
         // One soc-transition constraint per slot.
-        assert_eq!(battery.constraints.len(), 12);
+        // Two Exclusivity of active power constraints per slot.
+        // Two ancillary power , active power and availability constraints per slot.
+        assert_eq!(battery.constraints.len(), 20);
     }
 }
 // endregion: Tests
