@@ -1,11 +1,8 @@
 /// Market Commitments models with their store definition.
 use garde::Validate;
-use golion_domain::{
-    market::{
-        commitment::Commitment,
-        market_type::{AncillaryMarketType, WholesaleMarketType},
-    },
-    temporal::step::MinuteStep,
+use golion_domain::market::{
+    commitment::{EnergyCommitment, PowerCommitment},
+    market_type::{AncillaryMarketType, WholesaleMarketType},
 };
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
@@ -41,23 +38,23 @@ pub type WholesaleCommitments =
     Vec<MarketSeries<WholesaleMarketType, WholesaleCommitment>>;
 
 // region: Domain Conversion
-impl From<&AncillaryCommitment> for Commitment {
+impl From<&AncillaryCommitment> for PowerCommitment {
     fn from(value: &AncillaryCommitment) -> Self {
         Self {
             start_at: value.start_at,
-            input_power: value.downward_power.into(),
-            output_power: value.upward_power.into(),
+            input: value.downward_power.into(),
+            output: value.upward_power.into(),
         }
     }
 }
-impl WholesaleCommitment {
-    pub fn to_commitment(&self, step: &MinuteStep) -> Commitment {
-        let power = self.net_position * 3600.0_f64 / step.duration().as_secs_f64();
-        Commitment {
-            start_at: self.start_at,
-            input_power: power.max(0.0).into(),
-            output_power: power.min(0.0).abs().into(),
+impl From<&WholesaleCommitment> for EnergyCommitment {
+    fn from(value: &WholesaleCommitment) -> Self {
+        Self {
+            start_at: value.start_at,
+            input: value.net_position.max(0.0).into(),
+            output: value.net_position.min(0.0).abs().into(),
         }
     }
 }
+
 // endregion: Domain Conversion

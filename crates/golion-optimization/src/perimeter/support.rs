@@ -3,7 +3,7 @@ use crate::{
     model::Horizon,
 };
 use golion_domain::{
-    market::commitment::Commitment,
+    market::commitment::PowerCommitment,
     temporal::{
         grid::RegularTimeGrid,
         series::{TimeSeries, TimeStampedUtc},
@@ -16,7 +16,7 @@ use jiff::Timestamp;
 pub(crate) fn aggregate_bidding_and_commitments(
     time_index: &[Timestamp],
     time_grid: &RegularTimeGrid,
-    commitments: &[Commitment],
+    commitments: &[PowerCommitment],
     markets: &[Market],
 ) -> crate::Result<TimeSeries<BidVariables>> {
     // Initialize perimiter target powers to 0.0
@@ -27,8 +27,8 @@ pub(crate) fn aggregate_bidding_and_commitments(
     // Aggregate commitments and market bids.
     for commitment in commitments.iter() {
         let index = time_grid.index_of(&commitment.start_at)?;
-        input_power_targets[index] += commitment.input_power.0;
-        output_power_targets[index] += commitment.output_power.0;
+        input_power_targets[index] += commitment.input.0;
+        output_power_targets[index] += commitment.output.0;
     }
     for market in markets.iter() {
         for bid_variables in market.bid_variables() {

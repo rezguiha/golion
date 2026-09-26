@@ -1,7 +1,7 @@
 /// Definitions of the elements taking part in an optimization problem.
 /// They describe what to optimize, independently of how it is modelled.
 use crate::asset::bess::specification::BessSpecifications;
-use crate::market::commitment::Commitment;
+use crate::market::commitment::PowerCommitment;
 use crate::market::specification::MarketSpecs;
 use crate::units::power::{KiloWatt, KiloWattHour};
 use uuid::Uuid;
@@ -42,7 +42,7 @@ pub struct BrpDefinition {
     /// Wholesale markets the perimeter bids on.
     markets: Vec<MarketSpecs>,
     /// Commitments already taken on all wholesale markets.
-    commitments: Vec<Commitment>,
+    commitments: Vec<PowerCommitment>,
     /// Penalty for violations in euro per kW.
     penalty: f64,
 }
@@ -51,7 +51,7 @@ impl BrpDefinition {
         id: Uuid,
         markets: Vec<MarketSpecs>,
         composition: Vec<Uuid>,
-        commitments: Vec<Commitment>,
+        commitments: Vec<PowerCommitment>,
     ) -> Self {
         Self {
             id,
@@ -67,7 +67,7 @@ impl BrpDefinition {
     pub fn markets(&self) -> &[MarketSpecs] {
         &self.markets
     }
-    pub fn commitments(&self) -> &[Commitment] {
+    pub fn commitments(&self) -> &[PowerCommitment] {
         &self.commitments
     }
     pub fn composition(&self) -> &[Uuid] {
@@ -86,7 +86,7 @@ pub struct ReserveDefinition {
     /// Ids of the assets composing the perimeter.
     composition: Vec<Uuid>,
     /// Commitments already taken on the ancillary service.
-    commitments: Vec<Commitment>,
+    commitments: Vec<PowerCommitment>,
     /// Penalty for violations in euro per kW.
     penalty: f64,
 }
@@ -95,7 +95,7 @@ impl ReserveDefinition {
         id: Uuid,
         market: MarketSpecs,
         composition: Vec<Uuid>,
-        commitments: Vec<Commitment>,
+        commitments: Vec<PowerCommitment>,
     ) -> Self {
         Self {
             id,
@@ -111,7 +111,7 @@ impl ReserveDefinition {
     pub fn market(&self) -> &MarketSpecs {
         &self.market
     }
-    pub fn commitments(&self) -> &[Commitment] {
+    pub fn commitments(&self) -> &[PowerCommitment] {
         &self.commitments
     }
     pub fn composition(&self) -> &[Uuid] {
