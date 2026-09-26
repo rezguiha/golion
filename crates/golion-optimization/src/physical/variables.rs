@@ -77,10 +77,11 @@ impl BessVariables {
         max_discharge_power: &KiloWatt,
     ) -> [Constraint; 2] {
         let exclusivity_binary = vars.add(variable().binary());
-        let big_m = max_charge_power.0 + max_discharge_power.0;
         [
-            constraint!(self.input_power <= exclusivity_binary * big_m),
-            constraint!(self.output_power <= (1 - exclusivity_binary) * big_m),
+            constraint!(self.input_power <= exclusivity_binary * max_charge_power.0),
+            constraint!(
+                self.output_power <= (1 - exclusivity_binary) * max_discharge_power.0
+            ),
         ]
     }
     /// Makes sure that the net signal between dispatch(active) power and ancillary
