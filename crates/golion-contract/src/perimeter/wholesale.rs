@@ -1,7 +1,7 @@
-use golion_domain::countries::Countries;
 use golion_domain::market::market_type::WholesaleMarketType;
 use golion_domain::problem::definition::BrpDefinition;
 use golion_domain::temporal::step::MinuteStep;
+use golion_domain::{countries::Countries, market::commitment::EnergyCommitment};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -40,13 +40,15 @@ impl BrpPerimeter {
             .iter()
             .map(|market_choice| market_choice.try_into_market_specs(country))
             .collect::<crate::Result<_>>()?;
-        let commitments = self
-            .commitments
-            .iter()
-            .flat_map(|series| {
-                series.values.iter().map(|commitment| commitment.to_commitment(step))
-            })
-            .collect();
+        let commitments =
+            self.commitments
+                .iter()
+                .flat_map(|series| {
+                    series.values.iter().map(EnergyCommitment::from).map(
+                        |energy_commitment| energy_commitment.to_power_commitment(step),
+                    )
+                })
+                .collect();
         Ok(BrpDefinition::new(self.id, markets, self.composition, commitments))
     }
 }

@@ -1,9 +1,26 @@
 use jiff::Timestamp;
 
-use crate::units::power::KiloWatt;
+use crate::{
+    temporal::step::MinuteStep,
+    units::power::{KiloWatt, KiloWattHour},
+};
 #[derive(Debug)]
-pub struct Commitment {
+pub struct Commitment<U> {
     pub start_at: Timestamp,
-    pub input_power: KiloWatt,
-    pub output_power: KiloWatt,
+    pub input: U,
+    pub output: U,
+}
+
+pub type PowerCommitment = Commitment<KiloWatt>;
+pub type EnergyCommitment = Commitment<KiloWattHour>;
+
+impl EnergyCommitment {
+    pub fn to_power_commitment(&self, step: &MinuteStep) -> PowerCommitment {
+        let duration_seconds = step.duration().as_secs_f64();
+        PowerCommitment {
+            start_at: self.start_at,
+            input: (self.input.0 * 3600.0_f64 / duration_seconds).into(),
+            output: (self.output.0 * 3600.0_f64 / duration_seconds).into(),
+        }
+    }
 }
