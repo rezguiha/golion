@@ -19,6 +19,9 @@ impl IntoResponse for ServerError {
             Self::Optimization(golion_optimization::Error::Solver(_)) => {
                 StatusCode::UNPROCESSABLE_ENTITY
             }
+            Self::Optimization(golion_optimization::Error::MipGap(_)) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
             Self::Contract(_) | Self::Optimization(_) => StatusCode::BAD_REQUEST,
         };
         (status, format!("{self:?}")).into_response()
