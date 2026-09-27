@@ -129,8 +129,10 @@ impl ReservePerimeter {
             let mut perimeter_output_power = 0.0.into_expression();
             perimeter_input_power += perimeter.input_power();
             perimeter_output_power += perimeter.output_power();
-            perimeter_input_power += penalization.input_power();
-            perimeter_output_power += penalization.output_power();
+            // Penalization relaxes what the assets must reserve, covering the
+            // part of the perimeter target they cannot deliver.
+            perimeter_input_power.add_mul(-1.0, penalization.input_power());
+            perimeter_output_power.add_mul(-1.0, penalization.output_power());
             let mut assets_input_power = 0.0.into_expression();
             let mut assets_output_power = 0.0.into_expression();
             for asset_series in asset_level_repartition_variables.values() {
