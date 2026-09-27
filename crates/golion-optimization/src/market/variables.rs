@@ -1,6 +1,7 @@
 use crate::support::power_to_energy;
 use golion_domain::{
-    market::commitment::EnergyCommitment, temporal::series::TimeStampedUtc,
+    market::commitment::{EnergyCommitment, PowerCommitment},
+    temporal::series::TimeStampedUtc,
     units::power::KiloWatt,
 };
 use good_lp::{Constraint, Expression, ProblemVariables, constraint, variable};
@@ -75,6 +76,16 @@ impl BidVariables {
             start_at: self.start_at,
             input: solution.eval(&self.input_energy).into(),
             output: solution.eval(&self.output_energy).into(),
+        }
+    }
+    pub(crate) fn to_power_commitment(
+        &self,
+        solution: &impl good_lp::Solution,
+    ) -> PowerCommitment {
+        PowerCommitment {
+            start_at: self.start_at,
+            input: solution.eval(&self.input_power).into(),
+            output: solution.eval(&self.output_power).into(),
         }
     }
 }

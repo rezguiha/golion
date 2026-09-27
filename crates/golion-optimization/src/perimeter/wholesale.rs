@@ -209,3 +209,5 @@ impl BrpPerimeter {
         Ok(BrpSolution { revenue: revenue_brp, markets: market_solutions, penalty })
     }
 }
+
+// endregion: Solution conversion
