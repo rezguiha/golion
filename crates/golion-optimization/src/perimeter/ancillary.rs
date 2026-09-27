@@ -8,7 +8,10 @@ use crate::{
     physical::PhysicalStore,
 };
 use golion_domain::{
-    problem::definition::ReserveDefinition, temporal::series::TimeSeries,
+    market::market_type::AncillaryMarketType,
+    problem::definition::ReserveDefinition,
+    solution::core::{MarketSolution, ReserveSolution, SolutionWithRevenue},
+    temporal::series::TimeSeries,
 };
 use good_lp::{
     Constraint, Expression, IntoAffineExpression, ProblemVariables, constraint, variable,
@@ -229,3 +232,39 @@ impl AncillaryPerimeter {
         )
     }
 }
+
+// region: Solution conversion
+
+impl ReservePerimeter {
+    pub(crate) fn to_solution(
+        &self,
+        solution: &impl good_lp::Solution,
+    ) -> crate::Result<ReserveSolution> {
+        let revenue = solution.eval(self.market.revenue());
+        let market_solution = MarketSolution {
+            market_type: AncillaryMarketType::try_from(*self.market.market_type())?,
+            solution: SolutionWithRevenue {
+                revenue,
+                series: self
+                    .market
+                    .bid_variables()
+                    .map(|bid_variables| bid_variables.to_power_commitment(solution))
+                    .collect(),
+                step: *self.market.step(),
+            },
+        };
+        let penalty = SolutionWithRevenue {
+            series: self
+                .penalization_store
+                .data()
+                .iter()
+                .map(|bid_variables| bid_variables.to_power_commitment(solution))
+                .collect(),
+            // Temporarily set revenue to 0.0 until splitting revenue and penalty expression.
+            revenue: 0.0,
+            step: *self.penalization_store.grid().step(),
+        };
+        Ok(ReserveSolution { solution: market_solution, penalty })
+    }
+}
+// endregion: Solution conversion

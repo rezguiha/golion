@@ -4,6 +4,7 @@ use crate::perimeter::wholesale::WholesalePerimeter;
 use crate::physical::PhysicalStore;
 use golion_domain::market::revenue::RevenueStore;
 use golion_domain::problem::OptimizationProblem;
+use golion_domain::solution::core::OptimizationSolution;
 use golion_domain::temporal::grid::RegularTimeGrid;
 use good_lp::solvers::highs::HighsSolution;
 use good_lp::{
@@ -120,3 +121,28 @@ pub fn solve(problem: &OptimizationProblem) -> crate::Result<(Model, HighsSoluti
 }
 
 // endregion: Model
+
+// region : Solution Conversion
+impl Model {
+    pub(crate) fn to_solution(
+        &self,
+        solution: &impl good_lp::Solution,
+    ) -> crate::Result<OptimizationSolution> {
+        Ok(OptimizationSolution {
+            wholesale: self
+                .wholesale_perimeter
+                .brp_perimeters()
+                .iter()
+                .map(|brp| brp.to_solution(solution))
+                .collect::<crate::Result<_>>()?,
+            ancillary: self
+                .ancillary_perimeter
+                .reserve_perimeters()
+                .iter()
+                .map(|reserve| reserve.to_solution(solution))
+                .collect::<crate::Result<_>>()?,
+        })
+    }
+}
+
+// endregion : Solution Conversion
