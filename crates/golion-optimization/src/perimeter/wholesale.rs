@@ -5,7 +5,12 @@ use crate::{
     perimeter::support::build_penalization_expression,
     physical::PhysicalStore,
 };
-use golion_domain::{problem::definition::BrpDefinition, temporal::series::TimeSeries};
+use golion_domain::{
+    market::{commitment::EnergyCommitment, market_type::WholesaleMarketType},
+    problem::definition::BrpDefinition,
+    solution::core::{BrpSolution, MarketSolution, SolutionWithRevenue},
+    temporal::series::TimeSeries,
+};
 use good_lp::{
     Constraint, Expression, IntoAffineExpression, ProblemVariables, constraint,
 };
@@ -164,3 +169,43 @@ impl WholesalePerimeter {
 }
 
 // endregion:  Wholesale Perimeter
+
+// region: Solution conversion
+impl BrpPerimeter {
+    pub(crate) fn to_solution(
+        &self,
+        solution: &impl good_lp::Solution,
+    ) -> crate::Result<BrpSolution> {
+        let revenue_brp = solution.eval(&self.revenue);
+        let mut market_solutions = Vec::<
+            MarketSolution<WholesaleMarketType, EnergyCommitment>,
+        >::with_capacity(self.markets.len());
+        for market in self.markets.iter() {
+            let revenue_market = solution.eval(market.revenue());
+            let market_solution = MarketSolution {
+                market_type: WholesaleMarketType::try_from(*market.market_type())?,
+                solution: SolutionWithRevenue {
+                    revenue: revenue_market,
+                    series: market
+                        .bid_variables()
+                        .map(|bid_variables| bid_variables.to_energy_commitment(solution))
+                        .collect(),
+                    step: *market.step(),
+                },
+            };
+            market_solutions.push(market_solution)
+        }
+        let penalty = SolutionWithRevenue {
+            series: self
+                .penalization_store
+                .data()
+                .iter()
+                .map(|bid_variables| bid_variables.to_energy_commitment(solution))
+                .collect(),
+            // Temporarily set revenue to 0.0 until splitting revenue and penalty expression.
+            revenue: 0.0,
+            step: *self.penalization_store.grid().step(),
+        };
+        Ok(BrpSolution { revenue: revenue_brp, markets: market_solutions, penalty })
+    }
+}

@@ -1,6 +1,7 @@
 use crate::market::{revenue::RevenueSetter, variables::BidVariables};
 use crate::model::BuildEnv;
 use golion_domain::market::bid::KiloWattIncrement;
+use golion_domain::market::market_type::MarketType;
 use golion_domain::market::specification::MarketSpecs;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
@@ -19,6 +20,7 @@ pub enum MarketError {
 }
 #[derive(Debug)]
 pub struct Market {
+    market_type: MarketType,
     bid_step: MinuteStep,
     increment: KiloWattIncrement,
     variable_store: Option<TimeSeries<BidVariables>>,
@@ -35,6 +37,14 @@ impl Market {
     /// Market Revenue Expression
     pub fn revenue(&self) -> &Expression {
         &self.revenue
+    }
+    /// Market type associated
+    pub fn market_type(&self) -> &MarketType {
+        &self.market_type
+    }
+    /// Market step in minutes
+    pub fn step(&self) -> &MinuteStep {
+        &self.bid_step
     }
     /// Builds the market bid variables, valued with the market revenues.
     pub(crate) fn try_new(
@@ -54,6 +64,7 @@ impl Market {
             // In case market is unavailable. No bid variables are
             // defined.
             return Ok(Market {
+                market_type: market_specs.market,
                 bid_step: market_specs.product.step,
                 increment: market_specs.product.increment,
                 variable_store: None,
@@ -91,6 +102,7 @@ impl Market {
             }
         }
         Ok(Market {
+            market_type: market_specs.market,
             bid_step: market_specs.product.step,
             increment: market_specs.product.increment,
             variable_store: Some(variable_store.try_into()?),

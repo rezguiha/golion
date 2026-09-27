@@ -1,3 +1,4 @@
+use crate::market::error::MarketError;
 use serde::{Deserialize, Serialize};
 // region: Market types
 
@@ -41,6 +42,32 @@ pub enum AncillaryMarketType {
 pub enum MarketType {
     WholeSale(WholesaleMarketType),
     Ancillary(AncillaryMarketType),
+}
+
+impl TryFrom<MarketType> for WholesaleMarketType {
+    type Error = crate::Error;
+
+    fn try_from(value: MarketType) -> Result<Self, Self::Error> {
+        match value {
+            MarketType::WholeSale(market) => Ok(market),
+            MarketType::Ancillary(_) => {
+                Err(MarketError::NotWholesaleMarket { market: value }.into())
+            }
+        }
+    }
+}
+
+impl TryFrom<MarketType> for AncillaryMarketType {
+    type Error = crate::Error;
+
+    fn try_from(value: MarketType) -> Result<Self, Self::Error> {
+        match value {
+            MarketType::Ancillary(market) => Ok(market),
+            MarketType::WholeSale(_) => {
+                Err(MarketError::NotAncillaryMarket { market: value }.into())
+            }
+        }
+    }
 }
 
 impl From<WholesaleMarketType> for MarketType {

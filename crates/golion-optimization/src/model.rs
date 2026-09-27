@@ -108,8 +108,14 @@ pub fn solve(problem: &OptimizationProblem) -> crate::Result<(Model, HighsSoluti
     )?;
     let mut model = Model { physical, wholesale_perimeter, ancillary_perimeter };
     let objective = model.revenue();
-    let solution =
-        vars.maximise(objective).using(highs).with_all(model.constraints()).solve()?;
+    let mut highs_problem = vars
+        .maximise(objective)
+        .using(highs)
+        .set_time_limit(60.0)
+        .set_mip_rel_gap(1e-3)
+        .unwrap();
+    highs_problem.set_verbose(true);
+    let solution = highs_problem.with_all(model.constraints()).solve()?;
     Ok((model, solution))
 }
 

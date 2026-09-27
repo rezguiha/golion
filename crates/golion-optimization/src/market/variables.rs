@@ -1,5 +1,8 @@
 use crate::support::power_to_energy;
-use golion_domain::{temporal::series::TimeStampedUtc, units::power::KiloWatt};
+use golion_domain::{
+    market::commitment::EnergyCommitment, temporal::series::TimeStampedUtc,
+    units::power::KiloWatt,
+};
 use good_lp::{Constraint, Expression, ProblemVariables, constraint, variable};
 use jiff::{SignedDuration, Timestamp};
 
@@ -58,5 +61,20 @@ impl BidVariables {
 impl TimeStampedUtc for BidVariables {
     fn start_at(&self) -> &Timestamp {
         &self.start_at
+    }
+}
+
+// Implement domain conversion after solve.
+
+impl BidVariables {
+    pub(crate) fn to_energy_commitment(
+        &self,
+        solution: &impl good_lp::Solution,
+    ) -> EnergyCommitment {
+        EnergyCommitment {
+            start_at: self.start_at,
+            input: solution.eval(&self.input_energy).into(),
+            output: solution.eval(&self.output_energy).into(),
+        }
     }
 }
