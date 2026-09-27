@@ -6,10 +6,7 @@ use golion_domain::market::revenue::RevenueStore;
 use golion_domain::problem::OptimizationProblem;
 use golion_domain::solution::core::OptimizationSolution;
 use golion_domain::temporal::grid::RegularTimeGrid;
-use good_lp::solvers::highs::HighsSolution;
-use good_lp::{
-    Constraint, Expression, IntoAffineExpression, ProblemVariables, SolverModel, highs,
-};
+use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables};
 use jiff::Timestamp;
 
 // region: Horizon
@@ -73,51 +70,43 @@ impl Model {
     }
     /// Objective of the problem: the revenue of every perimeter, penalizations
     /// included.
-    fn revenue(&self) -> Expression {
+    pub(crate) fn revenue(&self) -> Expression {
         let mut revenue = 0.0.into_expression();
         revenue += self.ancillary_perimeter.revenue();
         revenue += self.wholesale_perimeter.revenue();
         revenue
     }
     /// Empties every store of its constraints, in one iterator for the solver.
-    fn constraints(&mut self) -> impl Iterator<Item = Constraint> {
+    pub(crate) fn constraints(&mut self) -> impl Iterator<Item = Constraint> {
         self.physical
             .take_constraints()
             .chain(self.wholesale_perimeter.take_constraints())
             .chain(self.ancillary_perimeter.take_constraints())
     }
-}
-
-/// Builds the optimization model of a problem and solves it. Physical assets
-/// are built first as perimeters link their variables to them. The model is
-/// returned alongside the solution, as its variables are what reads it.
-pub fn solve(problem: &OptimizationProblem) -> crate::Result<(Model, HighsSolution)> {
-    let env = BuildEnv::new(problem.grid(), problem.revenues());
-    let mut vars = ProblemVariables::new();
-    let physical = PhysicalStore::try_new(problem.assets(), &env, &mut vars)?;
-    let wholesale_perimeter = WholesalePerimeter::try_new(
-        problem.brp_perimeters(),
-        &physical,
-        &env,
-        &mut vars,
-    )?;
-    let ancillary_perimeter = AncillaryPerimeter::try_new(
-        problem.reserve_perimeters(),
-        &physical,
-        &env,
-        &mut vars,
-    )?;
-    let mut model = Model { physical, wholesale_perimeter, ancillary_perimeter };
-    let objective = model.revenue();
-    let mut highs_problem = vars
-        .maximise(objective)
-        .using(highs)
-        .set_time_limit(60.0)
-        .set_mip_rel_gap(1e-3)
-        .unwrap();
-    highs_problem.set_verbose(true);
-    let solution = highs_problem.with_all(model.constraints()).solve()?;
-    Ok((model, solution))
+    /// Builds the optimization model of a problem, independently of the solver.
+    /// Physical assets are built first as perimeters link their variables to
+    /// them. The variables are returned alongside, for the solver to consume.
+    pub(crate) fn try_new(
+        problem: &OptimizationProblem,
+    ) -> crate::Result<(Self, ProblemVariables)> {
+        let env = BuildEnv::new(problem.grid(), problem.revenues());
+        let mut vars = ProblemVariables::new();
+        let physical = PhysicalStore::try_new(problem.assets(), &env, &mut vars)?;
+        let wholesale_perimeter = WholesalePerimeter::try_new(
+            problem.brp_perimeters(),
+            &physical,
+            &env,
+            &mut vars,
+        )?;
+        let ancillary_perimeter = AncillaryPerimeter::try_new(
+            problem.reserve_perimeters(),
+            &physical,
+            &env,
+            &mut vars,
+        )?;
+        let model = Self { physical, wholesale_perimeter, ancillary_perimeter };
+        Ok((model, vars))
+    }
 }
 
 // endregion: Model

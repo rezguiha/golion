@@ -2,6 +2,7 @@ pub mod asset;
 pub mod countries;
 pub mod error;
 pub mod market;
+pub mod optimizer;
 pub mod problem;
 pub mod solution;
 pub mod temporal;
