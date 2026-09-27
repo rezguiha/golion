@@ -35,4 +35,12 @@ pub enum MarketError {
         market: MarketType,
         country: Countries,
     },
+
+    // -- Market type conversion
+    NotWholesaleMarket {
+        market: MarketType,
+    },
+    NotAncillaryMarket {
+        market: MarketType,
+    },
 }
