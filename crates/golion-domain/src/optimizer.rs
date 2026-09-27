@@ -1,5 +1,5 @@
 use crate::problem::OptimizationProblem;
-use crate::solution::core::OptimizationSolution;
+use crate::solution::OptimizationSolution;
 
 // region: Optimizer Port
 /// Port through which an optimization problem gets solved.

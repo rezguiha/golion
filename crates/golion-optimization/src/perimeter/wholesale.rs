@@ -8,7 +8,7 @@ use crate::{
 use golion_domain::{
     market::{commitment::EnergyCommitment, market_type::WholesaleMarketType},
     problem::definition::BrpDefinition,
-    solution::core::{BrpSolution, MarketSolution, SolutionWithRevenue},
+    solution::{BrpSolution, MarketSolution, SolutionWithRevenue},
     temporal::series::TimeSeries,
 };
 use good_lp::{
@@ -20,6 +20,8 @@ use uuid::Uuid;
 // region: Balance Responsible Party Perimeter
 #[derive(Debug)]
 pub struct BrpPerimeter {
+    /// Id of the perimeter definition.
+    id: Uuid,
     /// List of wholesale markets to bid on
     markets: Vec<Market>,
     /// Perimeter level aggregated bidding and commitments variables.
@@ -78,7 +80,14 @@ impl BrpPerimeter {
         for market in markets.iter() {
             revenue += market.revenue();
         }
-        Ok(Self { markets, variable_store, constraints, penalization_store, revenue })
+        Ok(Self {
+            id: *definition.id(),
+            markets,
+            variable_store,
+            constraints,
+            penalization_store,
+            revenue,
+        })
     }
     fn build_exclusivity_and_repartition_constraints(
         vars: &mut ProblemVariables,
@@ -195,18 +204,20 @@ impl BrpPerimeter {
             };
             market_solutions.push(market_solution)
         }
-        let penalty = SolutionWithRevenue {
-            series: self
-                .penalization_store
-                .data()
-                .iter()
-                .map(|bid_variables| bid_variables.to_energy_commitment(solution))
-                .collect(),
-            // Temporarily set revenue to 0.0 until splitting revenue and penalty expression.
-            revenue: 0.0,
-            step: *self.penalization_store.grid().step(),
-        };
-        Ok(BrpSolution { revenue: revenue_brp, markets: market_solutions, penalty })
+        let shortages = self
+            .penalization_store
+            .data()
+            .iter()
+            .map(|bid_variables| bid_variables.to_energy_commitment(solution))
+            .collect();
+        Ok(BrpSolution {
+            id: self.id,
+            revenue: revenue_brp,
+            markets: market_solutions,
+            // Temporarily set penalty to 0.0 until splitting revenue and penalty expression.
+            penalty: 0.0,
+            shortages,
+        })
     }
 }
 

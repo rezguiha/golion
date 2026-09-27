@@ -4,7 +4,7 @@ use crate::perimeter::wholesale::WholesalePerimeter;
 use crate::physical::PhysicalStore;
 use golion_domain::market::revenue::RevenueStore;
 use golion_domain::problem::OptimizationProblem;
-use golion_domain::solution::core::OptimizationSolution;
+use golion_domain::solution::OptimizationSolution;
 use golion_domain::temporal::grid::RegularTimeGrid;
 use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables};
 use jiff::Timestamp;
