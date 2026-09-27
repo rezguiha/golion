@@ -2,7 +2,7 @@ use anyhow::Result;
 use golion_contract::market::choice::MarketChoice;
 use golion_contract::market::commitments::{AncillaryCommitment, WholesaleCommitment};
 use golion_contract::market::revenue::{AncillaryRevenue, WholesaleRevenue};
-use golion_contract::optimization::OptimizationInput;
+use golion_contract::optimization::input::OptimizationInput;
 use golion_contract::perimeter::{reserve::ReservePerimeter, wholesale::BrpPerimeter};
 use golion_contract::{
     asset::{

@@ -10,7 +10,7 @@ use crate::{
 use golion_domain::{
     market::market_type::AncillaryMarketType,
     problem::definition::ReserveDefinition,
-    solution::core::{MarketSolution, ReserveSolution, SolutionWithRevenue},
+    solution::{MarketSolution, ReserveSolution, SolutionWithRevenue},
     temporal::series::TimeSeries,
 };
 use good_lp::{
@@ -25,6 +25,8 @@ use uuid::Uuid;
 /// assets certified together for it.
 #[derive(Debug)]
 pub struct ReservePerimeter {
+    /// Id of the perimeter definition.
+    id: Uuid,
     /// Ancillary Service
     market: Market,
     /// Perimeter level aggregated bidding and commitments variables.
@@ -85,6 +87,7 @@ impl ReservePerimeter {
             build_penalization_expression(&penalization_store, *definition.penalty())
                 + market.revenue();
         Ok(Self {
+            id: *definition.id(),
             market,
             variable_store,
             repartition,
@@ -255,18 +258,19 @@ impl ReservePerimeter {
                 step: *self.market.step(),
             },
         };
-        let penalty = SolutionWithRevenue {
-            series: self
-                .penalization_store
-                .data()
-                .iter()
-                .map(|bid_variables| bid_variables.to_power_commitment(solution))
-                .collect(),
-            // Temporarily set revenue to 0.0 until splitting revenue and penalty expression.
-            revenue: 0.0,
-            step: *self.penalization_store.grid().step(),
-        };
-        Ok(ReserveSolution { solution: market_solution, penalty })
+        let shortages = self
+            .penalization_store
+            .data()
+            .iter()
+            .map(|bid_variables| bid_variables.to_power_commitment(solution))
+            .collect();
+        Ok(ReserveSolution {
+            id: self.id,
+            solution: market_solution,
+            // Temporarily set penalty to 0.0 until splitting revenue and penalty expression.
+            penalty: 0.0,
+            shortages,
+        })
     }
 }
 // endregion: Solution conversion

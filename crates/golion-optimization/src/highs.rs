@@ -1,7 +1,7 @@
 use crate::model::Model;
 use golion_domain::optimizer::Optimizer;
 use golion_domain::problem::OptimizationProblem;
-use golion_domain::solution::core::OptimizationSolution;
+use golion_domain::solution::OptimizationSolution;
 use good_lp::{SolverModel, highs};
 
 // region: HiGHS Optimizer
