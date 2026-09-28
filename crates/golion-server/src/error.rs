@@ -8,6 +8,8 @@ pub enum ServerError {
     Contract(golion_contract::Error),
     #[from]
     Optimization(golion_optimization::Error),
+    #[from]
+    SpawnedTask(tokio::task::JoinError),
 }
 
 impl IntoResponse for ServerError {
@@ -19,9 +21,8 @@ impl IntoResponse for ServerError {
             Self::Optimization(golion_optimization::Error::Solver(_)) => {
                 StatusCode::UNPROCESSABLE_ENTITY
             }
-            Self::Optimization(golion_optimization::Error::MipGap(_)) => {
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
+            Self::Optimization(golion_optimization::Error::MipGap(_))
+            | Self::SpawnedTask(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Contract(_) | Self::Optimization(_) => StatusCode::BAD_REQUEST,
         };
         (status, format!("{self:?}")).into_response()
