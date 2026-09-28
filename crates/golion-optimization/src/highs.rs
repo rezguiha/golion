@@ -30,7 +30,7 @@ impl Optimizer for HighsOptimizer {
         problem: &OptimizationProblem,
     ) -> crate::Result<OptimizationSolution> {
         let (mut model, vars) = Model::try_new(problem)?;
-        let objective = model.revenue();
+        let objective = model.net_revenue();
         let mut highs_problem = vars
             .maximise(objective)
             .using(highs)
