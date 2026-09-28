@@ -4,12 +4,17 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-derive_more = { workspace = true }
-garde = { version = "0.23", features = ["derive"] }
-golion-domain = { workspace = true }
-jiff = { workspace = true, features = ["serde"] }
+# -- Serialization
 serde = { workspace = true }
+# -- Validation
+garde = { version = "0.23", features = ["derive"] }
+# -- Workspace
+golion-domain = { workspace = true }
+# -- Custom Errors
 thiserror = "2.0.18"
+# -- Others
+derive_more = { workspace = true }
+jiff = { workspace = true, features = ["serde"] }
 typed-builder = "0.23.2"
 uuid = { workspace = true}
 

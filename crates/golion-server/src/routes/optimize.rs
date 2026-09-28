@@ -7,7 +7,6 @@ use golion_domain::optimizer::Optimizer;
 use golion_domain::problem::OptimizationProblem;
 use golion_optimization::HighsOptimizer;
 use tokio::task;
-
 pub fn router() -> Router {
     Router::new().route("/optimize", post(handler))
 }
