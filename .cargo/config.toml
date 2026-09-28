@@ -4,4 +4,4 @@
 [env]
 
 # Scope down tracing, to filter out external lib tracing.
-RUST_LOG="golion_server=debug,golion_contract=debug,golion_contract=debug,golion_optimization=debug"
+RUST_LOG="golion_server=debug,golion_contract=debug,golion_domain=debug,golion_optimization=debug"
