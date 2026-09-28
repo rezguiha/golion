@@ -39,8 +39,10 @@ pub struct ReservePerimeter {
     /// Reserve level penalization in order to avoid violations.
     /// This represents the imbalance.
     penalization_store: TimeSeries<BidVariables>,
-    /// Reserve level revenue expression including penalization.
+    /// Reserve level revenue expression.
     revenue: Expression,
+    /// Reserve level penalty expression.
+    penalty: Expression,
 }
 
 impl ReservePerimeter {
@@ -82,10 +84,11 @@ impl ReservePerimeter {
             &penalization_store,
             &repartition,
         )?;
-        // Build revenue expression
-        let revenue =
-            build_penalization_expression(&penalization_store, *definition.penalty())
-                + market.revenue();
+        // Build revenue and penalty expressions
+        let revenue = 0.0.into_expression() + market.revenue();
+        let penalty =
+            build_penalization_expression(&penalization_store, *definition.penalty());
+
         Ok(Self {
             id: *definition.id(),
             market,
@@ -94,6 +97,7 @@ impl ReservePerimeter {
             constraints,
             penalization_store,
             revenue,
+            penalty,
         })
     }
     /// Creates reserve aggregated bidding and commitments
@@ -161,6 +165,7 @@ pub struct AncillaryPerimeter {
     reserve_perimeters: Vec<ReservePerimeter>,
     constraints: Vec<Constraint>,
     revenue: Expression,
+    penalty: Expression,
 }
 
 impl AncillaryPerimeter {
@@ -183,10 +188,13 @@ impl AncillaryPerimeter {
         )?;
         // Compute Overall Revnue.
         let mut revenue = 0.0.into_expression();
+        let mut penalty = 0.0.into_expression();
         for reserve in reserve_perimeters.iter() {
             revenue += &reserve.revenue;
+            penalty += &reserve.penalty
         }
-        Ok(Self { reserve_perimeters, constraints, revenue })
+
+        Ok(Self { reserve_perimeters, constraints, revenue, penalty })
     }
     /// Links each asset's physical ancillary variables to the sum of its
     /// repartition over every reserve perimeter it belongs to.
@@ -226,6 +234,9 @@ impl AncillaryPerimeter {
     }
     pub(crate) fn revenue(&self) -> &Expression {
         &self.revenue
+    }
+    pub(crate) fn penalty(&self) -> &Expression {
+        &self.penalty
     }
     /// Moves the ancillary constraints and those of every reserve perimeter
     /// out, leaving them empty.
@@ -267,8 +278,7 @@ impl ReservePerimeter {
         Ok(ReserveSolution {
             id: self.id,
             solution: market_solution,
-            // Temporarily set penalty to 0.0 until splitting revenue and penalty expression.
-            penalty: 0.0,
+            penalty: solution.eval(&self.penalty),
             shortages,
         })
     }

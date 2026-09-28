@@ -68,13 +68,15 @@ impl Model {
     pub fn ancillary_perimeter(&self) -> &AncillaryPerimeter {
         &self.ancillary_perimeter
     }
-    /// Objective of the problem: the revenue of every perimeter, penalizations
-    /// included.
-    pub(crate) fn revenue(&self) -> Expression {
-        let mut revenue = 0.0.into_expression();
-        revenue += self.ancillary_perimeter.revenue();
-        revenue += self.wholesale_perimeter.revenue();
-        revenue
+    /// Objective of the problem: the net revenue (revenue + penalty)
+    /// of every perimeter
+    pub(crate) fn net_revenue(&self) -> Expression {
+        let mut net_revenue = 0.0.into_expression();
+        net_revenue += self.ancillary_perimeter.revenue();
+        net_revenue += self.ancillary_perimeter.penalty();
+        net_revenue += self.wholesale_perimeter.revenue();
+        net_revenue += self.wholesale_perimeter.penalty();
+        net_revenue
     }
     /// Empties every store of its constraints, in one iterator for the solver.
     pub(crate) fn constraints(&mut self) -> impl Iterator<Item = Constraint> {

@@ -33,6 +33,8 @@ pub struct BrpPerimeter {
     penalization_store: TimeSeries<BidVariables>,
     /// BRP level revenue expression including penalization
     revenue: Expression,
+    /// BRP level penalization expression
+    penalty: Expression,
 }
 
 impl BrpPerimeter {
@@ -72,11 +74,11 @@ impl BrpPerimeter {
             horizon.timestamps(),
             physical_store,
         )?;
-
-        // Initialize revenue expression with penalization
-        let mut revenue =
+        // Compute penalty expression
+        let penalty =
             build_penalization_expression(&penalization_store, *definition.penalty());
-        // Add market revenues.
+        // Compute revenue expression
+        let mut revenue = 0.0.into_expression();
         for market in markets.iter() {
             revenue += market.revenue();
         }
@@ -87,6 +89,7 @@ impl BrpPerimeter {
             constraints,
             penalization_store,
             revenue,
+            penalty,
         })
     }
     fn build_exclusivity_and_repartition_constraints(
@@ -143,6 +146,7 @@ impl BrpPerimeter {
 pub struct WholesalePerimeter {
     brp_perimeters: Vec<BrpPerimeter>,
     revenue: Expression,
+    penalty: Expression,
 }
 
 impl WholesalePerimeter {
@@ -158,18 +162,23 @@ impl WholesalePerimeter {
                 BrpPerimeter::try_new(definition, physical_store, env, vars)
             })
             .collect::<crate::Result<Vec<BrpPerimeter>>>()?;
-        // Compute overall revenue.
+        // Compute overall revenue and penalty.
         let mut revenue = 0.0.into_expression();
+        let mut penalty = 0.0.into_expression();
         for brp in brp_perimeters.iter() {
             revenue += &brp.revenue;
+            penalty += &brp.penalty;
         }
-        Ok(Self { brp_perimeters, revenue })
+        Ok(Self { brp_perimeters, revenue, penalty })
     }
     pub fn brp_perimeters(&self) -> &[BrpPerimeter] {
         &self.brp_perimeters
     }
     pub(crate) fn revenue(&self) -> &Expression {
         &self.revenue
+    }
+    pub(crate) fn penalty(&self) -> &Expression {
+        &self.penalty
     }
     /// Moves every perimeter's constraints out, leaving them empty.
     pub(crate) fn take_constraints(&mut self) -> impl Iterator<Item = Constraint> {
@@ -214,8 +223,7 @@ impl BrpPerimeter {
             id: self.id,
             revenue: revenue_brp,
             markets: market_solutions,
-            // Temporarily set penalty to 0.0 until splitting revenue and penalty expression.
-            penalty: 0.0,
+            penalty: solution.eval(&self.penalty),
             shortages,
         })
     }
