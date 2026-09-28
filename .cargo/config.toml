@@ -1,0 +1,7 @@
+# Cargo config file.
+# See: https://doc.rust-lang.org/cargo/reference/config.html
+
+[env]
+
+# Scope down tracing, to filter out external lib tracing.
+RUST_LOG="golion_server=debug,golion_contract=debug,golion_contract=debug,golion_optimization=debug"

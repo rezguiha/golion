@@ -4,11 +4,14 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-derive_more = { workspace = true }
-golion-domain = { workspace = true }
+# -- Optimization Modeler
 good_lp = { version = "1.15.1", features = ["highs"], default-features = false }
+# -- Workspace
+golion-domain = { workspace = true }
+# Others
+derive_more = { workspace = true }
 jiff = { workspace = true }
-uuid = "1.23.1"
+uuid = { workspace = true }
 itertools = "0.15.0"
 
 [lints]
