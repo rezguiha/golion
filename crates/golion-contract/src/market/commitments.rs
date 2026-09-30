@@ -42,33 +42,14 @@ impl From<&AncillaryCommitment> for PowerCommitment {
     fn from(value: &AncillaryCommitment) -> Self {
         Self {
             start_at: value.start_at,
-            input: value.downward_power.into(),
-            output: value.upward_power.into(),
+            input_power: value.downward_power.into(),
+            output_power: value.upward_power.into(),
         }
     }
 }
 impl From<&WholesaleCommitment> for EnergyCommitment {
     fn from(value: &WholesaleCommitment) -> Self {
-        Self {
-            start_at: value.start_at,
-            input: value.net_position.max(0.0).into(),
-            output: value.net_position.min(0.0).abs().into(),
-        }
+        Self { start_at: value.start_at, energy_net_position: value.net_position.into() }
     }
 }
-impl From<PowerCommitment> for AncillaryCommitment {
-    fn from(value: PowerCommitment) -> Self {
-        Self {
-            start_at: value.start_at,
-            upward_power: value.output.0,
-            downward_power: value.input.0,
-        }
-    }
-}
-impl From<EnergyCommitment> for WholesaleCommitment {
-    fn from(value: EnergyCommitment) -> Self {
-        Self { start_at: value.start_at, net_position: value.input.0 - value.output.0 }
-    }
-}
-
 // endregion: Domain Conversion

@@ -1,6 +1,6 @@
 use crate::{
     market::{
-        commitment::{EnergyCommitment, PowerCommitment},
+        bid::{AncillaryBid, WholesaleBid},
         market_type::{AncillaryMarketType, WholesaleMarketType},
     },
     temporal::{series::TimeStampedUtc, step::MinuteStep},
@@ -23,17 +23,17 @@ pub struct MarketSolution<T, D: TimeStampedUtc> {
 pub struct BrpSolution {
     pub id: Uuid,
     pub revenue: f64,
-    pub markets: Vec<MarketSolution<WholesaleMarketType, EnergyCommitment>>,
+    pub markets: Vec<MarketSolution<WholesaleMarketType, WholesaleBid>>,
     pub penalty: f64,
-    pub shortages: Vec<EnergyCommitment>,
+    pub shortages: Vec<WholesaleBid>,
 }
 
 #[derive(Debug)]
 pub struct ReserveSolution {
     pub id: Uuid,
-    pub solution: MarketSolution<AncillaryMarketType, PowerCommitment>,
+    pub solution: MarketSolution<AncillaryMarketType, AncillaryBid>,
     pub penalty: f64,
-    pub shortages: Vec<PowerCommitment>,
+    pub shortages: Vec<AncillaryBid>,
 }
 
 #[derive(Debug)]

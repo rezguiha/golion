@@ -6,7 +6,7 @@ use crate::{
     physical::PhysicalStore,
 };
 use golion_domain::{
-    market::{commitment::EnergyCommitment, market_type::WholesaleMarketType},
+    market::{bid::WholesaleBid, market_type::WholesaleMarketType},
     problem::definition::BrpDefinition,
     solution::{BrpSolution, MarketSolution, SolutionWithRevenue},
     temporal::series::TimeSeries,
@@ -195,9 +195,10 @@ impl BrpPerimeter {
         solution: &impl good_lp::Solution,
     ) -> crate::Result<BrpSolution> {
         let revenue_brp = solution.eval(&self.revenue);
-        let mut market_solutions = Vec::<
-            MarketSolution<WholesaleMarketType, EnergyCommitment>,
-        >::with_capacity(self.markets.len());
+        let mut market_solutions =
+            Vec::<MarketSolution<WholesaleMarketType, WholesaleBid>>::with_capacity(
+                self.markets.len(),
+            );
         for market in self.markets.iter() {
             let revenue_market = solution.eval(market.revenue());
             let market_solution = MarketSolution {
@@ -206,7 +207,7 @@ impl BrpPerimeter {
                     revenue: revenue_market,
                     series: market
                         .bid_variables()
-                        .map(|bid_variables| bid_variables.to_energy_commitment(solution))
+                        .map(|bid_variables| bid_variables.to_wholesale_bid(solution))
                         .collect(),
                     step: *market.step(),
                 },
@@ -217,7 +218,7 @@ impl BrpPerimeter {
             .penalization_store
             .data()
             .iter()
-            .map(|bid_variables| bid_variables.to_energy_commitment(solution))
+            .map(|bid_variables| bid_variables.to_wholesale_bid(solution))
             .collect();
         Ok(BrpSolution {
             id: self.id,
