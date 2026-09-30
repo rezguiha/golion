@@ -1,6 +1,5 @@
 use super::support::{
-    aggregate_bidding_and_commitments, build_penalization_expression,
-    build_penalization_variables,
+    aggregate_market_bids, build_penalization_expression, build_penalization_variables,
 };
 use crate::{
     market::{core::Market, variables::BidVariables},
@@ -8,7 +7,7 @@ use crate::{
     physical::PhysicalStore,
 };
 use golion_domain::{
-    market::market_type::AncillaryMarketType,
+    market::{commitment::PowerCommitment, market_type::AncillaryMarketType},
     problem::definition::ReserveDefinition,
     solution::{MarketSolution, ReserveSolution, SolutionWithRevenue},
     temporal::series::TimeSeries,
@@ -29,8 +28,8 @@ pub struct ReservePerimeter {
     id: Uuid,
     /// Ancillary Service
     market: Market,
-    /// Perimeter level aggregated bidding and commitments variables.
-    variable_store: TimeSeries<BidVariables>,
+    /// Perimeter level aggregated bid variables of its market.
+    bid_store: TimeSeries<BidVariables>,
     /// Repartition variables/expressions per asset of ancillary commitments
     /// and bidding over each timestamp in time index
     repartition: HashMap<Uuid, TimeSeries<BidVariables>>,
@@ -55,10 +54,9 @@ impl ReservePerimeter {
     ) -> crate::Result<Self> {
         let horizon = env.horizon();
         let market = Market::try_new(definition.market(), env, vars)?;
-        let variable_store = aggregate_bidding_and_commitments(
+        let bid_store = aggregate_market_bids(
             horizon.timestamps(),
             horizon.grid(),
-            definition.commitments().data(),
             std::slice::from_ref(&market),
         )?;
         let repartition = definition
@@ -80,7 +78,8 @@ impl ReservePerimeter {
         Self::build_repartition_constraints(
             horizon.timestamps(),
             &mut constraints,
-            &variable_store,
+            &bid_store,
+            definition.commitments(),
             &penalization_store,
             &repartition,
         )?;
@@ -92,7 +91,7 @@ impl ReservePerimeter {
         Ok(Self {
             id: *definition.id(),
             market,
-            variable_store,
+            bid_store,
             repartition,
             constraints,
             penalization_store,
@@ -120,22 +119,26 @@ impl ReservePerimeter {
             .collect::<Vec<_>>()
             .try_into()?)
     }
-    /// Set perimeter aggregation being equal to sum of asset
-    /// repartition of that market
+    /// Sets the perimeter target (commitments and new bids, minus the part
+    /// its assets cannot deliver) equal to the sum of the asset repartition.
     fn build_repartition_constraints(
         time_index: &[Timestamp],
         constraints: &mut Vec<Constraint>,
-        perimeter_aggregation: &TimeSeries<BidVariables>,
+        bid_store: &TimeSeries<BidVariables>,
+        commitments: &TimeSeries<PowerCommitment>,
         penalization_store: &TimeSeries<BidVariables>,
         asset_level_repartition_variables: &HashMap<Uuid, TimeSeries<BidVariables>>,
     ) -> crate::Result<()> {
         for dt in time_index.iter() {
-            let perimeter = perimeter_aggregation.at(dt)?;
+            let bids = bid_store.at(dt)?;
+            let commitment = commitments.at(dt)?;
             let penalization = penalization_store.at(dt)?;
-            let mut perimeter_input_power = 0.0.into_expression();
-            let mut perimeter_output_power = 0.0.into_expression();
-            perimeter_input_power += perimeter.input_power();
-            perimeter_output_power += perimeter.output_power();
+            // Reserves are held both ways: commitments and new bids add up per
+            // direction and are never netted.
+            let mut perimeter_input_power = commitment.input_power.0.into_expression();
+            let mut perimeter_output_power = commitment.output_power.0.into_expression();
+            perimeter_input_power += bids.input_power();
+            perimeter_output_power += bids.output_power();
             // Penalization relaxes what the assets must reserve, covering the
             // part of the perimeter target they cannot deliver.
             perimeter_input_power.add_mul(-1.0, penalization.input_power());

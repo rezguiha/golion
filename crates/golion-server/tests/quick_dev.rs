@@ -58,15 +58,33 @@ async fn test_optimize_bess() -> Result<()> {
                 .build()
         })
         .collect();
-    let wholesale_commitments = vec![MarketSeries {
-        market: WholesaleMarketType::IntradayAuction1,
-        values: timestamps
-            .iter()
-            .map(|t| {
-                WholesaleCommitment::builder().start_at(*t).net_position(0.0).build()
-            })
-            .collect(),
-    }];
+    let wholesale_commitments = vec![
+        MarketSeries {
+            market: WholesaleMarketType::IntradayAuction1,
+            values: timestamps
+                .iter()
+                .map(|t| {
+                    WholesaleCommitment::builder()
+                        .start_at(*t)
+                        .net_position(1000.0)
+                        .build()
+                })
+                .collect(),
+        },
+        MarketSeries {
+            market: WholesaleMarketType::SpotDayAhead,
+            values: timestamps
+                .iter()
+                .map(|t| {
+                    WholesaleCommitment::builder()
+                        .start_at(*t)
+                        .net_position(-2500.0)
+                        .build()
+                })
+                .collect(),
+        },
+    ];
+
     let ancillary_revenues = vec![MarketSeries {
         market: AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
         values: timestamps
