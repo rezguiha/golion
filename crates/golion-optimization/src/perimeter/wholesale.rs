@@ -57,7 +57,7 @@ impl BrpPerimeter {
         let variable_store = aggregate_bidding_and_commitments(
             horizon.timestamps(),
             horizon.grid(),
-            definition.commitments(),
+            definition.commitments().data(),
             &markets,
         )?;
         // Create penalization variables

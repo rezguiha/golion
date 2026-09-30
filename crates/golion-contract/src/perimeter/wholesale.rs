@@ -1,6 +1,6 @@
 use golion_domain::market::market_type::WholesaleMarketType;
 use golion_domain::problem::definition::BrpDefinition;
-use golion_domain::temporal::step::MinuteStep;
+use golion_domain::temporal::grid::RegularTimeGrid;
 use golion_domain::{countries::Countries, market::commitment::EnergyCommitment};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -33,23 +33,18 @@ impl BrpPerimeter {
     pub fn try_into_definition(
         self,
         country: &Countries,
-        step: &MinuteStep,
+        grid: &RegularTimeGrid,
     ) -> crate::Result<BrpDefinition> {
         let markets = self
             .markets
             .iter()
             .map(|market_choice| market_choice.try_into_market_specs(country))
             .collect::<crate::Result<_>>()?;
-        let commitments =
-            self.commitments
-                .iter()
-                .flat_map(|series| {
-                    series.values.iter().map(EnergyCommitment::from).map(
-                        |energy_commitment| energy_commitment.to_power_commitment(step),
-                    )
-                })
-                .collect();
-        Ok(BrpDefinition::new(self.id, markets, self.composition, commitments))
+        let commitments = self
+            .commitments
+            .iter()
+            .flat_map(|series| series.values.iter().map(EnergyCommitment::from));
+        Ok(BrpDefinition::try_new(self.id, markets, self.composition, commitments, grid)?)
     }
 }
 // endregion: Domain Conversion

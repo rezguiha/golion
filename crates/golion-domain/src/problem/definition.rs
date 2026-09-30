@@ -1,8 +1,10 @@
 /// Definitions of the elements taking part in an optimization problem.
 /// They describe what to optimize, independently of how it is modelled.
 use crate::asset::bess::specification::BessSpecifications;
-use crate::market::commitment::PowerCommitment;
+use crate::market::commitment::{EnergyCommitment, PowerCommitment};
 use crate::market::specification::MarketSpecs;
+use crate::temporal::grid::RegularTimeGrid;
+use crate::temporal::series::TimeSeries;
 use crate::units::power::{KiloWatt, KiloWattHour};
 use uuid::Uuid;
 // Fixed penalty for now set here. May change if having it as an input of
@@ -42,32 +44,49 @@ pub struct BrpDefinition {
     /// Wholesale markets the perimeter bids on.
     markets: Vec<MarketSpecs>,
     /// Commitments already taken on all wholesale markets.
-    commitments: Vec<PowerCommitment>,
+    commitments: TimeSeries<PowerCommitment>,
     /// Penalty for violations in euro per kW.
     penalty: f64,
 }
 impl BrpDefinition {
-    pub fn new(
+    pub fn try_new(
         id: Uuid,
         markets: Vec<MarketSpecs>,
         composition: Vec<Uuid>,
-        commitments: Vec<PowerCommitment>,
-    ) -> Self {
-        Self {
+        commitments: impl Iterator<Item = EnergyCommitment>,
+        grid: &RegularTimeGrid,
+    ) -> crate::Result<Self> {
+        // One net energy per grid slot, zero where nothing is committed.
+        let mut net_positions: Vec<f64> = grid.iter().map(|_| 0.0).collect();
+        for commitment in commitments {
+            let index = grid.index_of(&commitment.start_at)?;
+            net_positions[index] += commitment.energy_net_position.0;
+        }
+        // Split each slot into input/output power only once it is netted.
+        let commitments: Vec<_> = grid
+            .iter()
+            .zip(net_positions)
+            .map(|(start_at, net_position)| {
+                EnergyCommitment { start_at, energy_net_position: net_position.into() }
+                    .to_power_commitment(grid.step())
+            })
+            .collect();
+        Ok(Self {
             id,
             markets,
             composition,
-            commitments,
+            commitments: commitments.try_into()?,
             penalty: WHOLESALE_PENALTY_EURO_PER_KW,
-        }
+        })
     }
+
     pub fn id(&self) -> &Uuid {
         &self.id
     }
     pub fn markets(&self) -> &[MarketSpecs] {
         &self.markets
     }
-    pub fn commitments(&self) -> &[PowerCommitment] {
+    pub fn commitments(&self) -> &TimeSeries<PowerCommitment> {
         &self.commitments
     }
     pub fn composition(&self) -> &[Uuid] {
@@ -77,6 +96,7 @@ impl BrpDefinition {
         &self.penalty
     }
 }
+
 /// Reserve perimeter: assets certified together for one ancillary service.
 #[derive(Debug)]
 pub struct ReserveDefinition {
@@ -86,24 +106,24 @@ pub struct ReserveDefinition {
     /// Ids of the assets composing the perimeter.
     composition: Vec<Uuid>,
     /// Commitments already taken on the ancillary service.
-    commitments: Vec<PowerCommitment>,
+    commitments: TimeSeries<PowerCommitment>,
     /// Penalty for violations in euro per kW.
     penalty: f64,
 }
 impl ReserveDefinition {
-    pub fn new(
+    pub fn try_new(
         id: Uuid,
         market: MarketSpecs,
         composition: Vec<Uuid>,
         commitments: Vec<PowerCommitment>,
-    ) -> Self {
-        Self {
+    ) -> crate::Result<Self> {
+        Ok(Self {
             id,
             market,
             composition,
-            commitments,
+            commitments: commitments.try_into()?,
             penalty: ANCILLARY_PENALTY_EURO_PER_KW,
-        }
+        })
     }
     pub fn id(&self) -> &Uuid {
         &self.id
@@ -111,7 +131,7 @@ impl ReserveDefinition {
     pub fn market(&self) -> &MarketSpecs {
         &self.market
     }
-    pub fn commitments(&self) -> &[PowerCommitment] {
+    pub fn commitments(&self) -> &TimeSeries<PowerCommitment> {
         &self.commitments
     }
     pub fn composition(&self) -> &[Uuid] {

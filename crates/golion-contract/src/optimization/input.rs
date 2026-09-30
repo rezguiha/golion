@@ -86,7 +86,7 @@ impl TryFrom<OptimizationInput> for OptimizationProblem {
             .collect::<crate::Result<HashMap<_, _>>>()?;
         let brp_perimeters = brp_perimeters
             .into_iter()
-            .map(|perimeter| perimeter.try_into_definition(&country, grid.step()))
+            .map(|perimeter| perimeter.try_into_definition(&country, &grid))
             .collect::<crate::Result<_>>()?;
         let reserve_perimeters = reserve_perimeters
             .into_iter()

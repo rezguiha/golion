@@ -130,6 +130,7 @@ mod tests {
     use crate::asset::bess::specification::BessSpecifications;
     use crate::countries::Countries;
     use crate::market::bid::ProductSpecifications;
+    use crate::market::commitment::EnergyCommitment;
     use crate::market::error::MarketError;
     use crate::market::market_type::{MarketType, WholesaleMarketType};
     use crate::market::revenue::RevenueStore;
@@ -190,7 +191,14 @@ mod tests {
         }
     }
     fn brp(composition: Vec<Uuid>, markets: Vec<MarketSpecs>) -> BrpDefinition {
-        BrpDefinition::new(Uuid::new_v4(), markets, composition, vec![])
+        BrpDefinition::try_new(
+            Uuid::new_v4(),
+            markets,
+            composition,
+            Vec::<EnergyCommitment>::new().into_iter(),
+            &grid(),
+        )
+        .unwrap()
     }
 
     #[test]
