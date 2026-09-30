@@ -1,4 +1,4 @@
-use super::support::{aggregate_bidding_and_commitments, build_penalization_variables};
+use super::support::{aggregate_market_bids, build_penalization_variables};
 use crate::{
     market::{core::Market, variables::BidVariables},
     model::BuildEnv,
@@ -6,7 +6,9 @@ use crate::{
     physical::PhysicalStore,
 };
 use golion_domain::{
-    market::{bid::WholesaleBid, market_type::WholesaleMarketType},
+    market::{
+        bid::WholesaleBid, commitment::PowerCommitment, market_type::WholesaleMarketType,
+    },
     problem::definition::BrpDefinition,
     solution::{BrpSolution, MarketSolution, SolutionWithRevenue},
     temporal::series::TimeSeries,
@@ -14,7 +16,6 @@ use golion_domain::{
 use good_lp::{
     Constraint, Expression, IntoAffineExpression, ProblemVariables, constraint,
 };
-use jiff::Timestamp;
 use uuid::Uuid;
 
 // region: Balance Responsible Party Perimeter
@@ -24,8 +25,9 @@ pub struct BrpPerimeter {
     id: Uuid,
     /// List of wholesale markets to bid on
     markets: Vec<Market>,
-    /// Perimeter level aggregated bidding and commitments variables.
-    variable_store: TimeSeries<BidVariables>,
+    /// Perimeter level aggregated bid variables of its markets. Commitments
+    /// are kept out, as they are sunk constants and never decided upon.
+    bid_store: TimeSeries<BidVariables>,
     /// Perimeter constraints.
     constraints: Vec<Constraint>,
     /// Perimeter level penalization in order to avoid violations.
@@ -47,19 +49,15 @@ impl BrpPerimeter {
         vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
         let horizon = env.horizon();
-        // Create aggregate expressions of bids and commitments at brp perimeter
-        // level.
+        // Create the markets of the perimeter.
         let markets: Vec<Market> = definition
             .markets()
             .iter()
             .map(|market_specs| Market::try_new(market_specs, env, vars))
             .collect::<crate::Result<_>>()?;
-        let variable_store = aggregate_bidding_and_commitments(
-            horizon.timestamps(),
-            horizon.grid(),
-            definition.commitments().data(),
-            &markets,
-        )?;
+        // Aggregate market bids at brp perimeter level.
+        let bid_store =
+            aggregate_market_bids(horizon.timestamps(), horizon.grid(), &markets)?;
         // Create penalization variables
         let penalization_store = build_penalization_variables(horizon, vars)?;
         // Add Repartition Constraints
@@ -68,10 +66,10 @@ impl BrpPerimeter {
         Self::build_exclusivity_and_repartition_constraints(
             vars,
             &mut constraints,
-            &variable_store,
+            &bid_store,
+            definition.commitments(),
             &penalization_store,
             definition.composition(),
-            horizon.timestamps(),
             physical_store,
         )?;
         // Compute penalty expression
@@ -85,40 +83,44 @@ impl BrpPerimeter {
         Ok(Self {
             id: *definition.id(),
             markets,
-            variable_store,
+            bid_store,
             constraints,
             penalization_store,
             revenue,
             penalty,
         })
     }
+    /// Makes new bids one-sided per slot and links the perimeter net position
+    /// (net commitment, new bids and imbalance) to its assets.
     fn build_exclusivity_and_repartition_constraints(
         vars: &mut ProblemVariables,
         constraints: &mut Vec<Constraint>,
-        variable_store: &TimeSeries<BidVariables>,
+        bid_store: &TimeSeries<BidVariables>,
+        commitments: &TimeSeries<PowerCommitment>,
         penalization_store: &TimeSeries<BidVariables>,
         composition: &[Uuid],
-        time_index: &[Timestamp],
         physical_store: &PhysicalStore,
     ) -> crate::Result<()> {
         let (sum_rated_input_power, sum_rated_output_power) =
             physical_store.maximum_physical_limits(composition)?;
-        for dt in time_index.iter() {
-            let perimeter_variables = variable_store.at(dt)?;
-            // Set perimeter exclusivity constraints
-            constraints.extend(perimeter_variables.exclusivity_constraint(
-                vars,
-                sum_rated_input_power,
-                sum_rated_output_power,
-            ));
+        // Largest useful trade on either side in one slot: cancelling the
+        // committed position and swinging to the opposite physical limit.
+        let big_m = sum_rated_input_power + sum_rated_output_power;
+        // Commitments are netted per slot over the whole grid, so they
+        // provide the time index.
+        for commitment in commitments.data() {
+            let dt = &commitment.start_at;
+            let bid_variables = bid_store.at(dt)?;
+            // Exclusivity binds new bids only, so the perimeter can't buy and
+            // sell the same slot for phantom earnings, while it can still
+            // unwind its committed position.
+            constraints.extend(bid_variables.exclusivity_constraint(vars, big_m, big_m));
             let penalization_variables = penalization_store.at(dt)?;
-            // We defined perimeter net as a 0 expression and add to it input power
-            // and subtract output power to avoid moving values behind them.
-            // This enables us to avoid that.
-
-            let mut perimeter_net = 0.0.into_expression();
-            perimeter_net.add_mul(1.0, perimeter_variables.input_power());
-            perimeter_net.add_mul(-1.0, perimeter_variables.output_power());
+            // Perimeter net position: net commitment, new bids and imbalance.
+            let mut perimeter_net =
+                (commitment.input_power.0 - commitment.output_power.0).into_expression();
+            perimeter_net.add_mul(1.0, bid_variables.input_power());
+            perimeter_net.add_mul(-1.0, bid_variables.output_power());
             perimeter_net.add_mul(1.0, penalization_variables.input_power());
             perimeter_net.add_mul(-1.0, penalization_variables.output_power());
             let mut sum_asset_net = 0.0.into_expression();

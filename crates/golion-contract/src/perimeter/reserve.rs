@@ -4,6 +4,7 @@ use golion_domain::countries::Countries;
 use golion_domain::market::commitment::PowerCommitment;
 use golion_domain::market::market_type::AncillaryMarketType;
 use golion_domain::problem::definition::ReserveDefinition;
+use golion_domain::temporal::grid::RegularTimeGrid;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 use uuid::Uuid;
@@ -32,12 +33,14 @@ impl ReservePerimeter {
     pub fn try_into_definition(
         self,
         country: &Countries,
+        grid: &RegularTimeGrid,
     ) -> crate::Result<ReserveDefinition> {
         Ok(ReserveDefinition::try_new(
             self.id,
             self.market.try_into_market_specs(country)?,
             self.composition,
-            self.commitments.iter().map(PowerCommitment::from).collect(),
+            self.commitments.iter().map(PowerCommitment::from),
+            grid,
         )?)
     }
 }

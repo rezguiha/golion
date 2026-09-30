@@ -115,13 +115,29 @@ impl ReserveDefinition {
         id: Uuid,
         market: MarketSpecs,
         composition: Vec<Uuid>,
-        commitments: Vec<PowerCommitment>,
+        commitments: impl Iterator<Item = PowerCommitment>,
+        grid: &RegularTimeGrid,
     ) -> crate::Result<Self> {
+        // One reserve per grid slot, zero where nothing is committed. Upward
+        // and downward reserves are summed apart: both are held, never netted.
+        let mut reserves: Vec<PowerCommitment> = grid
+            .iter()
+            .map(|start_at| PowerCommitment {
+                start_at,
+                input_power: KiloWatt(0.0),
+                output_power: KiloWatt(0.0),
+            })
+            .collect();
+        for commitment in commitments {
+            let reserve = &mut reserves[grid.index_of(&commitment.start_at)?];
+            reserve.input_power += commitment.input_power;
+            reserve.output_power += commitment.output_power;
+        }
         Ok(Self {
             id,
             market,
             composition,
-            commitments: commitments.try_into()?,
+            commitments: reserves.try_into()?,
             penalty: ANCILLARY_PENALTY_EURO_PER_KW,
         })
     }

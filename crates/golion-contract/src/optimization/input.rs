@@ -90,7 +90,7 @@ impl TryFrom<OptimizationInput> for OptimizationProblem {
             .collect::<crate::Result<_>>()?;
         let reserve_perimeters = reserve_perimeters
             .into_iter()
-            .map(|perimeter| perimeter.try_into_definition(&country))
+            .map(|perimeter| perimeter.try_into_definition(&country, &grid))
             .collect::<crate::Result<_>>()?;
         Ok(OptimizationProblem::try_new(
             grid,
