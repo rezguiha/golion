@@ -264,7 +264,7 @@ impl ReservePerimeter {
                 series: self
                     .market
                     .bid_variables()
-                    .map(|bid_variables| bid_variables.to_power_commitment(solution))
+                    .map(|bid_variables| bid_variables.to_ancillary_bid(solution))
                     .collect(),
                 step: *self.market.step(),
             },
@@ -273,7 +273,7 @@ impl ReservePerimeter {
             .penalization_store
             .data()
             .iter()
-            .map(|bid_variables| bid_variables.to_power_commitment(solution))
+            .map(|bid_variables| bid_variables.to_ancillary_bid(solution))
             .collect();
         Ok(ReserveSolution {
             id: self.id,

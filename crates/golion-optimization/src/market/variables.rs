@@ -1,6 +1,6 @@
 use crate::support::power_to_energy;
 use golion_domain::{
-    market::commitment::{EnergyCommitment, PowerCommitment},
+    market::bid::{AncillaryBid, WholesaleBid},
     temporal::series::TimeStampedUtc,
     units::power::KiloWatt,
 };
@@ -68,24 +68,24 @@ impl TimeStampedUtc for BidVariables {
 // Implement domain conversion after solve.
 
 impl BidVariables {
-    pub(crate) fn to_energy_commitment(
+    pub(crate) fn to_wholesale_bid(
         &self,
         solution: &impl good_lp::Solution,
-    ) -> EnergyCommitment {
-        EnergyCommitment {
+    ) -> WholesaleBid {
+        WholesaleBid {
             start_at: self.start_at,
-            input: solution.eval(&self.input_energy).into(),
-            output: solution.eval(&self.output_energy).into(),
+            sell_energy: solution.eval(&self.output_energy).into(),
+            buy_energy: solution.eval(&self.input_energy).into(),
         }
     }
-    pub(crate) fn to_power_commitment(
+    pub(crate) fn to_ancillary_bid(
         &self,
         solution: &impl good_lp::Solution,
-    ) -> PowerCommitment {
-        PowerCommitment {
+    ) -> AncillaryBid {
+        AncillaryBid {
             start_at: self.start_at,
-            input: solution.eval(&self.input_power).into(),
-            output: solution.eval(&self.output_power).into(),
+            downward_power: solution.eval(&self.input_power).into(),
+            upward_power: solution.eval(&self.output_power).into(),
         }
     }
 }

@@ -1,7 +1,7 @@
 use crate::market::choice::MarketChoice;
 use garde::Validate;
 use golion_domain::countries::Countries;
-use golion_domain::market::commitment::Commitment;
+use golion_domain::market::commitment::PowerCommitment;
 use golion_domain::market::market_type::AncillaryMarketType;
 use golion_domain::problem::definition::ReserveDefinition;
 use serde::{Deserialize, Serialize};
@@ -37,7 +37,7 @@ impl ReservePerimeter {
             self.id,
             self.market.try_into_market_specs(country)?,
             self.composition,
-            self.commitments.iter().map(Commitment::from).collect(),
+            self.commitments.iter().map(PowerCommitment::from).collect(),
         ))
     }
 }
