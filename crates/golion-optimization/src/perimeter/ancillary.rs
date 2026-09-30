@@ -58,7 +58,7 @@ impl ReservePerimeter {
         let variable_store = aggregate_bidding_and_commitments(
             horizon.timestamps(),
             horizon.grid(),
-            definition.commitments(),
+            definition.commitments().data(),
             std::slice::from_ref(&market),
         )?;
         let repartition = definition
