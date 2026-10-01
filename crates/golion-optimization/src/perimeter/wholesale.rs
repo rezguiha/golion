@@ -92,6 +92,10 @@ impl BrpPerimeter {
     }
     /// Makes new bids one-sided per slot and links the perimeter net position
     /// (net commitment, new bids and imbalance) to its assets.
+    /// It sets the following constraints over the perimeter
+    /// - net_physical = net_commitment + net_bidding+ net_imbalance.
+    /// - bidding_charge <= physical charge + commitment discharge + long imbalance
+    /// - bidding_discharge <= physical discharge + commitment charge + long imbalance
     fn build_exclusivity_and_repartition_constraints(
         vars: &mut ProblemVariables,
         constraints: &mut Vec<Constraint>,
@@ -124,11 +128,21 @@ impl BrpPerimeter {
             perimeter_net.add_mul(1.0, penalization_variables.input_power());
             perimeter_net.add_mul(-1.0, penalization_variables.output_power());
             let mut sum_asset_net = 0.0.into_expression();
+            let mut buy_cap = commitment.output_power.0.into_expression();
+            let mut sell_cap = commitment.input_power.0.into_expression();
             for asset_id in composition.iter() {
                 let asset = physical_store.get(asset_id)?;
                 sum_asset_net += asset.input_power_at(dt)? - asset.output_power_at(dt)?;
+                buy_cap += asset.input_power_at(dt)?;
+                sell_cap += asset.output_power_at(dt)?;
             }
             constraints.push(constraint!(sum_asset_net == perimeter_net));
+            buy_cap.add_mul(1.0, penalization_variables.output_power());
+            buy_cap.add_mul(-1.0, bid_variables.input_power());
+            sell_cap.add_mul(1.0, penalization_variables.input_power());
+            sell_cap.add_mul(-1.0, bid_variables.output_power());
+            constraints.push(constraint!(buy_cap >= 0.0));
+            constraints.push(constraint!(sell_cap >= 0.0));
         }
         Ok(())
     }
