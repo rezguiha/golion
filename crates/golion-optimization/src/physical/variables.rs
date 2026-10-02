@@ -19,6 +19,32 @@ pub struct BessVariables {
     /// Represents state of charge in kWh with starting
     /// interval convention.
     pub(crate) soc: Variable,
+    /// Represents active charge power component
+    /// of the combined dispatch signal (input_power-output_power)
+    /// and full ancillary activation signal (input_ancillary)
+    pub(crate) input_power_worst_upper: Variable,
+    /// Represents active discharge power component
+    /// of the combined dispatch signal (input_power-output_power)
+    /// and full ancillary activation signal (input_ancillary)
+    pub(crate) output_power_worst_upper: Variable,
+
+    /// Represents state of charge in kWh with starting
+    /// interval convention for worst case of consecutive
+    /// downward ancillary commitments
+    pub(crate) soc_worst_upper: Variable,
+    /// Represents active charge power component
+    /// of the combined dispatch signal (input_power-output_power)
+    /// and full ancillary activation signal (output_ancillary)
+    pub(crate) input_power_worst_lower: Variable,
+    /// Represents active discharge power component
+    /// of the combined dispatch signal (input_power-output_power)
+    /// and full ancillary activation signal (output_ancillary)
+    pub(crate) output_power_worst_lower: Variable,
+    /// Represents state of charge in kWh with starting
+    /// interval convention for worst case of consecutive
+    /// upward ancillary commitments
+    pub(crate) soc_worst_lower: Variable,
+
     /// Represents ancillary portion of charge (downward)
     /// commitments and bids that asset can deliver.
     pub(crate) input_ancillary: Variable,
@@ -37,9 +63,43 @@ impl BessVariables {
             start_at: *dt,
             input_power: variable_generator
                 .add(variable().min(0.0).max(avail_point.max_charge_power)),
+            input_power_worst_upper: variable_generator
+                .add(variable().min(0.0).max(avail_point.max_charge_power)),
+            input_power_worst_lower: variable_generator
+                .add(variable().min(0.0).max(avail_point.max_charge_power)),
             output_power: variable_generator
                 .add(variable().min(0.0).max(avail_point.max_discharge_power)),
+            output_power_worst_upper: variable_generator
+                .add(variable().min(0.0).max(avail_point.max_discharge_power)),
+            output_power_worst_lower: variable_generator
+                .add(variable().min(0.0).max(avail_point.max_discharge_power)),
             soc: variable_generator.add(
+                variable()
+                    .min(
+                        soc_range
+                            .min_soc()
+                            .into_energy_kwh(&avail_point.max_usable_energy),
+                    )
+                    .max(
+                        soc_range
+                            .max_soc()
+                            .into_energy_kwh(&avail_point.max_usable_energy),
+                    ),
+            ),
+            soc_worst_upper: variable_generator.add(
+                variable()
+                    .min(
+                        soc_range
+                            .min_soc()
+                            .into_energy_kwh(&avail_point.max_usable_energy),
+                    )
+                    .max(
+                        soc_range
+                            .max_soc()
+                            .into_energy_kwh(&avail_point.max_usable_energy),
+                    ),
+            ),
+            soc_worst_lower: variable_generator.add(
                 variable()
                     .min(
                         soc_range
@@ -75,30 +135,43 @@ impl BessVariables {
         vars: &mut ProblemVariables,
         max_charge_power: &KiloWatt,
         max_discharge_power: &KiloWatt,
-    ) -> [Constraint; 2] {
+    ) -> [Constraint; 6] {
         let exclusivity_binary = vars.add(variable().binary());
+        let exclusivity_binary_worst_upper = vars.add(variable().binary());
+        let exclusivity_binary_worst_lower = vars.add(variable().binary());
         [
             constraint!(self.input_power <= exclusivity_binary * max_charge_power.0),
             constraint!(
                 self.output_power <= (1 - exclusivity_binary) * max_discharge_power.0
             ),
-        ]
-    }
-    /// Makes sure that the net signal between dispatch(active) power and ancillary
-    /// activation signal at asset stay within availability range in power.
-    pub(super) fn ancillary_active_power_link_constraint(
-        &self,
-        max_charge_power: &KiloWatt,
-        max_discharge_power: &KiloWatt,
-    ) -> [Constraint; 2] {
-        [
             constraint!(
-                self.input_ancillary + self.input_power - self.output_power
-                    <= max_charge_power.0
+                self.input_power_worst_upper
+                    <= exclusivity_binary_worst_upper * max_charge_power.0
             ),
             constraint!(
-                self.output_ancillary + self.output_power - self.input_power
-                    <= max_discharge_power.0
+                self.output_power_worst_upper
+                    <= (1 - exclusivity_binary_worst_upper) * max_discharge_power.0
+            ),
+            constraint!(
+                self.input_power_worst_lower
+                    <= exclusivity_binary_worst_lower * max_charge_power.0
+            ),
+            constraint!(
+                self.output_power_worst_lower
+                    <= (1 - exclusivity_binary_worst_lower) * max_discharge_power.0
+            ),
+        ]
+    }
+    /// Worstcase-Nominal Link constraint
+    pub(super) fn worstcase_nominal_link_constraint(&self) -> [Constraint; 2] {
+        [
+            constraint!(
+                self.input_power_worst_upper - self.output_power_worst_upper
+                    == self.input_power - self.output_power + self.input_ancillary
+            ),
+            constraint!(
+                self.input_power_worst_lower - self.output_power_worst_lower
+                    == self.input_power - self.output_power + self.output_ancillary
             ),
         ]
     }
