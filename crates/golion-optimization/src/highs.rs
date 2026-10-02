@@ -18,7 +18,7 @@ pub struct HighsOptimizer {
 
 impl Default for HighsOptimizer {
     fn default() -> Self {
-        Self { time_limit: 60.0, mip_rel_gap: 1e-3, verbose: false }
+        Self { time_limit: 60.0, mip_rel_gap: 1e-2, verbose: false }
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::Result;
-use crate::physical::bess::soc::transition_constraint;
+use crate::physical::bess::soc::{PreviousSoc, transition_constraint_scenarios};
 use crate::physical::variables::BessVariables;
 use golion_domain::asset::bess::availability::Availability;
 use golion_domain::asset::bess::limits::SocRange;
@@ -9,8 +9,9 @@ use golion_domain::asset::bess::{
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
 use golion_domain::units::power::{KiloWatt, KiloWattHour};
-use good_lp::{Constraint, Expression, ProblemVariables};
+use good_lp::{Constraint, ProblemVariables};
 use jiff::Timestamp;
+
 // region: BessVariableCreator
 pub trait BessVariableCreator {
     fn efficiencies(&self) -> &BessPowerEfficiencies;
@@ -36,7 +37,7 @@ pub trait BessVariableCreator {
     ) -> crate::Result<(TimeSeries<BessVariables>, Vec<Constraint>)> {
         let time_index_length = time_index.len();
         // Initialize battery physical variables and constraints containers.
-        let mut constraints: Vec<Constraint> = Vec::with_capacity(5 * time_index_length);
+        let mut constraints: Vec<Constraint> = Vec::with_capacity(11 * time_index_length);
         let mut variable_vec: Vec<BessVariables> = Vec::with_capacity(time_index_length);
         // Loop over time index ,create variables with their respective limits
         // and generate defining soc constraints.
@@ -52,18 +53,22 @@ pub trait BessVariableCreator {
                 &avail_point.max_charge_power,
                 &avail_point.max_discharge_power,
             ));
-            // Set net (active power + ancillary signal) stay within
-            // availability range.
-            constraints.extend(variables_at.ancillary_active_power_link_constraint(
-                &avail_point.max_charge_power,
-                &avail_point.max_discharge_power,
-            ));
+            // Link Worst case scenarios with nominal scenario variables
+            constraints.extend(variables_at.worstcase_nominal_link_constraint());
             // Create soc transition constraints.
-            let prev_soc: Expression = match i {
-                0 => initial_soc.0.into(),
-                _ => variable_vec[i - 1].soc.into(),
+            let prev_soc = match i {
+                0 => PreviousSoc {
+                    upper: initial_soc.0.into(),
+                    nominal: initial_soc.0.into(),
+                    lower: initial_soc.0.into(),
+                },
+                _ => PreviousSoc {
+                    upper: variable_vec[i - 1].soc_worst_upper.into(),
+                    nominal: variable_vec[i - 1].soc.into(),
+                    lower: variable_vec[i - 1].soc_worst_lower.into(),
+                },
             };
-            constraints.push(transition_constraint(
+            constraints.extend(transition_constraint_scenarios(
                 &variables_at,
                 prev_soc,
                 &step,
