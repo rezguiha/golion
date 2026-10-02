@@ -56,16 +56,17 @@ pub trait BessVariableCreator {
             // Link Worst case scenarios with nominal scenario variables
             constraints.extend(variables_at.worstcase_nominal_link_constraint());
             // Create soc transition constraints.
+
             let prev_soc = match i {
                 0 => PreviousSoc {
-                    upper: initial_soc.0.into(),
+                    downward: initial_soc.0.into(),
                     nominal: initial_soc.0.into(),
-                    lower: initial_soc.0.into(),
+                    upward: initial_soc.0.into(),
                 },
                 _ => PreviousSoc {
-                    upper: variable_vec[i - 1].soc_worst_upper.into(),
-                    nominal: variable_vec[i - 1].soc.into(),
-                    lower: variable_vec[i - 1].soc_worst_lower.into(),
+                    downward: variable_vec[i - 1].downward_activation.soc.into(),
+                    nominal: variable_vec[i - 1].nominal.soc.into(),
+                    upward: variable_vec[i - 1].upward_activation.soc.into(),
                 },
             };
             constraints.extend(transition_constraint_scenarios(
@@ -209,7 +210,7 @@ mod tests {
         // One soc-transition constraint per slot.
         // Two Exclusivity of active power constraints per slot.
         // Two ancillary power , active power and availability constraints per slot.
-        assert_eq!(battery.constraints.len(), 20);
+        assert_eq!(battery.constraints.len(), 44);
     }
 }
 // endregion: Tests

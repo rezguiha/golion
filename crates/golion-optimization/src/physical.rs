@@ -38,7 +38,9 @@ impl Asset {
     /// Active charge power in kW.
     pub fn input_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
         Ok(match self {
-            Self::Bess(b) => b.variable_store.at(dt)?.input_power.into_expression(),
+            Self::Bess(b) => {
+                b.variable_store.at(dt)?.nominal.input_power.into_expression()
+            }
             // Non-storage assets never charge.
             Self::Ccgt(_) | Self::Ren(_) => 0.0.into_expression(),
         })
@@ -46,7 +48,9 @@ impl Asset {
     /// Active discharge power in kW.
     pub fn output_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
         Ok(match self {
-            Self::Bess(b) => b.variable_store.at(dt)?.output_power.into_expression(),
+            Self::Bess(b) => {
+                b.variable_store.at(dt)?.nominal.output_power.into_expression()
+            }
             Self::Ccgt(c) => c.variable_store.at(dt)?.output_power.into_expression(),
             Self::Ren(r) => r.variable_store.at(dt)?.output_power.into_expression(),
         })
