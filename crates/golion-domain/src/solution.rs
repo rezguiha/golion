@@ -1,4 +1,5 @@
 use crate::{
+    asset::state::{BessState, OtherAssetState},
     market::{
         bid::{AncillaryBid, WholesaleBid},
         market_type::{AncillaryMarketType, WholesaleMarketType},
@@ -6,6 +7,12 @@ use crate::{
     temporal::{series::TimeStampedUtc, step::MinuteStep},
 };
 use uuid::Uuid;
+#[derive(Debug)]
+pub enum PhysicalStates {
+    Bess { asset_id: Uuid, series: Vec<BessState> },
+    Ccgt { asset_id: Uuid, series: Vec<OtherAssetState> },
+    Ren { asset_id: Uuid, series: Vec<OtherAssetState> },
+}
 
 #[derive(Debug)]
 pub struct SolutionWithRevenue<D: TimeStampedUtc> {
@@ -40,4 +47,5 @@ pub struct ReserveSolution {
 pub struct OptimizationSolution {
     pub ancillary: Vec<ReserveSolution>,
     pub wholesale: Vec<BrpSolution>,
+    pub physical: Vec<PhysicalStates>,
 }

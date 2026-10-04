@@ -3,6 +3,7 @@ use crate::support::power_to_energy;
 /// It includes also their creation trait.
 use golion_domain::asset::bess::availability::Availability;
 use golion_domain::asset::bess::limits::SocRange;
+use golion_domain::asset::state::{BessState, OtherAssetState};
 use golion_domain::temporal::series::TimeStampedUtc;
 use golion_domain::units::power::KiloWatt;
 use golion_domain::{temporal::step::MinuteStep, units::efficiency::Efficiency};
@@ -187,7 +188,19 @@ impl TimeStampedUtc for BessVariables {
         &self.start_at
     }
 }
+// Implement Domain Conversion
 
+impl BessVariables {
+    pub(crate) fn to_domain_state(&self, solution: &impl good_lp::Solution) -> BessState {
+        BessState {
+            dispatch: solution.eval(self.nominal.dispatch()).into(),
+            start_at: self.start_at,
+            soc: solution.value(self.nominal.soc).into(),
+            soc_downward_activation: solution.value(self.downward_activation.soc).into(),
+            soc_upward_activation: solution.value(self.upward_activation.soc).into(),
+        }
+    }
+}
 // endregion: Bess Variables
 
 // region: OtherAsset variables
@@ -201,6 +214,17 @@ pub struct OtherAssetVariables {
     /// Represents ancillary portion of discharge (upward)
     /// commitments and bids that asset can deliver.
     pub(crate) output_ancillary: Variable,
+}
+impl OtherAssetVariables {
+    pub(crate) fn to_domain_state(
+        &self,
+        solution: &impl good_lp::Solution,
+    ) -> OtherAssetState {
+        OtherAssetState {
+            start_at: self.start_at,
+            dispatch: solution.value(self.output_power).into(),
+        }
+    }
 }
 
 // Implement TimeStampedUtc to enable creation

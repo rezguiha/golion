@@ -5,6 +5,7 @@ pub mod variables;
 use crate::model::BuildEnv;
 use crate::physical::{bess::core::Battery, ccgt::GasTurbine, ren::Renewable};
 use golion_domain::problem::definition::AssetDefinition;
+use golion_domain::solution::PhysicalStates;
 use golion_domain::units::power::KiloWatt;
 use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables};
 use jiff::Timestamp;
@@ -170,3 +171,46 @@ impl PhysicalStore {
     }
 }
 // endregion: Asset store
+
+// region: Solution Conversion
+impl PhysicalStore {
+    pub(crate) fn to_solution(
+        &self,
+        solution: &impl good_lp::Solution,
+    ) -> Vec<PhysicalStates> {
+        self.0
+            .iter()
+            .map(|(asset_id, asset)| match asset {
+                Asset::Bess(battery) => PhysicalStates::Bess {
+                    asset_id: *asset_id,
+                    series: battery
+                        .variable_store
+                        .data()
+                        .iter()
+                        .map(|variables| variables.to_domain_state(solution))
+                        .collect(),
+                },
+                Asset::Ccgt(ccgt) => PhysicalStates::Ccgt {
+                    asset_id: *asset_id,
+                    series: ccgt
+                        .variable_store
+                        .data()
+                        .iter()
+                        .map(|variables| variables.to_domain_state(solution))
+                        .collect(),
+                },
+                Asset::Ren(ren) => PhysicalStates::Ren {
+                    asset_id: *asset_id,
+                    series: ren
+                        .variable_store
+                        .data()
+                        .iter()
+                        .map(|variables| variables.to_domain_state(solution))
+                        .collect(),
+                },
+            })
+            .collect()
+    }
+}
+
+// endregion: Solution Conversion
