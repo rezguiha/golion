@@ -132,6 +132,7 @@ impl Model {
                 .iter()
                 .map(|reserve| reserve.to_solution(solution))
                 .collect::<crate::Result<_>>()?,
+            physical: self.physical.to_solution(solution),
         })
     }
 }
