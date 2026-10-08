@@ -3,10 +3,11 @@
 use crate::asset::bess::specification::BessSpecifications;
 use crate::market::commitment::{EnergyCommitment, PowerCommitment};
 use crate::market::specification::MarketSpecs;
+use crate::problem::error::ProblemError;
 use crate::temporal::grid::RegularTimeGrid;
 use crate::temporal::series::TimeSeries;
-use crate::temporal::step::MinuteStep;
 use crate::units::power::{KiloWatt, KiloWattHour};
+use jiff::SignedDuration;
 use uuid::Uuid;
 // Fixed penalty for now set here. May change if having it as an input of
 // optimization may be relevant.
@@ -110,8 +111,8 @@ pub struct ReserveDefinition {
     commitments: TimeSeries<PowerCommitment>,
     /// Penalty for violations in euro per kW.
     penalty: f64,
-    // Full activation projection window.
-    activation_window: MinuteStep,
+    /// Number of grid steps a full activation of the reserve must be sustained for.
+    activation_steps: usize,
 }
 impl ReserveDefinition {
     pub fn try_new(
@@ -120,8 +121,19 @@ impl ReserveDefinition {
         composition: Vec<Uuid>,
         commitments: impl Iterator<Item = PowerCommitment>,
         grid: &RegularTimeGrid,
-        activation_window: MinuteStep,
+        activation_window: SignedDuration,
     ) -> crate::Result<Self> {
+        // The activation window must cover a whole, positive number of grid steps.
+        let step = *grid.step().duration();
+        let (window_secs, step_secs) = (activation_window.as_secs(), step.as_secs());
+        if window_secs <= 0 || window_secs % step_secs != 0 {
+            return Err(ProblemError::InvalidActivationWindow {
+                perimeter_id: id,
+                window: activation_window,
+                step,
+            }
+            .into());
+        }
         // One reserve per grid slot, zero where nothing is committed. Upward
         // and downward reserves are summed apart: both are held, never netted.
         let mut reserves: Vec<PowerCommitment> = grid
@@ -143,7 +155,8 @@ impl ReserveDefinition {
             composition,
             commitments: reserves.try_into()?,
             penalty: ANCILLARY_PENALTY_EURO_PER_KW,
-            activation_window,
+            // Positive and exact by the check above.
+            activation_steps: (window_secs / step_secs) as usize,
         })
     }
     pub fn id(&self) -> &Uuid {
@@ -161,8 +174,8 @@ impl ReserveDefinition {
     pub fn penalty(&self) -> &f64 {
         &self.penalty
     }
-    pub fn activation_window(&self) -> &MinuteStep {
-        &self.activation_window
+    pub fn activation_steps(&self) -> usize {
+        self.activation_steps
     }
 }
 // endregion: Perimeter Definitions
