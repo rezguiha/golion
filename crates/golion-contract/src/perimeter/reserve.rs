@@ -45,7 +45,7 @@ impl ReservePerimeter {
             self.composition,
             self.commitments.iter().map(PowerCommitment::from),
             grid,
-            self.activation_window.try_into()?,
+            self.activation_window,
         )?)
     }
 }

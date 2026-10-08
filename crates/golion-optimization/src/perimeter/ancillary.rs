@@ -4,7 +4,7 @@ use super::support::{
 use crate::{
     market::{core::Market, variables::BidVariables},
     model::BuildEnv,
-    physical::PhysicalStore,
+    physical::{ActivationEnergy, ActivationPath, PhysicalStore},
 };
 use golion_domain::{
     market::{commitment::PowerCommitment, market_type::AncillaryMarketType},
@@ -42,6 +42,8 @@ pub struct ReservePerimeter {
     revenue: Expression,
     /// Reserve level penalty expression.
     penalty: Expression,
+    /// Number of grid steps a full activation must be sustained for.
+    activation_steps: usize,
 }
 
 impl ReservePerimeter {
@@ -97,6 +99,7 @@ impl ReservePerimeter {
             penalization_store,
             revenue,
             penalty,
+            activation_steps: definition.activation_steps(),
         })
     }
     /// Creates reserve aggregated bidding and commitments
@@ -189,6 +192,12 @@ impl AncillaryPerimeter {
             physical_store,
             &mut constraints,
         )?;
+        Self::activation_energy_constraints(
+            &reserve_perimeters,
+            env.horizon().timestamps(),
+            physical_store,
+            &mut constraints,
+        )?;
         // Compute Overall Revnue.
         let mut revenue = 0.0.into_expression();
         let mut penalty = 0.0.into_expression();
@@ -228,6 +237,63 @@ impl AncillaryPerimeter {
                 // for ancillary services.
                 constraints.push(constraint!(asset_input_power == reserve_input_power));
                 constraints.push(constraint!(asset_output_power == reserve_output_power));
+            }
+        }
+        Ok(())
+    }
+    /// Makes each asset able to deliver the energy of a full activation of its
+    /// repartitions. For an activation starting at each timestamp, every reserve
+    /// draws energy only within its own activation window: the resulting path is
+    /// handed to the asset, which sets its energy constraints along it.
+    fn activation_energy_constraints(
+        reserve_perimiters: &[ReservePerimeter],
+        time_index: &[Timestamp],
+        physical_store: &PhysicalStore,
+        constraints: &mut Vec<Constraint>,
+    ) -> crate::Result<()> {
+        for (asset_id, asset) in physical_store.iter() {
+            // Activation window and repartition of every reserve perimeter
+            // in which the asset is present.
+            let windows: Vec<(usize, &TimeSeries<BidVariables>)> = reserve_perimiters
+                .iter()
+                .filter_map(|perimeter| {
+                    perimeter
+                        .repartition
+                        .get(asset_id)
+                        .map(|repartition| (perimeter.activation_steps, repartition))
+                })
+                .collect();
+            let Some(longest_window) = windows.iter().map(|(steps, _)| *steps).max()
+            else {
+                continue;
+            };
+            for start in 0..time_index.len() {
+                // The activation path is cut at the end of the horizon.
+                let steps = time_index[start..]
+                    .iter()
+                    .take(longest_window)
+                    .enumerate()
+                    .map(|(offset, dt)| {
+                        let mut energy = ActivationEnergy {
+                            start_at: *dt,
+                            upward: 0.0.into_expression(),
+                            downward: 0.0.into_expression(),
+                        };
+                        for (activation_steps, repartition) in &windows {
+                            // Each reserve draws energy only within its own
+                            // activation window.
+                            if offset < *activation_steps {
+                                let share = repartition.at(dt)?;
+                                energy.upward += share.output_energy();
+                                energy.downward += share.input_energy();
+                            }
+                        }
+                        Ok(energy)
+                    })
+                    .collect::<crate::Result<Vec<_>>>()?;
+                constraints.extend(
+                    asset.ancillary_energy_constraints(&ActivationPath { steps })?,
+                );
             }
         }
         Ok(())
