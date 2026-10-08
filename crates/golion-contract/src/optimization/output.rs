@@ -75,12 +75,6 @@ pub struct BessStateOutput {
     pub dispatch: f64,
     /// State of charge reached at the end of the slot, in kWh.
     pub soc: f64,
-    /// Worst case state of charge under full activation of the upward
-    /// reserve, in kWh.
-    pub soc_upward_activation: f64,
-    /// Worst case state of charge under full activation of the downward
-    /// reserve, in kWh.
-    pub soc_downward_activation: f64,
 }
 
 /// State of a non-storage asset over a slot.
@@ -188,13 +182,7 @@ impl From<ReserveSolution> for ReservePerimeterOutput {
 
 impl From<BessState> for BessStateOutput {
     fn from(value: BessState) -> Self {
-        Self {
-            start_at: value.start_at,
-            dispatch: value.dispatch.0,
-            soc: value.soc.0,
-            soc_upward_activation: value.soc_upward_activation.0,
-            soc_downward_activation: value.soc_downward_activation.0,
-        }
+        Self { start_at: value.start_at, dispatch: value.dispatch.0, soc: value.soc.0 }
     }
 }
 

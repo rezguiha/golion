@@ -11,6 +11,26 @@ use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables};
 use jiff::Timestamp;
 use std::collections::HashMap;
 use uuid::Uuid;
+// region: Activation Path
+/// Energy an asset draws at the grid connection when fully activated on its
+/// ancillary portion of commitments, step by step from the activation start until the
+/// longest activation window ends.
+#[derive(Debug)]
+pub struct ActivationPath {
+    pub(crate) steps: Vec<ActivationEnergy>,
+}
+
+/// Activation energy drawn over one step of an activation path, in kWh during the step.
+/// The energy contains the aggregation of each reserve that is within each respective activation
+/// window and zero otherwise.
+#[derive(Debug)]
+pub struct ActivationEnergy {
+    pub(crate) start_at: Timestamp,
+    pub(crate) upward: Expression,
+    pub(crate) downward: Expression,
+}
+// endregion: Activation Path
+
 // region: Asset Enum
 #[derive(Debug)]
 pub enum Asset {
@@ -39,9 +59,7 @@ impl Asset {
     /// Active charge power in kW.
     pub fn input_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
         Ok(match self {
-            Self::Bess(b) => {
-                b.variable_store.at(dt)?.nominal.input_power.into_expression()
-            }
+            Self::Bess(b) => b.variable_store.at(dt)?.input_power.into_expression(),
             // Non-storage assets never charge.
             Self::Ccgt(_) | Self::Ren(_) => 0.0.into_expression(),
         })
@@ -49,9 +67,7 @@ impl Asset {
     /// Active discharge power in kW.
     pub fn output_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
         Ok(match self {
-            Self::Bess(b) => {
-                b.variable_store.at(dt)?.nominal.output_power.into_expression()
-            }
+            Self::Bess(b) => b.variable_store.at(dt)?.output_power.into_expression(),
             Self::Ccgt(c) => c.variable_store.at(dt)?.output_power.into_expression(),
             Self::Ren(r) => r.variable_store.at(dt)?.output_power.into_expression(),
         })
@@ -74,6 +90,18 @@ impl Asset {
             Self::Bess(b) => b.variable_store.at(dt)?.output_ancillary.into_expression(),
             Self::Ccgt(c) => c.variable_store.at(dt)?.output_ancillary.into_expression(),
             Self::Ren(r) => r.variable_store.at(dt)?.output_ancillary.into_expression(),
+        })
+    }
+    /// Asset level constraints ensuring it can deliver the ancillary activation
+    /// energy drawn along an activation path.
+    /// Only storage is energy limited: other assets return no constraint.
+    pub fn ancillary_energy_constraints(
+        &self,
+        path: &ActivationPath,
+    ) -> crate::Result<Vec<Constraint>> {
+        Ok(match self {
+            Self::Bess(b) => b.soc_reservation_constraints(path)?,
+            Self::Ccgt(_) | Self::Ren(_) => Vec::new(),
         })
     }
 

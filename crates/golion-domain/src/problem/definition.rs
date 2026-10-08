@@ -5,6 +5,7 @@ use crate::market::commitment::{EnergyCommitment, PowerCommitment};
 use crate::market::specification::MarketSpecs;
 use crate::temporal::grid::RegularTimeGrid;
 use crate::temporal::series::TimeSeries;
+use crate::temporal::step::MinuteStep;
 use crate::units::power::{KiloWatt, KiloWattHour};
 use uuid::Uuid;
 // Fixed penalty for now set here. May change if having it as an input of
@@ -109,6 +110,8 @@ pub struct ReserveDefinition {
     commitments: TimeSeries<PowerCommitment>,
     /// Penalty for violations in euro per kW.
     penalty: f64,
+    // Full activation projection window.
+    activation_window: MinuteStep,
 }
 impl ReserveDefinition {
     pub fn try_new(
@@ -117,6 +120,7 @@ impl ReserveDefinition {
         composition: Vec<Uuid>,
         commitments: impl Iterator<Item = PowerCommitment>,
         grid: &RegularTimeGrid,
+        activation_window: MinuteStep,
     ) -> crate::Result<Self> {
         // One reserve per grid slot, zero where nothing is committed. Upward
         // and downward reserves are summed apart: both are held, never netted.
@@ -139,6 +143,7 @@ impl ReserveDefinition {
             composition,
             commitments: reserves.try_into()?,
             penalty: ANCILLARY_PENALTY_EURO_PER_KW,
+            activation_window,
         })
     }
     pub fn id(&self) -> &Uuid {
@@ -155,6 +160,9 @@ impl ReserveDefinition {
     }
     pub fn penalty(&self) -> &f64 {
         &self.penalty
+    }
+    pub fn activation_window(&self) -> &MinuteStep {
+        &self.activation_window
     }
 }
 // endregion: Perimeter Definitions

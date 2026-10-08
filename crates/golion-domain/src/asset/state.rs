@@ -10,8 +10,6 @@ pub struct BessState {
     pub start_at: Timestamp,
     pub dispatch: KiloWatt,
     pub soc: KiloWattHour,
-    pub soc_upward_activation: KiloWattHour,
-    pub soc_downward_activation: KiloWattHour,
 }
 
 #[derive(Debug)]
