@@ -18,6 +18,7 @@ impl MinuteStep {
     pub fn span(&self) -> Span {
         Span::new().seconds(self.0.as_secs())
     }
+
     pub fn check_datetime_multiple_step(&self, dt: Timestamp) -> crate::Result<()> {
         match dt.as_second().rem_euclid(self.duration().as_secs()) {
             0 => Ok(()),

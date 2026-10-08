@@ -5,6 +5,7 @@ use golion_domain::market::commitment::PowerCommitment;
 use golion_domain::market::market_type::AncillaryMarketType;
 use golion_domain::problem::definition::ReserveDefinition;
 use golion_domain::temporal::grid::RegularTimeGrid;
+use jiff::SignedDuration;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 use uuid::Uuid;
@@ -25,6 +26,9 @@ pub struct ReservePerimeter {
     /// ancillary service.
     #[garde(dive)]
     pub commitments: Vec<AncillaryCommitment>,
+    // Worst case full activation projection window
+    #[garde(skip)]
+    pub activation_window: SignedDuration,
 }
 
 // region: Domain Conversion
@@ -41,6 +45,7 @@ impl ReservePerimeter {
             self.composition,
             self.commitments.iter().map(PowerCommitment::from),
             grid,
+            self.activation_window.try_into()?,
         )?)
     }
 }
