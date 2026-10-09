@@ -158,23 +158,29 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
             &same_day_end,
             &product_specificationss.step,
         )?;
-        // Compute next day bidding bounds.
-        let next_bidding_day_start =
-            zoned_reference_time.tomorrow().and_then(|dt| dt.start_of_day())?;
-        let next_day_bidding_start = match next_bidding_day_start {
-            dt if dt >= same_day_start => dt,
-            // At reference times at the end of the day, adding the neutralization
-            // delay will exceed the scope of the current day into next one and
-            // we need to exclude the relevant times from bidding of next.
-            _ => same_day_start,
+        // Compute next day bidding bounds. Next day products only open for
+        // trading at the next day gate opening time of the reference day.
+        let next_day_gate_open_at =
+            zoned_reference_time.with().time(self.next_day_gate_open_time).build()?;
+        let next_day_bounds = if zoned_reference_time >= next_day_gate_open_at {
+            let next_bidding_day_start =
+                zoned_reference_time.tomorrow().and_then(|dt| dt.start_of_day())?;
+            let next_day_bidding_start = match next_bidding_day_start {
+                dt if dt >= same_day_start => dt,
+                // At reference times at the end of the day, adding the neutralization
+                // delay will exceed the scope of the current day into next one and
+                // we need to exclude the relevant times from bidding of next.
+                _ => same_day_start,
+            };
+            let next_day_bidding_end = next_day_bidding_start.end_of_day()?;
+            fit_bounds_to_bid_step(
+                &next_day_bidding_start,
+                &next_day_bidding_end,
+                &product_specificationss.step,
+            )?
+        } else {
+            None
         };
-        let next_day_bidding_end = next_day_bidding_start.end_of_day()?;
-
-        let next_day_bounds = fit_bounds_to_bid_step(
-            &next_day_bidding_start,
-            &next_day_bidding_end,
-            &product_specificationss.step,
-        )?;
 
         match (same_day_bounds, next_day_bounds) {
             // Continuous bidding will always have either bidding on same day
@@ -296,9 +302,10 @@ mod tests {
     }
     #[test]
     fn continuous_same_day_only() {
+        // 10:00 CET is before the 15:00 CET next day gate opening.
         let reference_time: Timestamp = "2024-01-15T09:00:00Z".parse().unwrap();
         let expected_bidding_start = "2024-01-15T11:00:00Z".parse().unwrap();
-        let expected_bidding_end = "2024-01-16T22:45:00Z".parse().unwrap();
+        let expected_bidding_end = "2024-01-15T22:45:00Z".parse().unwrap();
         continuous_test(reference_time, expected_bidding_start, expected_bidding_end);
     }
     #[test]
