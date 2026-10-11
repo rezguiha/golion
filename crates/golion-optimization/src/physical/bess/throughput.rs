@@ -21,6 +21,7 @@ pub trait ComputeCycleContribution {
         vars: &BessVariables,
         step: &MinuteStep,
     ) -> Expression;
+    fn throughput_limit(rated_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64;
 }
 impl ComputeCycleContribution for BidirectionalThroughput {
     fn modelled_throughput(&self) -> f64 {
@@ -37,6 +38,9 @@ impl ComputeCycleContribution for BidirectionalThroughput {
             * step.duration().as_secs_f64()
             / 3600.0_f64
     }
+    fn throughput_limit(rated_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64 {
+        2.0 * rated_energy.0 * max_24h_avg_cycles
+    }
 }
 impl ComputeCycleContribution for DischargeThroughput {
     fn modelled_throughput(&self) -> f64 {
@@ -49,6 +53,9 @@ impl ComputeCycleContribution for DischargeThroughput {
         (vars.output_power + vars.output_ancillary) * step.duration().as_secs_f64()
             / 3600.0_f64
     }
+    fn throughput_limit(rated_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64 {
+        rated_energy.0 * max_24h_avg_cycles
+    }
 }
 
 fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
@@ -57,7 +64,6 @@ fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
     rated_energy: KiloWattHour,
     max_24h_avg_cycles: f64,
 ) -> crate::Result<Vec<Constraint>> {
-    let maximum_throughput = 2.0 * rated_energy.0 * max_24h_avg_cycles;
     let mut constraints =
         Vec::<Constraint>::with_capacity(variable_store.grid().length());
     let grid_start = *variable_store.grid().start();
@@ -88,7 +94,8 @@ fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
                 )
             });
         constraints.push(constraint!(
-            relevant_future_throughput + relevant_past_throughput <= maximum_throughput
+            relevant_future_throughput + relevant_past_throughput
+                <= C::throughput_limit(rated_energy, max_24h_avg_cycles)
         ));
     }
     Ok(constraints)
