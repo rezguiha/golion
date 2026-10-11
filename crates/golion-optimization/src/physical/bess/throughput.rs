@@ -77,7 +77,7 @@ fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
             .iter()
             .filter(|throughput_row| {
                 throughput_row.start_at() >= &start_consideration
-                    && throughput_row.start_at() <= &grid_start
+                    && throughput_row.start_at() < &grid_start
             })
             .map(|throughput_row| throughput_row.modelled_throughput())
             .fold(0.0, |acc, x| acc + x);
