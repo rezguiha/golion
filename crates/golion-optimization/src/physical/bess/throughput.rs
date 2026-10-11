@@ -21,7 +21,7 @@ pub trait ComputeCycleContribution {
         vars: &BessVariables,
         step: &MinuteStep,
     ) -> Expression;
-    fn throughput_limit(rated_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64;
+    fn throughput_limit(usable_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64;
 }
 impl ComputeCycleContribution for BidirectionalThroughput {
     fn modelled_throughput(&self) -> f64 {
@@ -38,8 +38,8 @@ impl ComputeCycleContribution for BidirectionalThroughput {
             * step.duration().as_secs_f64()
             / 3600.0_f64
     }
-    fn throughput_limit(rated_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64 {
-        2.0 * rated_energy.0 * max_24h_avg_cycles
+    fn throughput_limit(usable_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64 {
+        2.0 * usable_energy.0 * max_24h_avg_cycles
     }
 }
 impl ComputeCycleContribution for DischargeThroughput {
@@ -53,15 +53,15 @@ impl ComputeCycleContribution for DischargeThroughput {
         (vars.output_power + vars.output_ancillary) * step.duration().as_secs_f64()
             / 3600.0_f64
     }
-    fn throughput_limit(rated_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64 {
-        rated_energy.0 * max_24h_avg_cycles
+    fn throughput_limit(usable_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64 {
+        usable_energy.0 * max_24h_avg_cycles
     }
 }
 
 fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
     past_series: &TimeSeries<C>,
     variable_store: &TimeSeries<BessVariables>,
-    rated_energy: KiloWattHour,
+    usable_energy: KiloWattHour,
     max_24h_avg_cycles: f64,
 ) -> crate::Result<Vec<Constraint>> {
     let mut constraints =
@@ -92,7 +92,7 @@ fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
             });
         constraints.push(constraint!(
             relevant_future_throughput + relevant_past_throughput
-                <= C::throughput_limit(rated_energy, max_24h_avg_cycles)
+                <= C::throughput_limit(usable_energy, max_24h_avg_cycles)
         ));
     }
     Ok(constraints)
@@ -101,7 +101,7 @@ pub trait CyclingConstraints {
     fn history(&self) -> &ThroughputHistory;
     fn max_24h_avg_cycles(&self) -> f64;
     fn penalty(&self) -> f64;
-    fn rated_energy(&self) -> KiloWattHour;
+    fn usable_energy(&self) -> KiloWattHour;
     fn create_cycling_constraints(
         &self,
         variable_store: &TimeSeries<BessVariables>,
@@ -111,7 +111,7 @@ pub trait CyclingConstraints {
                 compute_throughput_constraints(
                     past_series,
                     variable_store,
-                    self.rated_energy(),
+                    self.usable_energy(),
                     self.max_24h_avg_cycles(),
                 )
             }
@@ -119,7 +119,7 @@ pub trait CyclingConstraints {
                 compute_throughput_constraints(
                     past_series,
                     variable_store,
-                    self.rated_energy(),
+                    self.usable_energy(),
                     self.max_24h_avg_cycles(),
                 )
             }
@@ -137,7 +137,7 @@ impl CyclingConstraints for BessSpecifications {
     fn max_24h_avg_cycles(&self) -> f64 {
         self.cycling.max_24h_avg_cycles
     }
-    fn rated_energy(&self) -> KiloWattHour {
+    fn usable_energy(&self) -> KiloWattHour {
         self.rated_energy
     }
 }
