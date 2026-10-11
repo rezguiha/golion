@@ -10,6 +10,7 @@ use golion_contract::{
         core::{AssetData, BessData},
         identification::AssetIdentification,
         specifications::BessSpecs,
+        throughput::{BidirectionalThroughputContract, ThroughputData},
     },
     market::series::MarketSeries,
 };
@@ -17,7 +18,7 @@ use golion_domain::countries::Countries;
 use golion_domain::market::market_type::{
     AncillaryMarketType, EnergyAncillaryMarketType, WholesaleMarketType,
 };
-use jiff::{SignedDuration, Timestamp, Unit};
+use jiff::{SignedDuration, Timestamp, ToSpan, Unit};
 use uuid::Uuid;
 /// Temporary simple test of sending assetdata as a payload
 /// on optimize endpoint.
@@ -33,7 +34,7 @@ async fn test_optimize_bess() -> Result<()> {
             .take(n)
             .collect();
     let wholesale_market_choices = vec![MarketChoice {
-        market: WholesaleMarketType::SpotDayAhead,
+        market: WholesaleMarketType::IntradayContinuous,
         product_step_minutes: 15,
         product_increment_kw: 10,
     }];
@@ -78,7 +79,7 @@ async fn test_optimize_bess() -> Result<()> {
                 .map(|t| {
                     WholesaleCommitment::builder()
                         .start_at(*t)
-                        .net_position(-2500.0)
+                        .net_position(-1500.0)
                         .build()
                 })
                 .collect(),
@@ -97,7 +98,7 @@ async fn test_optimize_bess() -> Result<()> {
             .collect(),
     }];
     let wholesale_revenues = vec![MarketSeries {
-        market: WholesaleMarketType::SpotDayAhead,
+        market: WholesaleMarketType::IntradayContinuous,
         values: timestamps
             .iter()
             .map(|t| WholesaleRevenue::SimplifiedWholesaleRevenue {
@@ -107,13 +108,34 @@ async fn test_optimize_bess() -> Result<()> {
             })
             .collect(),
     }];
+    // Zero measured throughput over the 24h preceding the optimization start.
+    let throughput = ThroughputData::Bidirectional(
+        std::iter::successors(Some(start - SignedDuration::from_hours(24)), |t| {
+            Some(*t + SignedDuration::from_mins(15))
+        })
+        .take(24 * 4)
+        .map(|t| {
+            BidirectionalThroughputContract::builder()
+                .start_at(t)
+                .charged_energy(0.0)
+                .discharged_energy(0.0)
+                .build()
+        })
+        .collect(),
+    );
     let identification = AssetIdentification::builder().build();
     let asset_id = identification.asset_id;
     let asset = AssetData::Bess(
         BessData::builder()
             .availability(availability)
+            .throughput(throughput)
             .initial_soc(50_000.0)
-            .specs(BessSpecs::builder().build())
+            .specs(
+                BessSpecs::builder()
+                    .throughput_penalty(0.0)
+                    .max_rolling_cycles(0.0)
+                    .build(),
+            )
             .identification(identification)
             .build(),
     );
@@ -134,6 +156,7 @@ async fn test_optimize_bess() -> Result<()> {
             })
             .composition(vec![asset_id])
             .commitments(reserve_commitments)
+            .activation_window(30.minutes().try_into().unwrap())
             .build(),
     ];
 

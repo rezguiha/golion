@@ -43,6 +43,12 @@ pub struct BessSpecs {
     #[builder(default = 0.95)]
     #[garde(range(min = 0.0, max = 1.0))]
     pub soc_max: f64,
+    /// Throughput penalty in €/MWh
+    #[garde(range(max = 0.0))]
+    pub throughput_penalty: f64,
+    /// Rolling 24h average maximum throughput cycles.
+    #[garde(range(min = 0.0))]
+    pub max_rolling_cycles: f64,
 }
 
 /// Renewable asset specifications
