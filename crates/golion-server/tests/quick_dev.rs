@@ -136,7 +136,7 @@ async fn test_optimize_bess() -> Result<()> {
             .specs(
                 BessSpecs::builder()
                     .throughput_penalty(0.0)
-                    .max_rolling_cycles(0.0)
+                    .max_rolling_cycles(2.0)
                     .build(),
             )
             .identification(identification)
