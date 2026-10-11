@@ -31,8 +31,10 @@ pub struct DischargeThroughputContract {
 #[serde(untagged)]
 pub enum ThroughputData {
     #[garde(dive)]
-    DischargeOnly(#[garde(dive)] Vec<DischargeThroughputContract>),
+    // Make sure Bidirectional is first so serde does not mistake bidirectional
+    // throughput as dischargeonly as it is same struct with extra attribute.
     Bidirectional(#[garde(dive)] Vec<BidirectionalThroughputContract>),
+    DischargeOnly(#[garde(dive)] Vec<DischargeThroughputContract>),
 }
 
 // region: Domain Conversion
