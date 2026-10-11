@@ -128,6 +128,9 @@ mod tests {
     use crate::asset::bess::efficiency::BessPowerEfficiencies;
     use crate::asset::bess::limits::{BessLimits, SocRange};
     use crate::asset::bess::specification::BessSpecifications;
+    use crate::asset::bess::throughput::{
+        BidirectionalThroughput, Cycling, ThroughputHistory,
+    };
     use crate::countries::Countries;
     use crate::market::bid::ProductSpecifications;
     use crate::market::commitment::EnergyCommitment;
@@ -179,9 +182,26 @@ mod tests {
             charge_efficiency: Efficiency::try_from(0.95).unwrap(),
             discharge_efficiency: Efficiency::try_from(0.95).unwrap(),
         };
+        // Zero throughput over the 24h preceding the grid start.
+        let history: Vec<BidirectionalThroughput> =
+            RegularTimeGrid::try_new(start() - 24.hours(), step(), 96)
+                .unwrap()
+                .iter()
+                .map(|dt| BidirectionalThroughput {
+                    start_at: dt,
+                    charged_energy: KiloWattHour(0.0),
+                    discharged_energy: KiloWattHour(0.0),
+                })
+                .collect();
+        let cycling = Cycling {
+            history: ThroughputHistory::Bidirectional(history.try_into().unwrap()),
+            max_24h_avg_cycles: 1.0,
+            penalty: 0.0,
+        };
         AssetDefinition::Bess {
             specifications: BessSpecifications {
                 limits,
+                cycling,
                 efficiencies,
                 rated_charge_power,
                 rated_discharge_power,

@@ -1,3 +1,5 @@
+use crate::asset::throughput::ThroughputData;
+
 /// Different type asset definition.
 use super::availability::{GeneratorAvailability, StorageAvailability};
 use super::identification::AssetIdentification;
@@ -7,6 +9,7 @@ use golion_domain::asset::bess::availability::Availability as BessAvailability;
 use golion_domain::asset::bess::efficiency::BessPowerEfficiencies;
 use golion_domain::asset::bess::limits::{BessLimits, SocRange};
 use golion_domain::asset::bess::specification::BessSpecifications;
+use golion_domain::asset::bess::throughput::{Cycling, ThroughputHistory};
 use golion_domain::problem::definition::AssetDefinition;
 use golion_domain::units::power::KiloWattHour;
 use serde::{Deserialize, Serialize};
@@ -25,6 +28,9 @@ pub struct BessData {
     /// The declared future availability level of the Bess system
     #[garde(dive)]
     pub availability: Vec<StorageAvailability>,
+    /// Past 24h measured throughput on battery.
+    #[garde(dive)]
+    pub throughput: ThroughputData,
     /// The current state of charge of the battery in kWh, at the start
     /// of the optimization run.
     #[garde(range(min = 0.0))]
@@ -79,6 +85,9 @@ pub struct RenewableData {
 /// use golion_contract::asset::core::{AssetData, BessData};
 /// use golion_contract::asset::identification::AssetIdentification;
 /// use golion_contract::asset::specifications::BessSpecs;
+/// use golion_contract::asset::throughput::{
+///     BidirectionalThroughputContract, ThroughputData,
+/// };
 /// use golion_domain::countries::Countries;
 ///
 /// let availability = vec![
@@ -89,11 +98,24 @@ pub struct RenewableData {
 ///         .max_usable_energy(100.0)
 ///         .build(),
 /// ];
+/// let throughput = ThroughputData::Bidirectional(vec![
+///     BidirectionalThroughputContract::builder()
+///         .start_at(Timestamp::now())
+///         .charged_energy(0.0)
+///         .discharged_energy(0.0)
+///         .build(),
+/// ]);
 /// let asset = AssetData::Bess(
 ///     BessData::builder()
 ///         .availability(availability)
+///         .throughput(throughput)
 ///         .initial_soc(50.0)
-///         .specs(BessSpecs::builder().build())
+///         .specs(
+///             BessSpecs::builder()
+///                 .throughput_penalty(0.0)
+///                 .max_rolling_cycles(1.0)
+///                 .build(),
+///         )
 ///         .identification(AssetIdentification::builder().build())
 ///         .build(),
 /// );
@@ -123,8 +145,14 @@ impl TryFrom<&BessData> for BessSpecifications {
             discharge_efficiency: value.specs.discharge_efficiency.try_into()?,
         };
         let limits = BessLimits { soc_range, availability: availability.try_into()? };
+        let cycling = Cycling {
+            history: ThroughputHistory::try_from(&value.throughput)?,
+            max_24h_avg_cycles: value.specs.max_rolling_cycles,
+            penalty: value.specs.throughput_penalty,
+        };
         Ok(BessSpecifications {
             limits,
+            cycling,
             efficiencies,
             rated_charge_power: value.specs.rated_charge_power.into(),
             rated_discharge_power: value.specs.rated_discharge_power.into(),

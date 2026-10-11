@@ -30,16 +30,16 @@ pub struct MarketSolution<T, D: TimeStampedUtc> {
 pub struct BrpSolution {
     pub id: Uuid,
     pub revenue: f64,
-    pub markets: Vec<MarketSolution<WholesaleMarketType, WholesaleBid>>,
     pub penalty: f64,
+    pub markets: Vec<MarketSolution<WholesaleMarketType, WholesaleBid>>,
     pub shortages: Vec<WholesaleBid>,
 }
 
 #[derive(Debug)]
 pub struct ReserveSolution {
     pub id: Uuid,
-    pub solution: MarketSolution<AncillaryMarketType, AncillaryBid>,
     pub penalty: f64,
+    pub solution: MarketSolution<AncillaryMarketType, AncillaryBid>,
     pub shortages: Vec<AncillaryBid>,
 }
 

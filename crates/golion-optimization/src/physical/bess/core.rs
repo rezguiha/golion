@@ -1,6 +1,7 @@
 use crate::Result;
 use crate::physical::ActivationPath;
 use crate::physical::bess::soc::transition_constraint;
+use crate::physical::bess::throughput::CyclingConstraints;
 use crate::physical::variables::BessVariables;
 use golion_domain::asset::bess::availability::Availability;
 use golion_domain::asset::bess::limits::SocBounds;
@@ -123,12 +124,12 @@ impl Battery {
     pub(crate) fn new(
         time_index: &[Timestamp],
         vars: &mut ProblemVariables,
-        specifications: &impl BessVariableCreator,
+        specifications: &(impl BessVariableCreator + CyclingConstraints),
         initial_soc: KiloWattHour,
         step: MinuteStep,
     ) -> Result<Self> {
         let soc_bounds = specifications.soc_bounds()?;
-        let (variable_store, constraints) = specifications
+        let (variable_store, mut constraints) = specifications
             .create_variables_and_minimal_constraints(
                 time_index,
                 vars,
@@ -136,6 +137,10 @@ impl Battery {
                 initial_soc,
                 step,
             )?;
+        let cycling_constraints =
+            specifications.create_cycling_constraints(&variable_store)?;
+        constraints.extend(cycling_constraints);
+
         Ok(Self {
             initial_soc,
             step,
@@ -193,6 +198,9 @@ mod tests {
     use golion_domain::asset::bess::efficiency::BessPowerEfficiencies;
     use golion_domain::asset::bess::limits::{BessLimits, SocRange};
     use golion_domain::asset::bess::specification::BessSpecifications;
+    use golion_domain::asset::bess::throughput::{
+        BidirectionalThroughput, Cycling, ThroughputHistory,
+    };
     use golion_domain::temporal::step::MinuteStep;
     use golion_domain::units::efficiency::Efficiency;
     use golion_domain::units::power::{KiloWatt, KiloWattHour};
@@ -232,8 +240,22 @@ mod tests {
             charge_efficiency: Efficiency::try_from(0.95).unwrap(),
             discharge_efficiency: Efficiency::try_from(0.95).unwrap(),
         };
+        let history: Vec<BidirectionalThroughput> = (1..=96)
+            .rev()
+            .map(|i| BidirectionalThroughput {
+                start_at: start_at - *step.duration() * i,
+                charged_energy: KiloWattHour(0.0),
+                discharged_energy: KiloWattHour(0.0),
+            })
+            .collect();
+        let cycling = Cycling {
+            history: ThroughputHistory::Bidirectional(history.try_into().unwrap()),
+            max_24h_avg_cycles: 1.0,
+            penalty: 0.0,
+        };
         let specifications = BessSpecifications {
             limits,
+            cycling,
             efficiencies,
             rated_charge_power,
             rated_discharge_power,
@@ -254,7 +276,8 @@ mod tests {
         // One soc-transition constraint per slot.
         // Two Exclusivity of active power constraints per slot.
         // Two ancillary power headroom constraints per slot.
-        assert_eq!(battery.constraints.len(), 20);
+        // One rolling 24h throughput constraint per slot.
+        assert_eq!(battery.constraints.len(), 24);
     }
 }
 // endregion: Tests
