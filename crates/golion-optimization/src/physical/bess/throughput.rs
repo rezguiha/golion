@@ -67,9 +67,9 @@ fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
     let mut constraints =
         Vec::<Constraint>::with_capacity(variable_store.grid().length());
     let grid_start = *variable_store.grid().start();
-
+    let step = variable_store.grid().step();
     for dt in variable_store.grid().iter() {
-        let start_consideration = dt - 24.hours();
+        let start_consideration = dt - 24.hours() + step.span();
         let start_future_consideration =
             start_consideration.max(*variable_store.grid().start());
         let relevant_past_throughput = past_series
@@ -88,10 +88,7 @@ fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
             [start_element_index..current_element_index]
             .iter()
             .fold(0.0.into_expression(), |acc, vars| {
-                acc + C::modelled_throughput_expression(
-                    vars,
-                    variable_store.grid().step(),
-                )
+                acc + C::modelled_throughput_expression(vars, step)
             });
         constraints.push(constraint!(
             relevant_future_throughput + relevant_past_throughput
