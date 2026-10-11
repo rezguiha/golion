@@ -12,6 +12,10 @@ pub struct MinuteStep(SignedDuration);
 // that may bypass it.
 
 impl MinuteStep {
+    pub fn try_new(minutes: i64) -> crate::Result<Self> {
+        let duration = SignedDuration::from_mins(minutes);
+        duration.try_into()
+    }
     pub fn duration(&self) -> &SignedDuration {
         &self.0
     }
