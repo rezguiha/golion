@@ -47,7 +47,7 @@ pub struct BessSpecs {
     #[garde(range(max = 0.0))]
     pub throughput_penalty: f64,
     /// Rolling 24h average maximum throughput cycles.
-    #[garde(range(min = 0.0))]
+    #[garde(range(min = 0.0, max = 3.0))]
     pub max_rolling_cycles: f64,
 }
 
