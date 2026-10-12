@@ -1,3 +1,4 @@
+use crate::physical::variables::BessVariables;
 /// Cycling constraints related logic.
 use golion_domain::{
     asset::bess::{
@@ -13,8 +14,6 @@ use golion_domain::{
 };
 use good_lp::{Constraint, Expression, IntoAffineExpression, constraint};
 use jiff::ToSpan;
-
-use crate::physical::variables::BessVariables;
 
 pub trait ComputeCycleContribution {
     fn modelled_throughput(&self, efficiencies: &BessPowerEfficiencies) -> f64;
@@ -91,8 +90,9 @@ fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
         let current_element_index = variable_store.grid().index_of(&dt)?;
         let start_element_index =
             variable_store.grid().index_of(&start_future_consideration)?;
+
         let relevant_future_throughput = variable_store.data()
-            [start_element_index..current_element_index]
+            [start_element_index..=current_element_index]
             .iter()
             .fold(0.0.into_expression(), |acc, vars| {
                 acc + C::modelled_throughput_expression(vars, step, efficiencies)
