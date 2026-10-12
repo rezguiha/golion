@@ -11,10 +11,12 @@ use typed_builder::TypedBuilder;
 pub struct BidirectionalThroughputContract {
     #[garde(skip)]
     pub start_at: Timestamp,
-    /// Cumulated charged energy over time step in kWh.
+    /// Cumulated charged energy over time step in kWh
+    /// measure at the grid side.
     #[garde(range(min = 0.0))]
     pub charged_energy: f64,
-    /// Cumulated discharged energy over time step in kWh.
+    /// Cumulated discharged energy over time step in kWh
+    /// measured at the grid side.
     #[garde(range(min = 0.0))]
     pub discharged_energy: f64,
 }
@@ -22,7 +24,8 @@ pub struct BidirectionalThroughputContract {
 pub struct DischargeThroughputContract {
     #[garde(skip)]
     pub start_at: Timestamp,
-    /// Cumulated discharged energy over time step in kWh.
+    /// Cumulated discharged energy over time step in kWh
+    /// measured at the grid side.
     #[garde(range(min = 0.0))]
     pub discharged_energy: f64,
 }
