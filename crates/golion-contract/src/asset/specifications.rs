@@ -13,7 +13,7 @@ use typed_builder::TypedBuilder;
 /// Bess static specifications.
 #[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder, Clone, Copy)]
 pub struct BessSpecs {
-    /// Theoretical capacity expressed in kWh in grid side convention.
+    /// Theoretical capacity expressed in kWh in battery side convention.
     #[builder(default = 100_000.0)]
     #[garde(range(min = 0.0))]
     pub rated_energy: f64,

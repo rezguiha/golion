@@ -137,8 +137,8 @@ impl Battery {
                 initial_soc,
                 step,
             )?;
-        let cycling_constraints =
-            specifications.create_cycling_constraints(&variable_store)?;
+        let cycling_constraints = specifications
+            .create_cycling_constraints(&variable_store, specifications.efficiencies())?;
         constraints.extend(cycling_constraints);
 
         Ok(Self {

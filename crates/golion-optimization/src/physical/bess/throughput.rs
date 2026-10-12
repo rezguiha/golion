@@ -1,6 +1,7 @@
 /// Cycling constraints related logic.
 use golion_domain::{
     asset::bess::{
+        efficiency::BessPowerEfficiencies,
         specification::BessSpecifications,
         throughput::{BidirectionalThroughput, DischargeThroughput, ThroughputHistory},
     },
@@ -16,25 +17,28 @@ use jiff::ToSpan;
 use crate::physical::variables::BessVariables;
 
 pub trait ComputeCycleContribution {
-    fn modelled_throughput(&self) -> f64;
+    fn modelled_throughput(&self, efficiencies: &BessPowerEfficiencies) -> f64;
     fn modelled_throughput_expression(
         vars: &BessVariables,
         step: &MinuteStep,
+        efficiencies: &BessPowerEfficiencies,
     ) -> Expression;
     fn throughput_limit(usable_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64;
 }
 impl ComputeCycleContribution for BidirectionalThroughput {
-    fn modelled_throughput(&self) -> f64 {
-        self.charged_energy.0 + self.discharged_energy.0
+    fn modelled_throughput(&self, efficiencies: &BessPowerEfficiencies) -> f64 {
+        self.charged_energy.0 * efficiencies.charge_efficiency.value()
+            + self.discharged_energy.0 / efficiencies.discharge_efficiency.value()
     }
     fn modelled_throughput_expression(
         vars: &BessVariables,
         step: &MinuteStep,
+        efficiencies: &BessPowerEfficiencies,
     ) -> Expression {
-        (vars.input_power
-            + vars.output_power
-            + vars.input_ancillary
-            + vars.output_ancillary)
+        ((vars.input_power + vars.input_ancillary)
+            * *efficiencies.charge_efficiency.value()
+            + (vars.output_power + vars.output_ancillary)
+                / *efficiencies.discharge_efficiency.value())
             * step.duration().as_secs_f64()
             / 3600.0_f64
     }
@@ -43,15 +47,17 @@ impl ComputeCycleContribution for BidirectionalThroughput {
     }
 }
 impl ComputeCycleContribution for DischargeThroughput {
-    fn modelled_throughput(&self) -> f64 {
-        self.discharged_energy.0
+    fn modelled_throughput(&self, efficiencies: &BessPowerEfficiencies) -> f64 {
+        self.discharged_energy.0 / *efficiencies.discharge_efficiency.value()
     }
     fn modelled_throughput_expression(
         vars: &BessVariables,
         step: &MinuteStep,
+        efficiencies: &BessPowerEfficiencies,
     ) -> Expression {
         (vars.output_power + vars.output_ancillary) * step.duration().as_secs_f64()
             / 3600.0_f64
+            / *efficiencies.discharge_efficiency.value()
     }
     fn throughput_limit(usable_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64 {
         usable_energy.0 * max_24h_avg_cycles
@@ -62,6 +68,7 @@ fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
     past_series: &TimeSeries<C>,
     variable_store: &TimeSeries<BessVariables>,
     usable_energy: KiloWattHour,
+    efficiencies: &BessPowerEfficiencies,
     max_24h_avg_cycles: f64,
 ) -> crate::Result<Vec<Constraint>> {
     let mut constraints =
@@ -79,7 +86,7 @@ fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
                 throughput_row.start_at() >= &start_consideration
                     && throughput_row.start_at() < &grid_start
             })
-            .map(|throughput_row| throughput_row.modelled_throughput())
+            .map(|throughput_row| throughput_row.modelled_throughput(efficiencies))
             .fold(0.0, |acc, x| acc + x);
         let current_element_index = variable_store.grid().index_of(&dt)?;
         let start_element_index =
@@ -88,7 +95,7 @@ fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
             [start_element_index..current_element_index]
             .iter()
             .fold(0.0.into_expression(), |acc, vars| {
-                acc + C::modelled_throughput_expression(vars, step)
+                acc + C::modelled_throughput_expression(vars, step, efficiencies)
             });
         constraints.push(constraint!(
             relevant_future_throughput + relevant_past_throughput
@@ -105,6 +112,7 @@ pub trait CyclingConstraints {
     fn create_cycling_constraints(
         &self,
         variable_store: &TimeSeries<BessVariables>,
+        efficiencies: &BessPowerEfficiencies,
     ) -> crate::Result<Vec<Constraint>> {
         match self.history() {
             ThroughputHistory::Bidirectional(past_series) => {
@@ -112,6 +120,7 @@ pub trait CyclingConstraints {
                     past_series,
                     variable_store,
                     self.usable_energy(),
+                    efficiencies,
                     self.max_24h_avg_cycles(),
                 )
             }
@@ -120,6 +129,7 @@ pub trait CyclingConstraints {
                     past_series,
                     variable_store,
                     self.usable_energy(),
+                    efficiencies,
                     self.max_24h_avg_cycles(),
                 )
             }
@@ -138,6 +148,9 @@ impl CyclingConstraints for BessSpecifications {
         self.cycling.max_24h_avg_cycles
     }
     fn usable_energy(&self) -> KiloWattHour {
-        self.rated_energy
+        (self.rated_energy.0
+            * (self.limits.soc_range.max_soc().value()
+                - self.limits.soc_range.min_soc().value()))
+        .into()
     }
 }

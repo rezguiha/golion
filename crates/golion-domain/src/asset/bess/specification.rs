@@ -17,12 +17,3 @@ pub struct BessSpecifications {
     pub rated_charge_power: KiloWatt,
     pub rated_discharge_power: KiloWatt,
 }
-
-impl BessSpecifications {
-    fn usable_energy(&self) -> KiloWattHour {
-        (self.rated_energy.0
-            * (self.limits.soc_range.max_soc().value()
-                - self.limits.soc_range.min_soc().value()))
-        .into()
-    }
-}
