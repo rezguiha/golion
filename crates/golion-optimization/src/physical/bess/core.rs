@@ -1,32 +1,33 @@
 use crate::Result;
-use crate::physical::ActivationPath;
 use crate::physical::bess::soc::transition_constraint;
-use crate::physical::bess::throughput::CyclingConstraints;
+use crate::physical::bess::throughput::create_cycling_constraints;
 use crate::physical::variables::BessVariables;
+use crate::physical::{ActivationEnergy, ActivationPath};
 use golion_domain::asset::bess::availability::Availability;
 use golion_domain::asset::bess::limits::SocBounds;
-use golion_domain::asset::bess::{
-    efficiency::BessPowerEfficiencies, specification::BessSpecifications,
-};
+use golion_domain::asset::bess::specification::BessSpecifications;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
-use golion_domain::units::efficiency::Efficiency;
 use golion_domain::units::power::{KiloWatt, KiloWattHour};
 use good_lp::{
     Constraint, Expression, IntoAffineExpression, ProblemVariables, constraint,
 };
 use jiff::Timestamp;
 
-// region: BessVariableCreator
-pub trait BessVariableCreator {
-    fn efficiencies(&self) -> &BessPowerEfficiencies;
-    fn soc_bounds(&self) -> Result<TimeSeries<SocBounds>>;
-    fn availability(&self) -> &TimeSeries<Availability>;
-    fn rated_input_power(&self) -> &KiloWatt;
-    fn rated_output_power(&self) -> &KiloWatt;
+// region: Battery Definition
+#[derive(Debug)]
+pub struct Battery {
+    initial_soc: KiloWattHour,
+    step: MinuteStep,
+    pub(crate) variable_store: TimeSeries<BessVariables>,
+    pub(crate) constraints: Vec<Constraint>,
+    soc_bounds: TimeSeries<SocBounds>,
+    specifications: BessSpecifications,
+}
+
+impl Battery {
     // Creates variables at a particular timestamp t.
     fn create_variables_at(
-        &self,
         dt: &Timestamp,
         avail_point: &Availability,
         soc_bounds: &SocBounds,
@@ -35,7 +36,7 @@ pub trait BessVariableCreator {
         BessVariables::try_new(dt, avail_point, soc_bounds, variable_generator)
     }
     fn create_variables_and_minimal_constraints(
-        &self,
+        specifications: &BessSpecifications,
         time_index: &[Timestamp],
         vars: &mut ProblemVariables,
         soc_bounds: &TimeSeries<SocBounds>,
@@ -50,9 +51,9 @@ pub trait BessVariableCreator {
         // and generate defining soc constraints.
         for (i, dt) in time_index.iter().enumerate() {
             // Create battery physical variables.
-            let avail_point = self.availability().at(dt)?;
+            let avail_point = specifications.limits.availability.at(dt)?;
             let variables_at =
-                self.create_variables_at(dt, avail_point, soc_bounds.at(dt)?, vars)?;
+                Self::create_variables_at(dt, avail_point, soc_bounds.at(dt)?, vars)?;
             // Set exclusivity between active input power and output power.
             // This is necessary to be able to apply the right efficiency to the active power
             // of the battery during charge and during discharge.
@@ -76,8 +77,8 @@ pub trait BessVariableCreator {
                 &variables_at,
                 previous_soc,
                 &step,
-                &self.efficiencies().charge_efficiency,
-                &self.efficiencies().discharge_efficiency,
+                &specifications.efficiencies.charge_efficiency,
+                &specifications.efficiencies.discharge_efficiency,
             ));
             variable_vec.push(variables_at);
         }
@@ -86,71 +87,31 @@ pub trait BessVariableCreator {
         Ok((variable_store, constraints))
     }
 }
-
-impl BessVariableCreator for BessSpecifications {
-    fn efficiencies(&self) -> &BessPowerEfficiencies {
-        &self.efficiencies
-    }
-    fn soc_bounds(&self) -> Result<TimeSeries<SocBounds>> {
-        Ok(self.limits.soc_bounds()?)
-    }
-    fn availability(&self) -> &TimeSeries<Availability> {
-        &self.limits.availability
-    }
-    fn rated_input_power(&self) -> &KiloWatt {
-        &self.rated_charge_power
-    }
-    fn rated_output_power(&self) -> &KiloWatt {
-        &self.rated_discharge_power
-    }
-}
-// endregion: BessVariableCreator
-
-// region: Battery Definition
-#[derive(Debug)]
-pub struct Battery {
-    pub(crate) initial_soc: KiloWattHour,
-    pub(crate) step: MinuteStep,
-    pub(crate) variable_store: TimeSeries<BessVariables>,
-    pub(crate) constraints: Vec<Constraint>,
-    pub(crate) rated_input_power: KiloWatt,
-    pub(crate) rated_output_power: KiloWatt,
-    pub(crate) soc_bounds: TimeSeries<SocBounds>,
-    pub(crate) charge_efficiency: Efficiency,
-    pub(crate) discharge_efficiency: Efficiency,
-}
-
 impl Battery {
     pub(crate) fn new(
         time_index: &[Timestamp],
         vars: &mut ProblemVariables,
-        specifications: &(impl BessVariableCreator + CyclingConstraints),
+        specifications: BessSpecifications,
         initial_soc: KiloWattHour,
         step: MinuteStep,
     ) -> Result<Self> {
-        let soc_bounds = specifications.soc_bounds()?;
-        let (variable_store, mut constraints) = specifications
-            .create_variables_and_minimal_constraints(
+        let soc_bounds = specifications.limits.soc_bounds()?;
+        let (variable_store, constraints) =
+            Self::create_variables_and_minimal_constraints(
+                &specifications,
                 time_index,
                 vars,
                 &soc_bounds,
                 initial_soc,
                 step,
             )?;
-        let cycling_constraints = specifications
-            .create_cycling_constraints(&variable_store, specifications.efficiencies())?;
-        constraints.extend(cycling_constraints);
-
         Ok(Self {
             initial_soc,
             step,
             variable_store,
             constraints,
-            rated_input_power: *specifications.rated_input_power(),
-            rated_output_power: *specifications.rated_output_power(),
+            specifications,
             soc_bounds,
-            charge_efficiency: specifications.efficiencies().charge_efficiency,
-            discharge_efficiency: specifications.efficiencies().discharge_efficiency,
         })
     }
     /// State of charge reservation constraints along an activation path: at every
@@ -168,7 +129,8 @@ impl Battery {
     ) -> Result<Vec<Constraint>> {
         // Largest state of charge variation per kWh activated, whichever way the
         // battery delivers the activation, as charge efficiency is at most 1.
-        let factor = 1.0_f64 / self.discharge_efficiency.value();
+        let factor =
+            1.0_f64 / self.specifications.efficiencies.discharge_efficiency.value();
         // Activation energy drawn since the start of the activation.
         let mut upward = 0.0.into_expression();
         let mut downward = 0.0.into_expression();
@@ -186,6 +148,29 @@ impl Battery {
             constraints.push(constraint!(highest_soc <= soc_bounds.max.0));
         }
         Ok(constraints)
+    }
+
+    pub(crate) fn cycling_constraints(
+        &self,
+        expected_activation_series: &TimeSeries<ActivationEnergy>,
+    ) -> crate::Result<Vec<Constraint>> {
+        create_cycling_constraints(
+            &self.specifications,
+            &self.variable_store,
+            expected_activation_series,
+        )
+    }
+}
+
+impl Battery {
+    pub fn rated_input_power(&self) -> &KiloWatt {
+        &self.specifications.rated_charge_power
+    }
+    pub fn rated_output_power(&self) -> &KiloWatt {
+        &self.specifications.rated_discharge_power
+    }
+    pub fn specifications(&self) -> &BessSpecifications {
+        &self.specifications
     }
 }
 // endregion: Battery Definition
@@ -265,7 +250,7 @@ mod tests {
         let battery = Battery::new(
             &time_index,
             &mut vars,
-            &specifications,
+            specifications,
             KiloWattHour(20.0),
             step,
         )

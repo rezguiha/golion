@@ -160,6 +160,8 @@ async fn test_optimize_bess() -> Result<()> {
             .composition(vec![asset_id])
             .commitments(reserve_commitments)
             .activation_window(30.minutes().try_into().unwrap())
+            .upward_expected_activation_ratio(0.333)
+            .downward_expected_activation_ratio(0.333)
             .build(),
     ];
 

@@ -6,6 +6,7 @@ use crate::model::BuildEnv;
 use crate::physical::{bess::core::Battery, ccgt::GasTurbine, ren::Renewable};
 use golion_domain::problem::definition::AssetDefinition;
 use golion_domain::solution::PhysicalStates;
+use golion_domain::temporal::series::{TimeSeries, TimeStampedUtc};
 use golion_domain::units::power::KiloWatt;
 use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables};
 use jiff::Timestamp;
@@ -28,6 +29,11 @@ pub struct ActivationEnergy {
     pub(crate) start_at: Timestamp,
     pub(crate) upward: Expression,
     pub(crate) downward: Expression,
+}
+impl TimeStampedUtc for ActivationEnergy {
+    fn start_at(&self) -> &Timestamp {
+        &self.start_at
+    }
 }
 // endregion: Activation Path
 
@@ -104,6 +110,17 @@ impl Asset {
             Self::Ccgt(_) | Self::Ren(_) => Vec::new(),
         })
     }
+    /// Asset level constraints ensuring it does not exceed maximum usage
+    /// limitations.
+    pub fn maximum_usage_constraints(
+        &self,
+        expected_activation_series: &TimeSeries<ActivationEnergy>,
+    ) -> crate::Result<Vec<Constraint>> {
+        Ok(match self {
+            Self::Bess(b) => b.cycling_constraints(expected_activation_series)?,
+            Self::Ccgt(_) | Self::Ren(_) => Vec::<Constraint>::new(),
+        })
+    }
 
     /// Moves  asset physical constraints out leaving it empty
     pub(crate) fn take_constraints(&mut self) -> Vec<Constraint> {
@@ -115,13 +132,13 @@ impl Asset {
     }
     pub(crate) fn max_input_power(&self) -> KiloWatt {
         match self {
-            Self::Bess(b) => b.rated_input_power,
+            Self::Bess(b) => *b.rated_input_power(),
             Self::Ccgt(_) | Self::Ren(_) => KiloWatt(0.0),
         }
     }
     pub(crate) fn max_output_power(&self) -> KiloWatt {
         match self {
-            Self::Bess(b) => b.rated_output_power,
+            Self::Bess(b) => *b.rated_output_power(),
             Self::Ccgt(c) => c.rated_output_power,
             Self::Ren(r) => r.rated_output_power,
         }
@@ -140,12 +157,12 @@ pub struct PhysicalStore(HashMap<Uuid, Asset>);
 impl PhysicalStore {
     /// Builds the physical variables and constraints of every asset.
     pub(crate) fn try_new(
-        assets: &HashMap<Uuid, AssetDefinition>,
+        assets: HashMap<Uuid, AssetDefinition>,
         env: &BuildEnv<'_>,
         vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
         let store = assets
-            .iter()
+            .into_iter()
             .map(|(asset_id, definition)| {
                 let asset = match definition {
                     AssetDefinition::Bess { specifications, initial_soc } => {
@@ -154,13 +171,13 @@ impl PhysicalStore {
                             env.horizon().timestamps(),
                             vars,
                             specifications,
-                            *initial_soc,
+                            initial_soc,
                             step,
                         )?;
                         Asset::from(battery)
                     }
                 };
-                Ok((*asset_id, asset))
+                Ok((asset_id, asset))
             })
             .collect::<crate::Result<_>>()?;
         Ok(Self(store))

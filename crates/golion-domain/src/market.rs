@@ -1,3 +1,4 @@
+pub mod activation;
 pub mod bid;
 pub mod commitment;
 pub mod config;

@@ -9,7 +9,7 @@ pub trait Optimizer {
     /// Solves the problem, reporting the optimal commitments and revenues.
     fn optimize(
         &self,
-        problem: &OptimizationProblem,
+        problem: OptimizationProblem,
     ) -> Result<OptimizationSolution, Self::Error>;
 }
 // endregion: Optimizer Port

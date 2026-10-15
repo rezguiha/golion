@@ -33,7 +33,7 @@ pub enum TimeGridError {
 
 // region: Regular Grid Struct and Traits
 /// Continuous time grid definition.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct RegularTimeGrid {
     /// First timestamp of timeseries.
     start: Timestamp,

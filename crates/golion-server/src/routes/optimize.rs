@@ -21,7 +21,7 @@ async fn handler(
 ) -> Result<Json<OptimizationOutput>, ServerError> {
     let problem = OptimizationProblem::try_from(input)?;
     let solution =
-        task::spawn_blocking(move || HighsOptimizer::default().optimize(&problem))
+        task::spawn_blocking(move || HighsOptimizer::default().optimize(problem))
             .await??;
     Ok(Json(solution.into()))
 }

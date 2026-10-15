@@ -27,7 +27,7 @@ impl Optimizer for HighsOptimizer {
 
     fn optimize(
         &self,
-        problem: &OptimizationProblem,
+        problem: OptimizationProblem,
     ) -> crate::Result<OptimizationSolution> {
         let (mut model, vars) = Model::try_new(problem)?;
         let objective = model.net_revenue();

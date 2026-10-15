@@ -1,10 +1,10 @@
 use crate::market::choice::MarketChoice;
 use garde::Validate;
-use golion_domain::countries::Countries;
 use golion_domain::market::commitment::PowerCommitment;
 use golion_domain::market::market_type::AncillaryMarketType;
 use golion_domain::problem::definition::ReserveDefinition;
 use golion_domain::temporal::grid::RegularTimeGrid;
+use golion_domain::{countries::Countries, market::activation::ExpectedActivationRatios};
 use jiff::SignedDuration;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
@@ -29,6 +29,10 @@ pub struct ReservePerimeter {
     // Worst case full activation projection window
     #[garde(skip)]
     pub activation_window: SignedDuration,
+    #[garde(range(min = 0.0, max = 1.0))]
+    pub upward_expected_activation_ratio: f64,
+    #[garde(range(min = 0.0, max = 1.0))]
+    pub downward_expected_activation_ratio: f64,
 }
 
 // region: Domain Conversion
@@ -46,6 +50,10 @@ impl ReservePerimeter {
             self.commitments.iter().map(PowerCommitment::from),
             grid,
             self.activation_window,
+            ExpectedActivationRatios::try_new(
+                self.upward_expected_activation_ratio,
+                self.downward_expected_activation_ratio,
+            )?,
         )?)
     }
 }

@@ -13,42 +13,16 @@ use uuid::Uuid;
 /// are checked at construction, so any existing problem is consistent
 /// and can be modelled without further validation.
 #[derive(Debug)]
-pub struct OptimizationProblem {
-    grid: RegularTimeGrid,
-    assets: HashMap<Uuid, AssetDefinition>,
-    brp_perimeters: Vec<BrpDefinition>,
-    reserve_perimeters: Vec<ReserveDefinition>,
-    revenues: RevenueStore,
+pub struct ProblemData {
+    pub grid: RegularTimeGrid,
+    pub assets: HashMap<Uuid, AssetDefinition>,
+    pub brp_perimeters: Vec<BrpDefinition>,
+    pub reserve_perimeters: Vec<ReserveDefinition>,
+    pub revenues: RevenueStore,
 }
-
+#[derive(Debug)]
+pub struct OptimizationProblem(ProblemData);
 impl OptimizationProblem {
-    pub fn try_new(
-        grid: RegularTimeGrid,
-        assets: HashMap<Uuid, AssetDefinition>,
-        brp_perimeters: Vec<BrpDefinition>,
-        reserve_perimeters: Vec<ReserveDefinition>,
-        revenues: RevenueStore,
-    ) -> crate::Result<Self> {
-        Self::check_compositions(&assets, &brp_perimeters, &reserve_perimeters)?;
-        Self::check_single_brp_membership(&brp_perimeters)?;
-        Self::check_market_revenues(&revenues, &brp_perimeters, &reserve_perimeters)?;
-        Ok(Self { grid, assets, brp_perimeters, reserve_perimeters, revenues })
-    }
-    pub fn grid(&self) -> &RegularTimeGrid {
-        &self.grid
-    }
-    pub fn assets(&self) -> &HashMap<Uuid, AssetDefinition> {
-        &self.assets
-    }
-    pub fn brp_perimeters(&self) -> &[BrpDefinition] {
-        &self.brp_perimeters
-    }
-    pub fn reserve_perimeters(&self) -> &[ReserveDefinition] {
-        &self.reserve_perimeters
-    }
-    pub fn revenues(&self) -> &RevenueStore {
-        &self.revenues
-    }
     /// Make sure every perimeter is only composed of known assets.
     fn check_compositions(
         assets: &HashMap<Uuid, AssetDefinition>,
@@ -116,13 +90,36 @@ impl OptimizationProblem {
         }
         Ok(())
     }
+    pub fn into_data(self) -> ProblemData {
+        self.0
+    }
+    pub fn data(&self) -> &ProblemData {
+        &self.0
+    }
+}
+impl TryFrom<ProblemData> for OptimizationProblem {
+    type Error = crate::Error;
+    fn try_from(data: ProblemData) -> crate::Result<Self> {
+        Self::check_compositions(
+            &data.assets,
+            &data.brp_perimeters,
+            &data.reserve_perimeters,
+        )?;
+        Self::check_single_brp_membership(&data.brp_perimeters)?;
+        Self::check_market_revenues(
+            &data.revenues,
+            &data.brp_perimeters,
+            &data.reserve_perimeters,
+        )?;
+        Ok(Self(data))
+    }
 }
 // endregion: Optimization Problem
 
 // region: Tests
 #[cfg(test)]
 mod tests {
-    use super::OptimizationProblem;
+    use super::{OptimizationProblem, ProblemData};
     use crate::Error;
     use crate::asset::bess::availability::Availability;
     use crate::asset::bess::efficiency::BessPowerEfficiencies;
@@ -220,18 +217,28 @@ mod tests {
         )
         .unwrap()
     }
+    /// Problem data over the test grid, without reserve perimeters nor revenues.
+    fn data(
+        assets: HashMap<Uuid, AssetDefinition>,
+        brp_perimeters: Vec<BrpDefinition>,
+    ) -> ProblemData {
+        ProblemData {
+            grid: grid(),
+            assets,
+            brp_perimeters,
+            reserve_perimeters: Vec::new(),
+            revenues: RevenueStore::default(),
+        }
+    }
 
     #[test]
     fn accepts_consistent_problem() {
         let asset_id = Uuid::new_v4();
         let assets = HashMap::from([(asset_id, bess())]);
-        let problem = OptimizationProblem::try_new(
-            grid(),
+        let problem = OptimizationProblem::try_from(data(
             assets,
             vec![brp(vec![asset_id], vec![])],
-            Vec::new(),
-            RevenueStore::default(),
-        );
+        ));
         assert!(problem.is_ok());
     }
 
@@ -239,13 +246,10 @@ mod tests {
     fn rejects_unknown_asset_in_perimeter() {
         let unknown_id = Uuid::new_v4();
         let assets = HashMap::from([(Uuid::new_v4(), bess())]);
-        let problem = OptimizationProblem::try_new(
-            grid(),
+        let problem = OptimizationProblem::try_from(data(
             assets,
             vec![brp(vec![unknown_id], vec![])],
-            Vec::new(),
-            RevenueStore::default(),
-        );
+        ));
         assert!(matches!(
             problem,
             Err(Error::Problem(ProblemError::UnknownAssetsInPerimeter { asset_ids, .. }))
@@ -257,13 +261,10 @@ mod tests {
     fn rejects_asset_in_multiple_brps() {
         let asset_id = Uuid::new_v4();
         let assets = HashMap::from([(asset_id, bess())]);
-        let problem = OptimizationProblem::try_new(
-            grid(),
+        let problem = OptimizationProblem::try_from(data(
             assets,
             vec![brp(vec![asset_id], vec![]), brp(vec![asset_id], vec![])],
-            Vec::new(),
-            RevenueStore::default(),
-        );
+        ));
         assert!(matches!(
             problem,
             Err(Error::Problem(ProblemError::AssetInMultipleBrps { asset_ids }))
@@ -283,13 +284,7 @@ mod tests {
         )
         .unwrap();
         let perimeter = brp(vec![asset_id], vec![specs]);
-        let problem = OptimizationProblem::try_new(
-            grid(),
-            assets,
-            vec![perimeter],
-            Vec::new(),
-            RevenueStore::default(),
-        );
+        let problem = OptimizationProblem::try_from(data(assets, vec![perimeter]));
         assert!(matches!(
             problem,
             Err(Error::Market(MarketError::MissingMarketRevenue { .. }))
