@@ -12,17 +12,17 @@ use jiff::Timestamp;
 // region: Horizon
 /// Time horizon of the model. Owns the timestamps of the grid, computed
 /// once, so that every component iterates over the exact same slots.
-pub(crate) struct Horizon<'a> {
-    grid: &'a RegularTimeGrid,
+pub(crate) struct Horizon {
+    grid: RegularTimeGrid,
     timestamps: Box<[Timestamp]>,
 }
 
-impl<'a> Horizon<'a> {
-    fn new(grid: &'a RegularTimeGrid) -> Self {
-        Self { grid, timestamps: grid.iter().collect() }
+impl Horizon {
+    fn new(grid: &RegularTimeGrid) -> Self {
+        Self { grid: *grid, timestamps: grid.iter().collect() }
     }
     pub(crate) fn grid(&self) -> &RegularTimeGrid {
-        self.grid
+        &self.grid
     }
     pub(crate) fn timestamps(&self) -> &[Timestamp] {
         &self.timestamps
@@ -34,15 +34,15 @@ impl<'a> Horizon<'a> {
 /// Read-only inputs shared by every model component during construction.
 /// Variables are passed separately, as the only state mutated while building.
 pub(crate) struct BuildEnv<'a> {
-    horizon: Horizon<'a>,
+    horizon: Horizon,
     revenues: &'a RevenueStore,
 }
 
 impl<'a> BuildEnv<'a> {
-    fn new(grid: &'a RegularTimeGrid, revenues: &'a RevenueStore) -> Self {
+    fn new(grid: &RegularTimeGrid, revenues: &'a RevenueStore) -> Self {
         Self { horizon: Horizon::new(grid), revenues }
     }
-    pub(crate) fn horizon(&self) -> &Horizon<'a> {
+    pub(crate) fn horizon(&self) -> &Horizon {
         &self.horizon
     }
     pub(crate) fn revenues(&self) -> &RevenueStore {
@@ -89,19 +89,21 @@ impl Model {
     /// Physical assets are built first as perimeters link their variables to
     /// them. The variables are returned alongside, for the solver to consume.
     pub(crate) fn try_new(
-        problem: &OptimizationProblem,
+        problem: OptimizationProblem,
     ) -> crate::Result<(Self, ProblemVariables)> {
-        let env = BuildEnv::new(problem.grid(), problem.revenues());
+        let problem_data = problem.into_data();
+        let env = BuildEnv::new(&problem_data.grid, &problem_data.revenues);
         let mut vars = ProblemVariables::new();
-        let physical = PhysicalStore::try_new(problem.assets(), &env, &mut vars)?;
+
+        let physical = PhysicalStore::try_new(problem_data.assets, &env, &mut vars)?;
         let wholesale_perimeter = WholesalePerimeter::try_new(
-            problem.brp_perimeters(),
+            &problem_data.brp_perimeters,
             &physical,
             &env,
             &mut vars,
         )?;
         let ancillary_perimeter = AncillaryPerimeter::try_new(
-            problem.reserve_perimeters(),
+            &problem_data.reserve_perimeters,
             &physical,
             &env,
             &mut vars,

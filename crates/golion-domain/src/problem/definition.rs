@@ -1,6 +1,7 @@
 /// Definitions of the elements taking part in an optimization problem.
 /// They describe what to optimize, independently of how it is modelled.
 use crate::asset::bess::specification::BessSpecifications;
+use crate::market::activation::ExpectedActivationRatios;
 use crate::market::commitment::{EnergyCommitment, PowerCommitment};
 use crate::market::specification::MarketSpecs;
 use crate::problem::error::ProblemError;
@@ -113,6 +114,8 @@ pub struct ReserveDefinition {
     penalty: f64,
     /// Number of grid steps a full activation of the reserve must be sustained for.
     activation_steps: usize,
+    /// Expected activation ratio computed over history
+    expected_activation_ratios: ExpectedActivationRatios,
 }
 impl ReserveDefinition {
     pub fn try_new(
@@ -122,6 +125,7 @@ impl ReserveDefinition {
         commitments: impl Iterator<Item = PowerCommitment>,
         grid: &RegularTimeGrid,
         activation_window: SignedDuration,
+        expected_activation_ratios: ExpectedActivationRatios,
     ) -> crate::Result<Self> {
         // The activation window must cover a whole, positive number of grid steps.
         let step = *grid.step().duration();
@@ -149,6 +153,7 @@ impl ReserveDefinition {
             reserve.input_power += commitment.input_power;
             reserve.output_power += commitment.output_power;
         }
+
         Ok(Self {
             id,
             market,
@@ -157,6 +162,7 @@ impl ReserveDefinition {
             penalty: ANCILLARY_PENALTY_EURO_PER_KW,
             // Positive and exact by the check above.
             activation_steps: (window_secs / step_secs) as usize,
+            expected_activation_ratios,
         })
     }
     pub fn id(&self) -> &Uuid {
@@ -176,6 +182,9 @@ impl ReserveDefinition {
     }
     pub fn activation_steps(&self) -> usize {
         self.activation_steps
+    }
+    pub fn expected_activation_ratios(&self) -> ExpectedActivationRatios {
+        self.expected_activation_ratios
     }
 }
 // endregion: Perimeter Definitions

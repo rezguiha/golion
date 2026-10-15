@@ -5,7 +5,7 @@ use crate::perimeter::wholesale::BrpPerimeter;
 use garde::Validate;
 use golion_domain::countries::Countries;
 use golion_domain::market::revenue::{Revenue, RevenueStore};
-use golion_domain::problem::OptimizationProblem;
+use golion_domain::problem::{OptimizationProblem, ProblemData};
 use golion_domain::temporal::{
     grid::RegularTimeGrid, series::TimeSeries, step::MinuteStep,
 };
@@ -92,13 +92,8 @@ impl TryFrom<OptimizationInput> for OptimizationProblem {
             .into_iter()
             .map(|perimeter| perimeter.try_into_definition(&country, &grid))
             .collect::<crate::Result<_>>()?;
-        Ok(OptimizationProblem::try_new(
-            grid,
-            assets,
-            brp_perimeters,
-            reserve_perimeters,
-            revenues,
-        )?)
+        Ok(ProblemData { grid, assets, brp_perimeters, reserve_perimeters, revenues }
+            .try_into()?)
     }
 }
 // endregion: Domain Conversions.

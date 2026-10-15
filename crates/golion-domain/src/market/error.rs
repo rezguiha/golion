@@ -43,4 +43,10 @@ pub enum MarketError {
     NotAncillaryMarket {
         market: MarketType,
     },
+
+    // -- Activation
+    InvalidActivationRatioError {
+        upward: f64,
+        downward: f64,
+    },
 }

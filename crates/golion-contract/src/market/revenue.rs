@@ -22,6 +22,9 @@ pub enum AncillaryRevenue {
     ///     - aFRR free bidding
     ///     - aFRR capacity bidding
     ///     - FCR
+    /// This represents total revenue of a market including the expected
+    /// revenue from capacity bidding an expected earning from future
+    /// energy component.
     SimplifiedAncillaryRevenue {
         /// Reference datetime for future estimated revenue.
         #[garde(skip)]

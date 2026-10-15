@@ -7,7 +7,10 @@ use crate::{
     physical::{ActivationEnergy, ActivationPath, PhysicalStore},
 };
 use golion_domain::{
-    market::{commitment::PowerCommitment, market_type::AncillaryMarketType},
+    market::{
+        activation::ExpectedActivationRatios, commitment::PowerCommitment,
+        market_type::AncillaryMarketType,
+    },
     problem::definition::ReserveDefinition,
     solution::{MarketSolution, ReserveSolution, SolutionWithRevenue},
     temporal::series::TimeSeries,
@@ -44,6 +47,8 @@ pub struct ReservePerimeter {
     penalty: Expression,
     /// Number of grid steps a full activation must be sustained for.
     activation_steps: usize,
+    /// Expected activation ratio computed over history
+    expected_activation_ratios: ExpectedActivationRatios,
 }
 
 impl ReservePerimeter {
@@ -100,6 +105,7 @@ impl ReservePerimeter {
             revenue,
             penalty,
             activation_steps: definition.activation_steps(),
+            expected_activation_ratios: definition.expected_activation_ratios(),
         })
     }
     /// Creates reserve aggregated bidding and commitments
@@ -198,6 +204,12 @@ impl AncillaryPerimeter {
             physical_store,
             &mut constraints,
         )?;
+        Self::maximum_usage_constraints(
+            &reserve_perimeters,
+            physical_store,
+            env.horizon().timestamps(),
+            &mut constraints,
+        )?;
         // Compute Overall Revnue.
         let mut revenue = 0.0.into_expression();
         let mut penalty = 0.0.into_expression();
@@ -211,14 +223,14 @@ impl AncillaryPerimeter {
     /// Links each asset's physical ancillary variables to the sum of its
     /// repartition over every reserve perimeter it belongs to.
     fn physical_reserve_perimeters_constraints(
-        reserve_perimiters: &[ReservePerimeter],
+        reserve_perimeters: &[ReservePerimeter],
         time_index: &[Timestamp],
         physical_store: &PhysicalStore,
         constraints: &mut Vec<Constraint>,
     ) -> crate::Result<()> {
         for (asset_id, asset) in physical_store.iter() {
             // Determine the reserve perimeters in which the asset is present
-            let repartitions: Vec<&TimeSeries<BidVariables>> = reserve_perimiters
+            let repartitions: Vec<&TimeSeries<BidVariables>> = reserve_perimeters
                 .iter()
                 .filter_map(|perimeter| perimeter.repartition.get(asset_id))
                 .collect();
@@ -246,7 +258,7 @@ impl AncillaryPerimeter {
     /// draws energy only within its own activation window: the resulting path is
     /// handed to the asset, which sets its energy constraints along it.
     fn activation_energy_constraints(
-        reserve_perimiters: &[ReservePerimeter],
+        reserve_perimeters: &[ReservePerimeter],
         time_index: &[Timestamp],
         physical_store: &PhysicalStore,
         constraints: &mut Vec<Constraint>,
@@ -254,7 +266,7 @@ impl AncillaryPerimeter {
         for (asset_id, asset) in physical_store.iter() {
             // Activation window and repartition of every reserve perimeter
             // in which the asset is present.
-            let windows: Vec<(usize, &TimeSeries<BidVariables>)> = reserve_perimiters
+            let windows: Vec<(usize, &TimeSeries<BidVariables>)> = reserve_perimeters
                 .iter()
                 .filter_map(|perimeter| {
                     perimeter
@@ -306,6 +318,51 @@ impl AncillaryPerimeter {
     }
     pub(crate) fn penalty(&self) -> &Expression {
         &self.penalty
+    }
+    /// Computes the expected ancillary activation of an asset
+    /// over time index.
+    fn asset_expected_activation(
+        reserve_perimeters: &[ReservePerimeter],
+        asset_id: &Uuid,
+        time_index: &[Timestamp],
+    ) -> crate::Result<TimeSeries<ActivationEnergy>> {
+        let perimeter_shares: Vec<_> = reserve_perimeters
+            .iter()
+            .filter_map(|perimeter| {
+                perimeter.repartition.get(asset_id).map(|repartition| {
+                    (perimeter.expected_activation_ratios, repartition)
+                })
+            })
+            .collect();
+        let mut activations: Vec<ActivationEnergy> = Vec::with_capacity(time_index.len());
+        for dt in time_index {
+            let mut downward = Expression::with_capacity(perimeter_shares.len());
+            let mut upward = Expression::with_capacity(perimeter_shares.len());
+            for (activation_ratios, perimeter_share) in perimeter_shares.iter() {
+                let share_at = perimeter_share.at(dt)?;
+                upward.add_mul(activation_ratios.upward(), share_at.output_energy());
+                downward.add_mul(activation_ratios.downward(), share_at.input_energy());
+            }
+            activations.push(ActivationEnergy { start_at: *dt, upward, downward })
+        }
+        Ok(activations.try_into()?)
+    }
+    /// Add Maximum usage constraints
+    pub(crate) fn maximum_usage_constraints(
+        reserve_perimeters: &[ReservePerimeter],
+        physical_store: &PhysicalStore,
+        time_index: &[Timestamp],
+        constraints: &mut Vec<Constraint>,
+    ) -> crate::Result<()> {
+        for (asset_id, asset) in physical_store.iter() {
+            let expected_activations = Self::asset_expected_activation(
+                reserve_perimeters,
+                asset_id,
+                time_index,
+            )?;
+            constraints.extend(asset.maximum_usage_constraints(&expected_activations)?);
+        }
+        Ok(())
     }
     /// Moves the ancillary constraints and those of every reserve perimeter
     /// out, leaving them empty.
