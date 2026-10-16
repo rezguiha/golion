@@ -140,10 +140,7 @@ impl TryFrom<&BessData> for BessSpecifications {
         let soc_range: SocRange = value.specs.try_into()?;
         let availability: Vec<BessAvailability> =
             value.availability.iter().map(BessAvailability::from).collect();
-        let efficiencies = BessPowerEfficiencies {
-            charge_efficiency: value.specs.charge_efficiency.try_into()?,
-            discharge_efficiency: value.specs.discharge_efficiency.try_into()?,
-        };
+        let efficiencies: BessPowerEfficiencies = value.specs.try_into()?;
         let cycling = Cycling {
             history: ThroughputHistory::try_from(&value.throughput)?,
             max_24h_avg_cycles: value.specs.max_rolling_cycles,

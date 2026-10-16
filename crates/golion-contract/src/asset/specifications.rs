@@ -75,20 +75,20 @@ pub struct CcgtSpecs {
 // endregion: Asset Specifications
 
 // region: Domain Conversions
-impl TryInto<SocRange> for BessSpecs {
+impl TryFrom<BessSpecs> for SocRange {
     type Error = crate::Error;
-    fn try_into(self) -> crate::Result<SocRange> {
-        let min_soc_fraction: SocFraction = self.soc_min.try_into()?;
-        let max_soc_fraction: SocFraction = self.soc_max.try_into()?;
+    fn try_from(specs: BessSpecs) -> crate::Result<Self> {
+        let min_soc_fraction: SocFraction = specs.soc_min.try_into()?;
+        let max_soc_fraction: SocFraction = specs.soc_max.try_into()?;
         Ok(SocRange::try_new(min_soc_fraction, max_soc_fraction)?)
     }
 }
 
-impl TryInto<BessPowerEfficiencies> for BessSpecs {
+impl TryFrom<BessSpecs> for BessPowerEfficiencies {
     type Error = crate::Error;
-    fn try_into(self) -> crate::Result<BessPowerEfficiencies> {
-        let charge_efficiency: Efficiency = self.charge_efficiency.try_into()?;
-        let discharge_efficiency: Efficiency = self.discharge_efficiency.try_into()?;
+    fn try_from(specs: BessSpecs) -> crate::Result<Self> {
+        let charge_efficiency: Efficiency = specs.charge_efficiency.try_into()?;
+        let discharge_efficiency: Efficiency = specs.discharge_efficiency.try_into()?;
         Ok(BessPowerEfficiencies { charge_efficiency, discharge_efficiency })
     }
 }
