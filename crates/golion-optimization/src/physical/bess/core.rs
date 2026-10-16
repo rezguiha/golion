@@ -22,7 +22,15 @@ pub struct Battery {
     pub(crate) variable_store: TimeSeries<BessVariables>,
     pub(crate) constraints: Vec<Constraint>,
     soc_bounds: TimeSeries<SocBounds>,
-    specifications: BessSpecifications,
+    // The specifications are temporarily put in a box
+    // as it is accessed in a limited way here.
+    // This has been done to handle a lint error about enum
+    // variants size mismatch over 200 bytes. This is only
+    // present because Gasturbine and Renewable variants are
+    // not implemented yet and do not contain their specifications
+    // that will be defined later on. When that is done the sizes
+    // will be similar and we should put this back to the stack.
+    specifications: Box<BessSpecifications>,
 }
 
 impl Battery {
@@ -110,7 +118,7 @@ impl Battery {
             step,
             variable_store,
             constraints,
-            specifications,
+            specifications: specifications.into(),
             soc_bounds,
         })
     }
