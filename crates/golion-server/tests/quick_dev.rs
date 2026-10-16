@@ -40,7 +40,7 @@ async fn test_optimize_bess() -> Result<()> {
     let wholesale_market_choices = vec![MarketChoice {
         market: WholesaleMarketType::IntradayContinuous,
         product_step_minutes: 15,
-        product_increment_kw: 10,
+        product_increment_kw: 100,
     }];
     let availability = grid
         .iter()
