@@ -89,7 +89,7 @@ impl RegularTimeGrid {
     }
 
     pub fn index_of(&self, dt: &Timestamp) -> crate::Result<usize> {
-        if (*dt < self.start) | (*dt > self.end) {
+        if (*dt < self.start) || (*dt > self.end) {
             return Err(TimeGridError::OutsideBounds {
                 dt: *dt,
                 start: self.start,

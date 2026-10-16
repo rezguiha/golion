@@ -62,7 +62,7 @@ impl TimeDefinedInterval {
         let start_time = Time::new(open_hour, open_minute, 0, 0)?;
         let end_time = Time::new(close_hour, close_minute, 0, 0)?;
         let delta_start_end_days: DeltaDays = delta_start_end.try_into()?;
-        if (start_time > end_time) & (delta_start_end_days.0.get_days() == 0) {
+        if (start_time > end_time) && (delta_start_end_days.0.get_days() == 0) {
             Err(MarketError::InvalidTimeDefinedBound {
                 start_time,
                 end_time,

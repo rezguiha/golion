@@ -14,7 +14,7 @@ impl TryFrom<f64> for Efficiency {
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         let lower_bound = 0.0;
         let upper_bound = 1.0;
-        if (value <= lower_bound) | (value > upper_bound) {
+        if (value <= lower_bound) || (value > upper_bound) {
             Err(InvalidEfficiency { value, lower_bound, upper_bound }.into())
         } else {
             Ok(Efficiency(value))
