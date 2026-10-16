@@ -4,7 +4,7 @@ use super::support::{
 use crate::{
     market::{core::Market, variables::BidVariables},
     model::BuildEnv,
-    physical::{ActivationEnergy, ActivationPath, PhysicalStore},
+    physical::{ActivationEnergy, PhysicalStore},
 };
 use golion_domain::{
     market::{
@@ -303,9 +303,7 @@ impl AncillaryPerimeter {
                         Ok(energy)
                     })
                     .collect::<crate::Result<Vec<_>>>()?;
-                constraints.extend(
-                    asset.ancillary_energy_constraints(&ActivationPath { steps })?,
-                );
+                constraints.extend(asset.ancillary_energy_constraints(&steps)?);
             }
         }
         Ok(())
