@@ -12,7 +12,7 @@ use golion_domain::{
         market_type::AncillaryMarketType,
     },
     problem::definition::ReserveDefinition,
-    solution::{MarketSolution, ReserveSolution, SolutionWithRevenue},
+    solution::{MarketSolution, ReserveSolution},
     temporal::series::TimeSeries,
 };
 use good_lp::{
@@ -383,15 +383,13 @@ impl ReservePerimeter {
         let revenue = solution.eval(self.market.revenue());
         let market_solution = MarketSolution {
             market_type: AncillaryMarketType::try_from(*self.market.market_type())?,
-            solution: SolutionWithRevenue {
-                revenue,
-                series: self
-                    .market
-                    .bid_variables()
-                    .map(|bid_variables| bid_variables.to_ancillary_bid(solution))
-                    .collect(),
-                step: *self.market.step(),
-            },
+            revenue,
+            series: self
+                .market
+                .bid_variables()
+                .map(|bid_variables| bid_variables.to_ancillary_bid(solution))
+                .collect(),
+            step: *self.market.step(),
         };
         let shortages = self
             .penalization_store

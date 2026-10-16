@@ -10,7 +10,7 @@ use golion_domain::{
         bid::WholesaleBid, commitment::PowerCommitment, market_type::WholesaleMarketType,
     },
     problem::definition::BrpDefinition,
-    solution::{BrpSolution, MarketSolution, SolutionWithRevenue},
+    solution::{BrpSolution, MarketSolution},
     temporal::series::TimeSeries,
 };
 use good_lp::{
@@ -219,14 +219,12 @@ impl BrpPerimeter {
             let revenue_market = solution.eval(market.revenue());
             let market_solution = MarketSolution {
                 market_type: WholesaleMarketType::try_from(*market.market_type())?,
-                solution: SolutionWithRevenue {
-                    revenue: revenue_market,
-                    series: market
-                        .bid_variables()
-                        .map(|bid_variables| bid_variables.to_wholesale_bid(solution))
-                        .collect(),
-                    step: *market.step(),
-                },
+                revenue: revenue_market,
+                series: market
+                    .bid_variables()
+                    .map(|bid_variables| bid_variables.to_wholesale_bid(solution))
+                    .collect(),
+                step: *market.step(),
             };
             market_solutions.push(market_solution)
         }
