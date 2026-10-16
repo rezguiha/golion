@@ -19,7 +19,7 @@ pub trait ToBidTimeBounds {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
-        product_specificationss: &ProductSpecifications,
+        product_specifications: &ProductSpecifications,
     ) -> crate::Result<Option<RegularTimeGrid>>;
 }
 
@@ -65,7 +65,7 @@ impl ToBidTimeBounds for StaticAuctionTemporality {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
-        product_specificationss: &ProductSpecifications,
+        product_specifications: &ProductSpecifications,
     ) -> crate::Result<Option<RegularTimeGrid>> {
         // We are using clone here on timezone as it is cheap to clone
         // and to_zoned requires to pass ownership of timezone.
@@ -90,14 +90,14 @@ impl ToBidTimeBounds for StaticAuctionTemporality {
         let bounds = fit_bounds_to_bid_step(
             &zoned_bidding_start,
             &zoned_bidding_end,
-            &product_specificationss.step,
+            &product_specifications.step,
         )?;
 
         bounds
             .map(|(start_at, end_at)| {
                 RegularTimeGrid::try_new_start_end(
                     start_at.into(),
-                    product_specificationss.step,
+                    product_specifications.step,
                     end_at.into(),
                 )
             })
@@ -109,7 +109,7 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
-        product_specificationss: &ProductSpecifications,
+        product_specifications: &ProductSpecifications,
     ) -> crate::Result<Option<RegularTimeGrid>> {
         let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
         let zoned_bidding_start = add_and_set_time(
@@ -127,13 +127,13 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
         let bounds = fit_bounds_to_bid_step(
             &zoned_bidding_start,
             &zoned_bidding_end,
-            &product_specificationss.step,
+            &product_specifications.step,
         )?;
         bounds
             .map(|(start_at, end_at)| {
                 RegularTimeGrid::try_new_start_end(
                     start_at.into(),
-                    product_specificationss.step,
+                    product_specifications.step,
                     end_at.into(),
                 )
             })
@@ -145,7 +145,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
     fn to_bid_time_bounds(
         &self,
         reference_time: &Timestamp,
-        product_specificationss: &ProductSpecifications,
+        product_specifications: &ProductSpecifications,
     ) -> crate::Result<Option<RegularTimeGrid>> {
         let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
         // Compute same day bidding bounds.
@@ -156,7 +156,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
         let same_day_bounds = &fit_bounds_to_bid_step(
             &same_day_start,
             &same_day_end,
-            &product_specificationss.step,
+            &product_specifications.step,
         )?;
         // Compute next day bidding bounds. Next day products only open for
         // trading at the next day gate opening time of the reference day.
@@ -176,7 +176,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
             fit_bounds_to_bid_step(
                 &next_day_bidding_start,
                 &next_day_bidding_end,
-                &product_specificationss.step,
+                &product_specifications.step,
             )?
         } else {
             None
@@ -190,7 +190,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
             (Some((same_start_at, same_end_at)), None) => {
                 RegularTimeGrid::try_new_start_end(
                     same_start_at.into(),
-                    product_specificationss.step,
+                    product_specifications.step,
                     same_end_at.into(),
                 )
                 .map(Some)
@@ -200,7 +200,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
             (Some((same_start_at, _)), Some((_, next_end_at))) => {
                 RegularTimeGrid::try_new_start_end(
                     same_start_at.into(),
-                    product_specificationss.step,
+                    product_specifications.step,
                     next_end_at.into(),
                 )
                 .map(Some)
@@ -210,7 +210,7 @@ impl ToBidTimeBounds for ContinuousAuctionTemporality {
             (None, Some((next_start_at, next_end_at))) => {
                 RegularTimeGrid::try_new_start_end(
                     next_start_at.into(),
-                    product_specificationss.step,
+                    product_specifications.step,
                     next_end_at.into(),
                 )
                 .map(Some)
