@@ -13,13 +13,6 @@ use jiff::Timestamp;
 use std::collections::HashMap;
 use uuid::Uuid;
 // region: Activation Path
-/// Energy an asset draws at the grid connection when fully activated on its
-/// ancillary portion of commitments, step by step from the activation start until the
-/// longest activation window ends.
-#[derive(Debug)]
-pub struct ActivationPath {
-    pub(crate) steps: Vec<ActivationEnergy>,
-}
 
 /// Activation energy drawn over one step of an activation path, in kWh during the step.
 /// The energy contains the aggregation of each reserve that is within each respective activation
@@ -103,10 +96,10 @@ impl Asset {
     /// Only storage is energy limited: other assets return no constraint.
     pub fn ancillary_energy_constraints(
         &self,
-        path: &ActivationPath,
+        activation_path: &[ActivationEnergy],
     ) -> crate::Result<Vec<Constraint>> {
         Ok(match self {
-            Self::Bess(b) => b.soc_reservation_constraints(path)?,
+            Self::Bess(b) => b.soc_reservation_constraints(activation_path)?,
             Self::Ccgt(_) | Self::Ren(_) => Vec::new(),
         })
     }

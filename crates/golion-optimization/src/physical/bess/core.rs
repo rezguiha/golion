@@ -1,8 +1,8 @@
 use crate::Result;
+use crate::physical::ActivationEnergy;
 use crate::physical::bess::soc::transition_constraint;
 use crate::physical::bess::throughput::create_cycling_constraints;
 use crate::physical::variables::BessVariables;
-use crate::physical::{ActivationEnergy, ActivationPath};
 use golion_domain::asset::bess::availability::Availability;
 use golion_domain::asset::bess::soc::SocBounds;
 use golion_domain::asset::bess::specification::BessSpecifications;
@@ -133,7 +133,7 @@ impl Battery {
     /// timestep and step in activation path which is computationaly very heavy.
     pub(crate) fn soc_reservation_constraints(
         &self,
-        path: &ActivationPath,
+        activation_path: &[ActivationEnergy],
     ) -> Result<Vec<Constraint>> {
         // Largest state of charge variation per kWh activated, whichever way the
         // battery delivers the activation, as charge efficiency is at most 1.
@@ -142,8 +142,8 @@ impl Battery {
         // Activation energy drawn since the start of the activation.
         let mut upward = 0.0.into_expression();
         let mut downward = 0.0.into_expression();
-        let mut constraints = Vec::with_capacity(2 * path.steps.len());
-        for energy in &path.steps {
+        let mut constraints = Vec::with_capacity(2 * activation_path.len());
+        for energy in activation_path {
             upward += &energy.upward;
             downward += &energy.downward;
             let soc = self.variable_store.at(&energy.start_at)?.soc;
