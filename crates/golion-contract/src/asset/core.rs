@@ -7,7 +7,7 @@ use super::specifications::{BessSpecs, CcgtSpecs, RenewableSpecs};
 use garde::Validate;
 use golion_domain::asset::bess::availability::Availability as BessAvailability;
 use golion_domain::asset::bess::efficiency::BessPowerEfficiencies;
-use golion_domain::asset::bess::limits::{BessLimits, SocRange};
+use golion_domain::asset::bess::soc::SocRange;
 use golion_domain::asset::bess::specification::BessSpecifications;
 use golion_domain::asset::bess::throughput::{Cycling, ThroughputHistory};
 use golion_domain::problem::definition::AssetDefinition;
@@ -144,14 +144,14 @@ impl TryFrom<&BessData> for BessSpecifications {
             charge_efficiency: value.specs.charge_efficiency.try_into()?,
             discharge_efficiency: value.specs.discharge_efficiency.try_into()?,
         };
-        let limits = BessLimits { soc_range, availability: availability.try_into()? };
         let cycling = Cycling {
             history: ThroughputHistory::try_from(&value.throughput)?,
             max_24h_avg_cycles: value.specs.max_rolling_cycles,
             penalty: value.specs.throughput_penalty,
         };
         Ok(BessSpecifications {
-            limits,
+            soc_range,
+            availability: availability.try_into()?,
             cycling,
             efficiencies,
             rated_charge_power: value.specs.rated_charge_power.into(),

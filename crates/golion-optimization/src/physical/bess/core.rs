@@ -4,7 +4,7 @@ use crate::physical::bess::throughput::create_cycling_constraints;
 use crate::physical::variables::BessVariables;
 use crate::physical::{ActivationEnergy, ActivationPath};
 use golion_domain::asset::bess::availability::Availability;
-use golion_domain::asset::bess::limits::SocBounds;
+use golion_domain::asset::bess::soc::SocBounds;
 use golion_domain::asset::bess::specification::BessSpecifications;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
@@ -51,7 +51,7 @@ impl Battery {
         // and generate defining soc constraints.
         for (i, dt) in time_index.iter().enumerate() {
             // Create battery physical variables.
-            let avail_point = specifications.limits.availability.at(dt)?;
+            let avail_point = specifications.availability.at(dt)?;
             let variables_at =
                 Self::create_variables_at(dt, avail_point, soc_bounds.at(dt)?, vars)?;
             // Set exclusivity between active input power and output power.
@@ -95,7 +95,7 @@ impl Battery {
         initial_soc: KiloWattHour,
         step: MinuteStep,
     ) -> Result<Self> {
-        let soc_bounds = specifications.limits.soc_bounds()?;
+        let soc_bounds = specifications.soc_bounds()?;
         let (variable_store, constraints) =
             Self::create_variables_and_minimal_constraints(
                 &specifications,
@@ -181,7 +181,7 @@ mod tests {
     use super::Battery;
     use golion_domain::asset::bess::availability::Availability;
     use golion_domain::asset::bess::efficiency::BessPowerEfficiencies;
-    use golion_domain::asset::bess::limits::{BessLimits, SocRange};
+    use golion_domain::asset::bess::soc::SocRange;
     use golion_domain::asset::bess::specification::BessSpecifications;
     use golion_domain::asset::bess::throughput::{
         BidirectionalThroughput, Cycling, ThroughputHistory,
@@ -213,14 +213,8 @@ mod tests {
             })
             .collect();
         let mut vars = ProblemVariables::new();
-        let limits = BessLimits {
-            soc_range: SocRange::try_new(
-                0.0.try_into().unwrap(),
-                1.0.try_into().unwrap(),
-            )
-            .unwrap(),
-            availability: availability.try_into().unwrap(),
-        };
+        let soc_range =
+            SocRange::try_new(0.0.try_into().unwrap(), 1.0.try_into().unwrap()).unwrap();
         let efficiencies = BessPowerEfficiencies {
             charge_efficiency: Efficiency::try_from(0.95).unwrap(),
             discharge_efficiency: Efficiency::try_from(0.95).unwrap(),
@@ -239,7 +233,8 @@ mod tests {
             penalty: 0.0,
         };
         let specifications = BessSpecifications {
-            limits,
+            soc_range,
+            availability: availability.try_into().unwrap(),
             cycling,
             efficiencies,
             rated_charge_power,

@@ -3,14 +3,19 @@
 /// to be able to model it.
 use crate::{
     asset::bess::{
-        efficiency::BessPowerEfficiencies, limits::BessLimits, throughput::Cycling,
+        availability::Availability,
+        efficiency::BessPowerEfficiencies,
+        soc::{SocBounds, SocRange, compute_soc_bounds},
+        throughput::Cycling,
     },
+    temporal::series::TimeSeries,
     units::power::{KiloWatt, KiloWattHour},
 };
 
 #[derive(Debug)]
 pub struct BessSpecifications {
-    pub limits: BessLimits,
+    pub soc_range: SocRange,
+    pub availability: TimeSeries<Availability>,
     pub cycling: Cycling,
     pub efficiencies: BessPowerEfficiencies,
     pub rated_energy: KiloWattHour,
@@ -23,8 +28,10 @@ impl BessSpecifications {
     }
     pub fn rated_usable_energy(&self) -> KiloWattHour {
         (self.rated_energy.0
-            * (self.limits.soc_range.max_soc().value()
-                - self.limits.soc_range.min_soc().value()))
+            * (self.soc_range.max_soc().value() - self.soc_range.min_soc().value()))
         .into()
+    }
+    pub fn soc_bounds(&self) -> crate::Result<TimeSeries<SocBounds>> {
+        compute_soc_bounds(&self.availability, &self.soc_range)
     }
 }

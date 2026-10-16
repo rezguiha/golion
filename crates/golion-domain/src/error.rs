@@ -1,4 +1,4 @@
-use super::asset::bess::limits::InvalidSocRange;
+use super::asset::bess::soc::InvalidSocRange;
 use super::temporal::grid::TimeGridError;
 use super::temporal::series::TimeSeriesError;
 use super::temporal::step::MinuteStepError;

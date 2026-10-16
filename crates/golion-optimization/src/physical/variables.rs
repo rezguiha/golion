@@ -1,7 +1,7 @@
 /// Physical Variables definition.
 /// It includes also their creation trait.
 use golion_domain::asset::bess::availability::Availability;
-use golion_domain::asset::bess::limits::SocBounds;
+use golion_domain::asset::bess::soc::SocBounds;
 use golion_domain::asset::state::{BessState, OtherAssetState};
 use golion_domain::temporal::series::TimeStampedUtc;
 use golion_domain::units::power::KiloWatt;

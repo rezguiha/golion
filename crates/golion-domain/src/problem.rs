@@ -123,7 +123,7 @@ mod tests {
     use crate::Error;
     use crate::asset::bess::availability::Availability;
     use crate::asset::bess::efficiency::BessPowerEfficiencies;
-    use crate::asset::bess::limits::{BessLimits, SocRange};
+    use crate::asset::bess::soc::SocRange;
     use crate::asset::bess::specification::BessSpecifications;
     use crate::asset::bess::throughput::{
         BidirectionalThroughput, Cycling, ThroughputHistory,
@@ -167,14 +167,7 @@ mod tests {
                 max_usable_energy: rated_energy,
             })
             .collect();
-        let limits = BessLimits {
-            soc_range: SocRange::try_new(
-                0.0.try_into().unwrap(),
-                1.0.try_into().unwrap(),
-            )
-            .unwrap(),
-            availability: availability.try_into().unwrap(),
-        };
+
         let efficiencies = BessPowerEfficiencies {
             charge_efficiency: Efficiency::try_from(0.95).unwrap(),
             discharge_efficiency: Efficiency::try_from(0.95).unwrap(),
@@ -197,7 +190,12 @@ mod tests {
         };
         AssetDefinition::Bess {
             specifications: BessSpecifications {
-                limits,
+                soc_range: SocRange::try_new(
+                    0.0.try_into().unwrap(),
+                    1.0.try_into().unwrap(),
+                )
+                .unwrap(),
+                availability: availability.try_into().unwrap(),
                 cycling,
                 efficiencies,
                 rated_charge_power,

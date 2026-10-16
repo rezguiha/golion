@@ -2,7 +2,7 @@
 /// This defines mainly technical constructor information
 /// and user defined usage limitations.
 use garde::Validate;
-use golion_domain::asset::bess::{efficiency::BessPowerEfficiencies, limits::SocRange};
+use golion_domain::asset::bess::{efficiency::BessPowerEfficiencies, soc::SocRange};
 use golion_domain::units::efficiency::Efficiency;
 use golion_domain::units::soc::SocFraction;
 use serde::{Deserialize, Serialize};
