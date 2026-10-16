@@ -264,8 +264,7 @@ mod tests {
         // One soc-transition constraint per slot.
         // Two Exclusivity of active power constraints per slot.
         // Two ancillary power headroom constraints per slot.
-        // One rolling 24h throughput constraint per slot.
-        assert_eq!(battery.constraints.len(), 24);
+        assert_eq!(battery.constraints.len(), 20);
     }
 }
 // endregion: Tests

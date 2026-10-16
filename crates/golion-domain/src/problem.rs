@@ -274,7 +274,7 @@ mod tests {
     fn rejects_market_without_revenue() {
         let asset_id = Uuid::new_v4();
         let assets = HashMap::from([(asset_id, bess())]);
-        let product = ProductSpecifications::try_new(15.minutes(), 10).unwrap();
+        let product = ProductSpecifications::try_new(15.minutes(), 100).unwrap();
         let specs = MarketSpecs::try_new(
             MarketType::WholeSale(WholesaleMarketType::SpotDayAhead),
             Countries::FR,
