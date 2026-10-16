@@ -15,15 +15,11 @@ pub enum PhysicalStates {
 }
 
 #[derive(Debug)]
-pub struct SolutionWithRevenue<D: TimeStampedUtc> {
+pub struct MarketSolution<T, D: TimeStampedUtc> {
+    pub market_type: T,
     pub revenue: f64,
     pub step: MinuteStep,
     pub series: Vec<D>,
-}
-#[derive(Debug)]
-pub struct MarketSolution<T, D: TimeStampedUtc> {
-    pub market_type: T,
-    pub solution: SolutionWithRevenue<D>,
 }
 
 #[derive(Debug)]

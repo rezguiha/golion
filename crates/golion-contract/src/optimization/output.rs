@@ -116,12 +116,11 @@ where
     V: Validate<Context = ()> + From<D>,
 {
     fn from(value: MarketSolution<M, D>) -> Self {
-        let MarketSolution { market_type, solution } = value;
         Self {
-            revenue: solution.revenue,
+            revenue: value.revenue,
             series: MarketSeries {
-                market: market_type,
-                values: solution.series.into_iter().map(V::from).collect(),
+                market: value.market_type,
+                values: value.series.into_iter().map(V::from).collect(),
             },
         }
     }
