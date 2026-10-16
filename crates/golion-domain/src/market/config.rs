@@ -17,6 +17,9 @@ use crate::market::temporality::{
 };
 use crate::temporal::grid::RegularTimeGrid;
 
+const WHOLESALE_INCREMENT_KW: u16 = 100;
+const ANCILLARY_INCREMENT_KW: u16 = 1000;
+
 // region: Market config
 /// A particular market configuration
 #[derive(Debug)]
@@ -87,8 +90,8 @@ impl AllMarketConfig {
             "CET",
         )?;
         let possible_products = HashSet::from([
-            ProductSpecifications::try_new(15.minutes(), 10)?,
-            ProductSpecifications::try_new(1.hours(), 10)?,
+            ProductSpecifications::try_new(15.minutes(), WHOLESALE_INCREMENT_KW)?,
+            ProductSpecifications::try_new(1.hours(), WHOLESALE_INCREMENT_KW)?,
         ]);
         let auction = match country {
             Countries::BE
@@ -113,8 +116,8 @@ impl AllMarketConfig {
             "CET",
         )?;
         let possible_products = HashSet::from([
-            ProductSpecifications::try_new(15.minutes(), 10)?,
-            ProductSpecifications::try_new(1.hours(), 10)?,
+            ProductSpecifications::try_new(15.minutes(), WHOLESALE_INCREMENT_KW)?,
+            ProductSpecifications::try_new(1.hours(), WHOLESALE_INCREMENT_KW)?,
         ]);
         let auction = match country {
             Countries::BE
@@ -138,8 +141,8 @@ impl AllMarketConfig {
             "CET",
         )?;
         let possible_products = HashSet::from([
-            ProductSpecifications::try_new(15.minutes(), 10)?,
-            ProductSpecifications::try_new(1.hours(), 10)?,
+            ProductSpecifications::try_new(15.minutes(), WHOLESALE_INCREMENT_KW)?,
+            ProductSpecifications::try_new(1.hours(), WHOLESALE_INCREMENT_KW)?,
         ]);
         let auction = match country {
             Countries::BE
@@ -163,8 +166,8 @@ impl AllMarketConfig {
             "CET",
         )?;
         let possible_products = HashSet::from([
-            ProductSpecifications::try_new(15.minutes(), 10)?,
-            ProductSpecifications::try_new(1.hours(), 10)?,
+            ProductSpecifications::try_new(15.minutes(), WHOLESALE_INCREMENT_KW)?,
+            ProductSpecifications::try_new(1.hours(), WHOLESALE_INCREMENT_KW)?,
         ]);
         let auction = match country {
             Countries::BE
@@ -194,9 +197,9 @@ impl AllMarketConfig {
             }
         };
         let possible_products = HashSet::from([
-            ProductSpecifications::try_new(15.minutes(), 10)?,
-            ProductSpecifications::try_new(30.minutes(), 10)?,
-            ProductSpecifications::try_new(1.hour(), 10)?,
+            ProductSpecifications::try_new(15.minutes(), WHOLESALE_INCREMENT_KW)?,
+            ProductSpecifications::try_new(30.minutes(), WHOLESALE_INCREMENT_KW)?,
+            ProductSpecifications::try_new(1.hour(), WHOLESALE_INCREMENT_KW)?,
         ]);
 
         Ok(Self::IntradayContinuous(MarketConfig {
@@ -220,8 +223,10 @@ impl AllMarketConfig {
             | Countries::ES
             | Countries::PT => harmonized_picasso,
         };
-        let possible_products =
-            HashSet::from([ProductSpecifications::try_new(15.minutes(), 1000)?]);
+        let possible_products = HashSet::from([ProductSpecifications::try_new(
+            15.minutes(),
+            ANCILLARY_INCREMENT_KW,
+        )?]);
         Ok(Self::AfrrFree(MarketConfig { country: *country, auction, possible_products }))
     }
 
