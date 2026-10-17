@@ -2,7 +2,6 @@ use crate::asset::throughput::ThroughputData;
 
 /// Different type asset definition.
 use super::availability::{GeneratorAvailability, StorageAvailability};
-use super::identification::AssetIdentification;
 use super::specifications::{BessSpecs, CcgtSpecs, RenewableSpecs};
 use garde::Validate;
 use golion_domain::asset::bess::availability::Availability as BessAvailability;
@@ -21,10 +20,9 @@ use uuid::Uuid;
 /// unit on which we can collect scada data.
 #[derive(Debug, Validate, Serialize, Deserialize, TypedBuilder)]
 pub struct BessData {
-    /// The asset unique identification id and grouping ids.
-    #[serde(flatten)]
-    #[garde(dive)]
-    pub identification: AssetIdentification,
+    /// The asset unique identification
+    #[garde(skip)]
+    pub asset_id: Uuid,
     /// The declared future availability level of the Bess system
     #[garde(dive)]
     pub availability: Vec<StorageAvailability>,
@@ -44,10 +42,9 @@ pub struct BessData {
 /// data.
 #[derive(Debug, Validate, Serialize, Deserialize, TypedBuilder)]
 pub struct GasTurbineData {
-    /// The asset unique identification id and grouping ids.
-    #[serde(flatten)]
-    #[garde(dive)]
-    pub identification: AssetIdentification,
+    /// The asset unique identification
+    #[garde(skip)]
+    pub asset_id: Uuid,
 
     #[garde(dive)]
     /// The declared future availability level of the CCGT
@@ -60,10 +57,9 @@ pub struct GasTurbineData {
 /// Renewable Asset unit on which we can collect scada data.
 #[derive(Debug, Validate, Serialize, Deserialize, TypedBuilder)]
 pub struct RenewableData {
-    /// The asset unique identification id and grouping ids.
-    #[serde(flatten)]
-    #[garde(dive)]
-    pub identification: AssetIdentification,
+    /// The asset unique identification
+    #[garde(skip)]
+    pub asset_id: Uuid,
 
     #[garde(dive)]
     /// The declared future availability level of the CCGT
@@ -166,13 +162,11 @@ impl AssetData {
                 let specifications = BessSpecifications::try_from(&data)?;
                 let initial_soc = KiloWattHour(data.initial_soc);
                 let definition = AssetDefinition::Bess { specifications, initial_soc };
-                Ok((data.identification.asset_id, definition))
+                Ok((data.asset_id, definition))
             }
-            Self::GasTurbine(GasTurbineData { identification, .. })
-            | Self::Renewable(RenewableData { identification, .. }) => {
-                Err(crate::Error::UnsupportedAssetType {
-                    asset_id: identification.asset_id,
-                })
+            Self::GasTurbine(GasTurbineData { asset_id, .. })
+            | Self::Renewable(RenewableData { asset_id, .. }) => {
+                Err(crate::Error::UnsupportedAssetType { asset_id })
             }
         }
     }
