@@ -69,4 +69,4 @@ command = [
 ]
 need_stdout = true
 default_watch = false
-watch = ["crates/golion-server/tests"]
+watch = ["crates"]
