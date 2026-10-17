@@ -74,14 +74,14 @@ impl BrpPerimeter {
         )?;
         // Compute penalty expression
         let penalty =
-            build_penalization_expression(&penalization_store, *definition.penalty());
+            build_penalization_expression(&penalization_store, definition.penalty());
         // Compute revenue expression
         let mut revenue = 0.0.into_expression();
         for market in markets.iter() {
             revenue += market.revenue();
         }
         Ok(Self {
-            id: *definition.id(),
+            id: definition.id(),
             markets,
             bid_store,
             constraints,

@@ -14,7 +14,7 @@ pub fn transition_constraint(
         current_step_variables.soc
             == previous_step_soc.into_expression()
                 + power_to_energy(
-                    current_step_variables.input_power * *charge_efficiency.value()
+                    current_step_variables.input_power * charge_efficiency.value()
                         - current_step_variables.output_power
                             * (1.0_f64 / discharge_efficiency.value()),
                     step.duration()

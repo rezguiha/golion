@@ -19,13 +19,13 @@ pub struct BidirectionalThroughput {
 }
 
 impl TimeStampedUtc for BidirectionalThroughput {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }
 impl TimeStampedUtc for DischargeThroughput {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }
 

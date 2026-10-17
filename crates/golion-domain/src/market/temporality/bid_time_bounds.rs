@@ -258,7 +258,7 @@ mod tests {
         let bounds = auction
             .to_bid_time_bounds(&reference_time, &product_specifications(15))
             .unwrap();
-        assert_eq!(bounds.map(|grid| (*grid.start(), *grid.end())), expected_bounds);
+        assert_eq!(bounds.map(|grid| (grid.start(), grid.end())), expected_bounds);
     }
     #[test]
     fn dynamic_window_less_than_bid_step() {

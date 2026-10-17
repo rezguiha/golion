@@ -22,7 +22,7 @@ impl TryFrom<f64> for Efficiency {
     }
 }
 impl Efficiency {
-    pub fn value(&self) -> &f64 {
-        &self.0
+    pub fn value(&self) -> f64 {
+        self.0
     }
 }

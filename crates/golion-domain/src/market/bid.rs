@@ -44,12 +44,12 @@ pub struct WholesaleBid {
 }
 
 impl TimeStampedUtc for WholesaleBid {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }
 impl TimeStampedUtc for AncillaryBid {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }

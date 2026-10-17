@@ -24,8 +24,8 @@ impl SocRange {
     pub fn try_new(min_soc: SocFraction, max_soc: SocFraction) -> crate::Result<Self> {
         if min_soc > max_soc {
             return Err(InvalidSocRange {
-                min_soc: *min_soc.value(),
-                max_soc: *max_soc.value(),
+                min_soc: min_soc.value(),
+                max_soc: max_soc.value(),
             }
             .into());
         }
@@ -50,8 +50,8 @@ pub struct SocBounds {
     pub max: KiloWattHour,
 }
 impl TimeStampedUtc for SocBounds {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }
 

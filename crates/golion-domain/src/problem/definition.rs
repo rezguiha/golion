@@ -71,7 +71,7 @@ impl BrpDefinition {
             .zip(net_positions)
             .map(|(start_at, net_position)| {
                 EnergyCommitment { start_at, energy_net_position: net_position.into() }
-                    .to_power_commitment(grid.step())
+                    .to_power_commitment(&grid.step())
             })
             .collect();
         Ok(Self {
@@ -83,8 +83,8 @@ impl BrpDefinition {
         })
     }
 
-    pub fn id(&self) -> &Uuid {
-        &self.id
+    pub fn id(&self) -> Uuid {
+        self.id
     }
     pub fn markets(&self) -> &[MarketSpecs] {
         &self.markets
@@ -95,8 +95,8 @@ impl BrpDefinition {
     pub fn composition(&self) -> &[Uuid] {
         &self.composition
     }
-    pub fn penalty(&self) -> &f64 {
-        &self.penalty
+    pub fn penalty(&self) -> f64 {
+        self.penalty
     }
 }
 
@@ -165,8 +165,8 @@ impl ReserveDefinition {
             expected_activation_ratios,
         })
     }
-    pub fn id(&self) -> &Uuid {
-        &self.id
+    pub fn id(&self) -> Uuid {
+        self.id
     }
     pub fn market(&self) -> &MarketSpecs {
         &self.market
@@ -177,8 +177,8 @@ impl ReserveDefinition {
     pub fn composition(&self) -> &[Uuid] {
         &self.composition
     }
-    pub fn penalty(&self) -> &f64 {
-        &self.penalty
+    pub fn penalty(&self) -> f64 {
+        self.penalty
     }
     pub fn activation_steps(&self) -> usize {
         self.activation_steps
