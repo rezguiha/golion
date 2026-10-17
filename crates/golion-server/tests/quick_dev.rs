@@ -8,7 +8,6 @@ use golion_contract::{
     asset::{
         availability::StorageAvailability,
         core::{AssetData, BessData},
-        identification::AssetIdentification,
         specifications::BessSpecs,
         throughput::{BidirectionalThroughputContract, ThroughputData},
     },
@@ -24,6 +23,93 @@ use jiff::RoundMode::Trunc;
 use jiff::TimestampRound;
 use jiff::{SignedDuration, ToSpan, Unit, civil::date};
 use uuid::Uuid;
+
+const NB_ASSETS: u8 = 10;
+const NB_BRP: u8 = 2;
+const NB_BSP: u8 = 3;
+
+fn create_bess_asset(asset_id: Uuid, grid: &RegularTimeGrid) -> AssetData {
+    let availability = grid
+        .iter()
+        .map(|t| {
+            StorageAvailability::builder()
+                .start_at(t)
+                .max_charge_power(20_000.0)
+                .max_discharge_power(20_000.0)
+                .max_usable_energy(100_000.0)
+                .build()
+        })
+        .collect();
+    let past_grid = RegularTimeGrid::try_new_start_end(
+        grid.start() - 24.hours(),
+        grid.step(),
+        grid.start(),
+    )
+    .unwrap();
+    let throughput = ThroughputData::Bidirectional(
+        past_grid
+            .iter()
+            .map(|t| {
+                BidirectionalThroughputContract::builder()
+                    .start_at(t)
+                    .charged_energy(0.0)
+                    .discharged_energy(0.0)
+                    .build()
+            })
+            .collect(),
+    );
+    AssetData::Bess(
+        BessData::builder()
+            .availability(availability)
+            .throughput(throughput)
+            .initial_soc(50_000.0)
+            .specs(
+                BessSpecs::builder()
+                    .throughput_penalty(0.0)
+                    .max_rolling_cycles(1.0)
+                    .build(),
+            )
+            .asset_id(asset_id)
+            .build(),
+    )
+}
+
+fn create_wholesale_market_revenue(
+    market_type: WholesaleMarketType,
+    grid: &RegularTimeGrid,
+    ref_sell_price: f64,
+    ref_buy_price: f64,
+) -> MarketSeries<WholesaleMarketType, WholesaleRevenue> {
+    MarketSeries {
+        market: market_type,
+        values: grid
+            .iter()
+            .map(|t| WholesaleRevenue::SimplifiedWholesaleRevenue {
+                start_at: t,
+                sell_price: ref_sell_price,
+                buy_price: ref_buy_price,
+            })
+            .collect(),
+    }
+}
+fn create_wholesale_commitment(
+    market: WholesaleMarketType,
+    grid: &RegularTimeGrid,
+    net_position: f64,
+) -> MarketSeries<WholesaleMarketType, WholesaleCommitment> {
+    MarketSeries {
+        market,
+        values: grid
+            .iter()
+            .map(|t| {
+                WholesaleCommitment::builder()
+                    .start_at(t)
+                    .net_position(net_position)
+                    .build()
+            })
+            .collect(),
+    }
+}
 /// Temporary simple test of sending assetdata as a payload
 /// on optimize endpoint.
 #[tokio::test]
@@ -37,59 +123,96 @@ async fn test_optimize_bess() -> Result<()> {
         )?;
     let step = MinuteStep::try_new(15).unwrap();
     let grid = RegularTimeGrid::try_new_start_end(start, step, end).unwrap();
-    let wholesale_market_choices = vec![MarketChoice {
-        market: WholesaleMarketType::IntradayContinuous,
-        product_step_minutes: 15,
-        product_increment_kw: 100,
-    }];
-    let availability = grid
-        .iter()
-        .map(|t| {
-            StorageAvailability::builder()
-                .start_at(t)
-                .max_charge_power(20_000.0)
-                .max_discharge_power(20_000.0)
-                .max_usable_energy(100_000.0)
-                .build()
-        })
-        .collect();
-    let reserve_commitments: Vec<AncillaryCommitment> = grid
-        .iter()
-        .map(|t| {
-            AncillaryCommitment::builder()
-                .start_at(t)
-                .upward_power(0.0)
-                .downward_power(2.0)
-                .build()
-        })
-        .collect();
-    let wholesale_commitments = vec![
-        MarketSeries {
-            market: WholesaleMarketType::IntradayAuction1,
-            values: grid
-                .iter()
-                .map(|t| {
-                    WholesaleCommitment::builder()
-                        .start_at(t)
-                        .net_position(1000.0)
-                        .build()
-                })
-                .collect(),
-        },
-        MarketSeries {
-            market: WholesaleMarketType::SpotDayAhead,
-            values: grid
-                .iter()
-                .map(|t| {
-                    WholesaleCommitment::builder()
-                        .start_at(t)
-                        .net_position(-1500.0)
-                        .build()
-                })
-                .collect(),
-        },
-    ];
 
+    let asset_ids: Vec<Uuid> = (1..=NB_ASSETS).map(|_| Uuid::new_v4()).collect();
+    let brp_ids: Vec<Uuid> = (1..=NB_BRP).map(|_| Uuid::new_v4()).collect();
+    let bsp_ids: Vec<Uuid> = (1..=NB_BSP).map(|_| Uuid::new_v4()).collect();
+    let asset_brp: Vec<(Uuid, Uuid)> =
+        asset_ids.iter().copied().zip(brp_ids.iter().copied().cycle()).collect();
+    let asset_bsp: Vec<(Uuid, Uuid)> =
+        asset_ids.iter().copied().zip(bsp_ids.iter().copied().cycle()).collect();
+
+    let brp_perimeters = brp_ids
+        .iter()
+        .map(|brp_id| {
+            let wholesale_market_choices = vec![MarketChoice {
+                market: WholesaleMarketType::IntradayContinuous,
+                product_step_minutes: 15,
+                product_increment_kw: 100,
+            }];
+            let wholesale_commitments = vec![
+                create_wholesale_commitment(
+                    WholesaleMarketType::IntradayAuction1,
+                    &grid,
+                    1000.0,
+                ),
+                create_wholesale_commitment(
+                    WholesaleMarketType::SpotDayAhead,
+                    &grid,
+                    -1500.0,
+                ),
+            ];
+
+            let composition = asset_brp
+                .iter()
+                .filter(|(_, owner)| owner == brp_id)
+                .map(|&(asset_id, _)| asset_id)
+                .collect();
+
+            BrpPerimeter {
+                id: *brp_id,
+                composition,
+                markets: wholesale_market_choices,
+                commitments: wholesale_commitments,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let wholesale_revenues = brp_perimeters
+        .iter()
+        .flat_map(|brp| &brp.markets)
+        .map(|choice| create_wholesale_market_revenue(choice.market, &grid, 75.0, 80.0))
+        .collect::<Vec<_>>();
+
+    let assets: Vec<AssetData> =
+        asset_ids.iter().map(|asset_id| create_bess_asset(*asset_id, &grid)).collect();
+
+    let reserve_perimeters = bsp_ids
+        .iter()
+        .map(|bsp_id| {
+            let reserve_commitments: Vec<AncillaryCommitment> = grid
+                .iter()
+                .map(|t| {
+                    AncillaryCommitment::builder()
+                        .start_at(t)
+                        .upward_power(0.0)
+                        .downward_power(2.0)
+                        .build()
+                })
+                .collect();
+            let composition = asset_bsp
+                .iter()
+                .filter(|(_, owner)| owner == bsp_id)
+                .map(|&(asset_id, _)| asset_id)
+                .collect();
+
+            ReservePerimeter::builder()
+                .id(*bsp_id)
+                .market(MarketChoice {
+                    market: AncillaryMarketType::Energy(
+                        EnergyAncillaryMarketType::AfrrFree,
+                    ),
+                    product_increment_kw: 1000,
+                    product_step_minutes: 15,
+                })
+                .composition(composition)
+                .commitments(reserve_commitments)
+                .activation_window(30.minutes().try_into().unwrap())
+                .upward_expected_activation_ratio(0.333)
+                .downward_expected_activation_ratio(0.333)
+                .build()
+        })
+        .collect::<Vec<_>>();
     let ancillary_revenues = vec![MarketSeries {
         market: AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
         values: grid
@@ -101,76 +224,12 @@ async fn test_optimize_bess() -> Result<()> {
             })
             .collect(),
     }];
-    let wholesale_revenues = vec![MarketSeries {
-        market: WholesaleMarketType::IntradayContinuous,
-        values: grid
-            .iter()
-            .map(|t| WholesaleRevenue::SimplifiedWholesaleRevenue {
-                start_at: t,
-                sell_price: 80.0,
-                buy_price: 75.0,
-            })
-            .collect(),
-    }];
-    let past_grid =
-        RegularTimeGrid::try_new_start_end(start - 24.hours(), step, start).unwrap();
-    let throughput = ThroughputData::Bidirectional(
-        past_grid
-            .iter()
-            .map(|t| {
-                BidirectionalThroughputContract::builder()
-                    .start_at(t)
-                    .charged_energy(0.0)
-                    .discharged_energy(0.0)
-                    .build()
-            })
-            .collect(),
-    );
-    let identification = AssetIdentification::builder().build();
-    let asset_id = identification.asset_id;
-    let asset = AssetData::Bess(
-        BessData::builder()
-            .availability(availability)
-            .throughput(throughput)
-            .initial_soc(50_000.0)
-            .specs(
-                BessSpecs::builder()
-                    .throughput_penalty(0.0)
-                    .max_rolling_cycles(2.0)
-                    .build(),
-            )
-            .identification(identification)
-            .build(),
-    );
-
-    let brp_perimeters = vec![BrpPerimeter {
-        id: Uuid::new_v4(),
-        composition: vec![asset_id],
-        markets: wholesale_market_choices,
-        commitments: wholesale_commitments,
-    }];
-    let reserve_perimeters = vec![
-        ReservePerimeter::builder()
-            .id(Uuid::new_v4())
-            .market(MarketChoice {
-                market: AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
-                product_increment_kw: 1000,
-                product_step_minutes: 15,
-            })
-            .composition(vec![asset_id])
-            .commitments(reserve_commitments)
-            .activation_window(30.minutes().try_into().unwrap())
-            .upward_expected_activation_ratio(0.333)
-            .downward_expected_activation_ratio(0.333)
-            .build(),
-    ];
-
     let input = OptimizationInput {
         optimization_start_at: start,
         optimization_end_at: end,
         optimization_step: SignedDuration::from_mins(15),
         country: Countries::FR,
-        assets: vec![asset],
+        assets,
         brp_perimeters,
         reserve_perimeters,
         ancillary_revenues,
