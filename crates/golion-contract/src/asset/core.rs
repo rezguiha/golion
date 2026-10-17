@@ -79,12 +79,12 @@ pub struct RenewableData {
 /// use jiff::Timestamp;
 /// use golion_contract::asset::availability::StorageAvailability;
 /// use golion_contract::asset::core::{AssetData, BessData};
-/// use golion_contract::asset::identification::AssetIdentification;
 /// use golion_contract::asset::specifications::BessSpecs;
 /// use golion_contract::asset::throughput::{
 ///     BidirectionalThroughputContract, ThroughputData,
 /// };
 /// use golion_domain::countries::Countries;
+/// use uuid::Uuid;
 ///
 /// let availability = vec![
 ///     StorageAvailability::builder()
@@ -112,7 +112,7 @@ pub struct RenewableData {
 ///                 .max_rolling_cycles(1.0)
 ///                 .build(),
 ///         )
-///         .identification(AssetIdentification::builder().build())
+///         .asset_id(Uuid::new_v4())
 ///         .build(),
 /// );
 /// ```
