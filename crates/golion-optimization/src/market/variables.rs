@@ -60,8 +60,8 @@ impl BidVariables {
 // Implement TimeStampedUtc to enable creation
 // of TimeSeries<BidVariables> out of Vec<BidVariables>.
 impl TimeStampedUtc for BidVariables {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }
 

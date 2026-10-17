@@ -14,7 +14,7 @@ pub struct Availability {
     pub max_usable_energy: KiloWattHour,
 }
 impl TimeStampedUtc for Availability {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }

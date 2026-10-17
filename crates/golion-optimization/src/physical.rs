@@ -25,8 +25,8 @@ pub struct ActivationEnergy {
     pub(crate) downward: Expression,
 }
 impl TimeStampedUtc for ActivationEnergy {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }
 // endregion: Activation Path
@@ -149,7 +149,7 @@ impl PhysicalStore {
                             vars,
                             specifications,
                             initial_soc,
-                            *env.horizon().grid().step(),
+                            env.horizon().grid().step(),
                         )?;
                         Asset::from(battery)
                     }

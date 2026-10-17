@@ -26,8 +26,8 @@ pub struct Revenue {
 }
 
 impl TimeStampedUtc for Revenue {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }
 // endregion: Revenue

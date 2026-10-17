@@ -22,7 +22,7 @@ pub(crate) fn aggregate_market_bids(
         time_index.iter().map(|_| 0.0.into_expression()).collect();
     for market in markets.iter() {
         for bid_variables in market.bid_variables() {
-            let index = time_grid.index_of(bid_variables.start_at())?;
+            let index = time_grid.index_of(&bid_variables.start_at())?;
             input_power_targets[index] += bid_variables.input_power();
             output_power_targets[index] += bid_variables.output_power();
         }

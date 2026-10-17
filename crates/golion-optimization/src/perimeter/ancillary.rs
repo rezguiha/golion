@@ -93,10 +93,10 @@ impl ReservePerimeter {
         // Build revenue and penalty expressions
         let revenue = 0.0.into_expression() + market.revenue();
         let penalty =
-            build_penalization_expression(&penalization_store, *definition.penalty());
+            build_penalization_expression(&penalization_store, definition.penalty());
 
         Ok(Self {
-            id: *definition.id(),
+            id: definition.id(),
             market,
             bid_store,
             repartition,

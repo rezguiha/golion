@@ -17,13 +17,13 @@ pub struct EnergyCommitment {
     pub energy_net_position: KiloWattHour,
 }
 impl TimeStampedUtc for PowerCommitment {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }
 impl TimeStampedUtc for EnergyCommitment {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }
 impl EnergyCommitment {

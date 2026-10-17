@@ -103,8 +103,8 @@ impl BessVariables {
 // Implement TimeStampedUtc to enable creation
 // of TimeSeries<BessVariables> out of Vec<BessVariables>.
 impl TimeStampedUtc for BessVariables {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }
 // Implement Domain Conversion
@@ -147,8 +147,8 @@ impl OtherAssetVariables {
 // Implement TimeStampedUtc to enable creation
 // of TimeSeries<BessVariables> out of Vec<BessVariables>.
 impl TimeStampedUtc for OtherAssetVariables {
-    fn start_at(&self) -> &Timestamp {
-        &self.start_at
+    fn start_at(&self) -> Timestamp {
+        self.start_at
     }
 }
 

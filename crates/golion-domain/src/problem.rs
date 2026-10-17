@@ -31,11 +31,11 @@ impl OptimizationProblem {
     ) -> crate::Result<()> {
         let compositions = brp_perimeters
             .iter()
-            .map(|perimeter| (*perimeter.id(), perimeter.composition()))
+            .map(|perimeter| (perimeter.id(), perimeter.composition()))
             .chain(
                 reserve_perimeters
                     .iter()
-                    .map(|perimeter| (*perimeter.id(), perimeter.composition())),
+                    .map(|perimeter| (perimeter.id(), perimeter.composition())),
             );
         for (perimeter_id, composition) in compositions {
             let asset_ids: Vec<Uuid> = composition

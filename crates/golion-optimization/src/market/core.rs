@@ -57,7 +57,7 @@ impl Market {
         let time_index = env.horizon().timestamps();
         let grid = env.horizon().grid();
         let step = grid.step();
-        let bid_time_bounds = market_specs.get_bid_time_bounds(grid.start())?;
+        let bid_time_bounds = market_specs.get_bid_time_bounds(&grid.start())?;
         let constraints: Vec<Constraint> = Vec::new();
         let mut revenue: Expression = 0.0.into_expression();
         let Some(bounds) = bid_time_bounds else {
@@ -73,14 +73,14 @@ impl Market {
             });
         };
         // Make sure bid bounds are inside time index.
-        if *bounds.start() < time_index[0]
-            || *bounds.end() > time_index[time_index.len() - 1]
+        if bounds.start() < time_index[0]
+            || bounds.end() > time_index[time_index.len() - 1]
         {
             return Err(MarketError::TimeBoundsOutsideIndex {
                 index_start: time_index[0],
                 index_end: time_index[time_index.len() - 1],
-                bidding_start: *bounds.start(),
-                bidding_end: *bounds.end(),
+                bidding_start: bounds.start(),
+                bidding_end: bounds.end(),
             }
             .into());
         }

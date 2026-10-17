@@ -39,9 +39,9 @@ pub enum AncillaryRevenue {
 }
 
 impl TimeStampedUtc for AncillaryRevenue {
-    fn start_at(&self) -> &Timestamp {
+    fn start_at(&self) -> Timestamp {
         match self {
-            Self::SimplifiedAncillaryRevenue { start_at, .. } => start_at,
+            Self::SimplifiedAncillaryRevenue { start_at, .. } => *start_at,
         }
     }
 }
@@ -70,9 +70,9 @@ pub enum WholesaleRevenue {
     },
 }
 impl TimeStampedUtc for WholesaleRevenue {
-    fn start_at(&self) -> &Timestamp {
+    fn start_at(&self) -> Timestamp {
         match self {
-            Self::SimplifiedWholesaleRevenue { start_at, .. } => start_at,
+            Self::SimplifiedWholesaleRevenue { start_at, .. } => *start_at,
         }
     }
 }

@@ -46,14 +46,14 @@ pub struct RegularTimeGrid {
 }
 
 impl RegularTimeGrid {
-    pub fn start(&self) -> &Timestamp {
-        &self.start
+    pub fn start(&self) -> Timestamp {
+        self.start
     }
-    pub fn step(&self) -> &MinuteStep {
-        &self.step
+    pub fn step(&self) -> MinuteStep {
+        self.step
     }
-    pub fn end(&self) -> &Timestamp {
-        &self.end
+    pub fn end(&self) -> Timestamp {
+        self.end
     }
     pub fn length(&self) -> usize {
         self.length

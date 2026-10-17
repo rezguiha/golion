@@ -20,8 +20,8 @@ impl TryFrom<f64> for SocFraction {
 }
 
 impl SocFraction {
-    pub fn value(&self) -> &f64 {
-        &self.0
+    pub fn value(&self) -> f64 {
+        self.0
     }
     pub fn into_energy_kwh(&self, available_energy_kw: &KiloWattHour) -> KiloWattHour {
         KiloWattHour(self.0 * available_energy_kw.0)
