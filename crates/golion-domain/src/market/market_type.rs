@@ -1,4 +1,5 @@
 use crate::market::error::MarketError;
+use derive_more::From;
 use serde::{Deserialize, Serialize};
 // region: Market types
 
@@ -30,14 +31,14 @@ pub enum EnergyAncillaryMarketType {
     AfrrFree,
 }
 
-#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, From)]
 #[serde(untagged)]
 pub enum AncillaryMarketType {
     Capacity(CapacityAncillaryMarketType),
     Energy(EnergyAncillaryMarketType),
 }
 
-#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, From)]
 #[serde(untagged)]
 pub enum MarketType {
     WholeSale(WholesaleMarketType),
@@ -70,26 +71,4 @@ impl TryFrom<MarketType> for AncillaryMarketType {
     }
 }
 
-impl From<WholesaleMarketType> for MarketType {
-    fn from(value: WholesaleMarketType) -> Self {
-        Self::WholeSale(value)
-    }
-}
-
-impl From<CapacityAncillaryMarketType> for MarketType {
-    fn from(value: CapacityAncillaryMarketType) -> Self {
-        Self::Ancillary(AncillaryMarketType::Capacity(value))
-    }
-}
-
-impl From<EnergyAncillaryMarketType> for MarketType {
-    fn from(value: EnergyAncillaryMarketType) -> Self {
-        Self::Ancillary(AncillaryMarketType::Energy(value))
-    }
-}
-impl From<AncillaryMarketType> for MarketType {
-    fn from(value: AncillaryMarketType) -> Self {
-        Self::Ancillary(value)
-    }
-}
 // endregion: Market types

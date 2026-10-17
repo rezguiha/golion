@@ -4,6 +4,7 @@ pub mod ren;
 pub mod variables;
 use crate::model::BuildEnv;
 use crate::physical::{bess::core::Battery, ccgt::GasTurbine, ren::Renewable};
+use derive_more::From;
 use golion_domain::problem::definition::AssetDefinition;
 use golion_domain::solution::PhysicalStates;
 use golion_domain::temporal::series::{TimeSeries, TimeStampedUtc};
@@ -31,27 +32,11 @@ impl TimeStampedUtc for ActivationEnergy {
 // endregion: Activation Path
 
 // region: Asset Enum
-#[derive(Debug)]
+#[derive(Debug, From)]
 pub enum Asset {
     Bess(Battery),
     Ccgt(GasTurbine),
     Ren(Renewable),
-}
-
-impl From<Battery> for Asset {
-    fn from(value: Battery) -> Self {
-        Self::Bess(value)
-    }
-}
-impl From<GasTurbine> for Asset {
-    fn from(value: GasTurbine) -> Self {
-        Self::Ccgt(value)
-    }
-}
-impl From<Renewable> for Asset {
-    fn from(value: Renewable) -> Self {
-        Self::Ren(value)
-    }
 }
 
 impl Asset {
