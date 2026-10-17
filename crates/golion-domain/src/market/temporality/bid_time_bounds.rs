@@ -112,18 +112,26 @@ impl ToBidTimeBounds for DynamicAuctionTemporality {
         product_specifications: &ProductSpecifications,
     ) -> crate::Result<Option<RegularTimeGrid>> {
         let zoned_reference_time = reference_time.to_zoned(self.timezone.clone());
-        let zoned_bidding_start = add_and_set_time(
-            &zoned_reference_time,
-            &self.neutralization_delay,
-            // Take the latest between the reference time and the bidding start time.
-            self.bidding_interval.start_time.max(zoned_reference_time.time()),
-        )?;
+        // Compute earliest from reference after neutralization delay?
+        let zoned_bidding_earliest =
+            zoned_reference_time.checked_add(self.neutralization_delay)?;
+        // Compute bidding window start taking as reference the day on which
+        // the earliest available bid is on. This enables us to handle edge cases
+        // around midnight.
+        let zoned_window_start = zoned_bidding_earliest
+            .with()
+            .time(self.bidding_interval.start_time)
+            .build()?;
+        // Compute end always on the basis of window start.
         let zoned_bidding_end = add_and_set_time(
-            &zoned_bidding_start,
+            &zoned_window_start,
             self.bidding_interval.delta_start_end.value(),
             self.bidding_interval.end_time,
         )?;
-        let zoned_bidding_start = zoned_bidding_start.max(zoned_reference_time);
+
+        // Take the latest between earliest and window start.
+        let zoned_bidding_start = zoned_bidding_earliest.max(zoned_window_start);
+
         let bounds = fit_bounds_to_bid_step(
             &zoned_bidding_start,
             &zoned_bidding_end,
@@ -240,87 +248,123 @@ mod tests {
         }
     }
 
+    /// Checks the bidding bounds of an auction at a reference time for
+    /// 15-minute products, `None` meaning no full bid step is available.
+    fn bounds_test(
+        auction: &impl ToBidTimeBounds,
+        reference_time: Timestamp,
+        expected_bounds: Option<(Timestamp, Timestamp)>,
+    ) {
+        let bounds = auction
+            .to_bid_time_bounds(&reference_time, &product_specifications(15))
+            .unwrap();
+        assert_eq!(bounds.map(|grid| (*grid.start(), *grid.end())), expected_bounds);
+    }
     #[test]
     fn dynamic_window_less_than_bid_step() {
-        let bidding_interval =
-            TimeDefinedInterval::try_new(10, 0, 10, 3, 0.days()).unwrap();
-        let neutralization_delay = 0.minutes();
-        let dynamic_auction = DynamicAuctionTemporality::try_new(
-            bidding_interval,
-            neutralization_delay,
+        let auction = DynamicAuctionTemporality::try_new(
+            TimeDefinedInterval::try_new(10, 0, 10, 3, 0.days()).unwrap(),
+            0.minutes(),
             "CET",
         )
         .unwrap();
-
-        // 2024-01-15T09:00:00Z == 10:00 CET.
-        let reference_time: Timestamp = "2024-01-15T09:00:00Z".parse().unwrap();
-        let bounds = dynamic_auction
-            .to_bid_time_bounds(&reference_time, &product_specifications(15))
-            .unwrap();
-
-        assert!(bounds.is_none());
+        // 10:00 CET, the 10:00-10:03 CET window holds no full 15-minute step.
+        bounds_test(&auction, "2024-01-15T09:00:00Z".parse().unwrap(), None);
     }
     #[test]
     fn dynamic_single_available_bid() {
-        // 9:50-10:20 CET is one full 15-minute step (10:00-10:15).
-        let bidding_interval =
-            TimeDefinedInterval::try_new(9, 50, 10, 20, 0.days()).unwrap();
-        let neutralization_delay = 0.minutes();
-        let dynamic_auction = DynamicAuctionTemporality::try_new(
-            bidding_interval,
-            neutralization_delay,
+        let auction = DynamicAuctionTemporality::try_new(
+            TimeDefinedInterval::try_new(9, 50, 10, 20, 0.days()).unwrap(),
+            0.minutes(),
             "CET",
         )
         .unwrap();
-
-        // 2024-01-15T09:00:00Z == 10:00 CET.
-        let reference_time: Timestamp = "2024-01-15T09:00:00Z".parse().unwrap();
-        let bounds = dynamic_auction
-            .to_bid_time_bounds(&reference_time, &product_specifications(15))
-            .unwrap()
-            .unwrap();
-
-        // 10:00 CET is already on the step boundary == 09:00Z.
-        assert_eq!(*bounds.start(), "2024-01-15T09:00:00Z".parse().unwrap());
-        // 10:20 CET truncates down to 10:15 CET == 09:15Z.
-        assert_eq!(*bounds.end(), "2024-01-15T09:15:00Z".parse().unwrap());
+        // 10:00 CET, 9:50-10:20 CET is one full 15-minute step: 10:00-10:15 CET.
+        bounds_test(
+            &auction,
+            "2024-01-15T09:00:00Z".parse().unwrap(),
+            Some((
+                "2024-01-15T09:00:00Z".parse().unwrap(),
+                "2024-01-15T09:15:00Z".parse().unwrap(),
+            )),
+        );
     }
-
-    fn continuous_test(
-        reference_time: Timestamp,
-        expected_bidding_start: Timestamp,
-        expected_bidding_end: Timestamp,
-    ) {
-        let continuous_auction =
-            ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "CET").unwrap();
-        let bounds = continuous_auction
-            .to_bid_time_bounds(&reference_time, &product_specifications(15))
-            .unwrap()
-            .unwrap();
-        assert_eq!(*bounds.start(), expected_bidding_start);
-        assert_eq!(*bounds.end(), expected_bidding_end);
+    #[test]
+    fn dynamic_applies_neutralization_delay() {
+        let auction = DynamicAuctionTemporality::try_new(
+            TimeDefinedInterval::try_new(0, 0, 23, 59, 0.days()).unwrap(),
+            30.minutes(),
+            "CET",
+        )
+        .unwrap();
+        // 10:00 CET + 30 minutes == 10:30 CET, 23:59 CET truncates to 23:45 CET.
+        bounds_test(
+            &auction,
+            "2024-01-15T09:00:00Z".parse().unwrap(),
+            Some((
+                "2024-01-15T09:30:00Z".parse().unwrap(),
+                "2024-01-15T22:45:00Z".parse().unwrap(),
+            )),
+        );
+    }
+    #[test]
+    fn dynamic_delay_crosses_midnight() {
+        let auction = DynamicAuctionTemporality::try_new(
+            TimeDefinedInterval::try_new(0, 0, 23, 59, 0.days()).unwrap(),
+            30.minutes(),
+            "CET",
+        )
+        .unwrap();
+        // 23:40 CET + 30 minutes == 00:10 CET on the 16th, rounded up to 00:15 CET,
+        // and the window of the 16th ends at 23:45 CET.
+        bounds_test(
+            &auction,
+            "2024-01-15T22:40:00Z".parse().unwrap(),
+            Some((
+                "2024-01-15T23:15:00Z".parse().unwrap(),
+                "2024-01-16T22:45:00Z".parse().unwrap(),
+            )),
+        );
     }
     #[test]
     fn continuous_same_day_only() {
+        let auction =
+            ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "CET").unwrap();
         // 10:00 CET is before the 15:00 CET next day gate opening.
-        let reference_time: Timestamp = "2024-01-15T09:00:00Z".parse().unwrap();
-        let expected_bidding_start = "2024-01-15T11:00:00Z".parse().unwrap();
-        let expected_bidding_end = "2024-01-15T22:45:00Z".parse().unwrap();
-        continuous_test(reference_time, expected_bidding_start, expected_bidding_end);
+        bounds_test(
+            &auction,
+            "2024-01-15T09:00:00Z".parse().unwrap(),
+            Some((
+                "2024-01-15T11:00:00Z".parse().unwrap(),
+                "2024-01-15T22:45:00Z".parse().unwrap(),
+            )),
+        );
     }
     #[test]
     fn continuous_next_only() {
-        let reference_time: Timestamp = "2024-01-15T22:55:00Z".parse().unwrap();
-        let expected_bidding_start = "2024-01-16T01:00:00Z".parse().unwrap();
-        let expected_bidding_end = "2024-01-16T22:45:00Z".parse().unwrap();
-        continuous_test(reference_time, expected_bidding_start, expected_bidding_end);
+        let auction =
+            ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "CET").unwrap();
+        bounds_test(
+            &auction,
+            "2024-01-15T22:55:00Z".parse().unwrap(),
+            Some((
+                "2024-01-16T01:00:00Z".parse().unwrap(),
+                "2024-01-16T22:45:00Z".parse().unwrap(),
+            )),
+        );
     }
     #[test]
     fn continuous_both_days() {
-        let reference_time: Timestamp = "2024-01-15T16:00:00Z".parse().unwrap();
-        let expected_bidding_start = "2024-01-15T18:00:00Z".parse().unwrap();
-        let expected_bidding_end = "2024-01-16T22:45:00Z".parse().unwrap();
-        continuous_test(reference_time, expected_bidding_start, expected_bidding_end);
+        let auction =
+            ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "CET").unwrap();
+        bounds_test(
+            &auction,
+            "2024-01-15T16:00:00Z".parse().unwrap(),
+            Some((
+                "2024-01-15T18:00:00Z".parse().unwrap(),
+                "2024-01-16T22:45:00Z".parse().unwrap(),
+            )),
+        );
     }
 }
 // endregion: Tests
