@@ -5,6 +5,7 @@ use crate::market::revenue::RevenueStore;
 use crate::problem::definition::{AssetDefinition, BrpDefinition, ReserveDefinition};
 use crate::problem::error::ProblemError;
 use crate::temporal::grid::RegularTimeGrid;
+use jiff::Timestamp;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -14,6 +15,7 @@ use uuid::Uuid;
 /// and can be modelled without further validation.
 #[derive(Debug)]
 pub struct ProblemData {
+    pub run_time: Timestamp,
     pub grid: RegularTimeGrid,
     pub assets: HashMap<Uuid, AssetDefinition>,
     pub brp_perimeters: Vec<BrpDefinition>,
@@ -221,6 +223,7 @@ mod tests {
         brp_perimeters: Vec<BrpDefinition>,
     ) -> ProblemData {
         ProblemData {
+            run_time: start(),
             grid: grid(),
             assets,
             brp_perimeters,

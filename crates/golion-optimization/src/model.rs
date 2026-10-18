@@ -13,13 +13,18 @@ use jiff::Timestamp;
 /// Time horizon of the model. Owns the timestamps of the grid, computed
 /// once, so that every component iterates over the exact same slots.
 pub(crate) struct Horizon {
+    /// Reference run time necessary to project initial soc for example
+    /// for bess assets to optimization start.
+    run_time: Timestamp,
+    /// Time grid from optimization start until end on regular step.
     grid: RegularTimeGrid,
+    /// Timestamps of grid computed once to be reused and not recomputed.
     timestamps: Box<[Timestamp]>,
 }
 
 impl Horizon {
-    fn new(grid: &RegularTimeGrid) -> Self {
-        Self { grid: *grid, timestamps: grid.iter().collect() }
+    fn new(run_time: &Timestamp, grid: &RegularTimeGrid) -> Self {
+        Self { run_time: *run_time, grid: *grid, timestamps: grid.iter().collect() }
     }
     pub(crate) fn grid(&self) -> &RegularTimeGrid {
         &self.grid
@@ -39,8 +44,12 @@ pub(crate) struct BuildEnv<'a> {
 }
 
 impl<'a> BuildEnv<'a> {
-    fn new(grid: &RegularTimeGrid, revenues: &'a RevenueStore) -> Self {
-        Self { horizon: Horizon::new(grid), revenues }
+    fn new(
+        run_time: &Timestamp,
+        grid: &RegularTimeGrid,
+        revenues: &'a RevenueStore,
+    ) -> Self {
+        Self { horizon: Horizon::new(run_time, grid), revenues }
     }
     pub(crate) fn horizon(&self) -> &Horizon {
         &self.horizon
@@ -92,7 +101,11 @@ impl Model {
         problem: OptimizationProblem,
     ) -> crate::Result<(Self, ProblemVariables)> {
         let problem_data = problem.into_data();
-        let env = BuildEnv::new(&problem_data.grid, &problem_data.revenues);
+        let env = BuildEnv::new(
+            &problem_data.run_time,
+            &problem_data.grid,
+            &problem_data.revenues,
+        );
         let mut vars = ProblemVariables::new();
 
         let physical = PhysicalStore::try_new(problem_data.assets, &env, &mut vars)?;
