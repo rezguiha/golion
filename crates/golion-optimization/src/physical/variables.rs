@@ -115,6 +115,8 @@ impl BessVariables {
             dispatch: solution.eval(self.dispatch()).into(),
             start_at: self.start_at,
             soc: solution.value(self.soc).into(),
+            ancillary_upward: solution.value(self.output_ancillary).into(),
+            ancillary_downward: solution.value(self.input_ancillary).into(),
         }
     }
 }

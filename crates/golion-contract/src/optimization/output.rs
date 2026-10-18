@@ -10,7 +10,8 @@ use golion_domain::solution::{
 };
 use golion_domain::temporal::series::TimeStampedUtc;
 use jiff::Timestamp;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use typed_builder::TypedBuilder;
 use uuid::Uuid;
 
 // region: Market Output
@@ -68,17 +69,21 @@ pub struct ReservePerimeterOutput {
 
 // region: Asset Output
 /// State of a battery over a slot.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, TypedBuilder)]
 pub struct BessStateOutput {
     pub start_at: Timestamp,
     /// Net power in kW, positive when charging and negative when discharging.
     pub dispatch: f64,
     /// State of charge reached at the end of the slot, in kWh.
     pub soc: f64,
+    /// Asset reserved contribution to upward commitments in kW.
+    pub ancillary_upward: f64,
+    /// Asset reserved contribution to downward commitments in kW.
+    pub ancillary_downward: f64,
 }
 
 /// State of a non-storage asset over a slot.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OtherAssetStateOutput {
     pub start_at: Timestamp,
     /// Output power in kW.
@@ -181,7 +186,13 @@ impl From<ReserveSolution> for ReservePerimeterOutput {
 
 impl From<BessState> for BessStateOutput {
     fn from(value: BessState) -> Self {
-        Self { start_at: value.start_at, dispatch: value.dispatch.0, soc: value.soc.0 }
+        Self {
+            start_at: value.start_at,
+            dispatch: value.dispatch.0,
+            soc: value.soc.0,
+            ancillary_upward: value.ancillary_upward.0,
+            ancillary_downward: value.ancillary_downward.0,
+        }
     }
 }
 

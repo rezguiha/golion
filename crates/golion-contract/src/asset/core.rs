@@ -1,4 +1,5 @@
 use crate::asset::throughput::ThroughputData;
+use crate::optimization::output::BessStateOutput;
 
 /// Different type asset definition.
 use super::availability::{GeneratorAvailability, StorageAvailability};
@@ -33,6 +34,10 @@ pub struct BessData {
     /// of the optimization run.
     #[garde(range(min = 0.0))]
     pub initial_soc: f64,
+    /// The current projected state that was computed by the previous
+    /// optimization run.
+    #[garde(skip)]
+    pub current_state: BessStateOutput,
     /// Physical specification for Bess
     #[garde(dive)]
     pub specs: BessSpecs,
