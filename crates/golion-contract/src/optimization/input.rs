@@ -9,7 +9,7 @@ use golion_domain::problem::{OptimizationProblem, ProblemData};
 use golion_domain::temporal::{
     grid::RegularTimeGrid, series::TimeSeries, step::MinuteStep,
 };
-use jiff::{SignedDuration, Timestamp};
+use jiff::{SignedDuration, Timestamp, TimestampRound, Unit};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 /// Optimization full payload struct.
@@ -63,11 +63,15 @@ impl TryFrom<&OptimizationInput> for RegularTimeGrid {
     type Error = crate::Error;
     fn try_from(value: &OptimizationInput) -> crate::Result<Self> {
         let step: MinuteStep = value.optimization_step.try_into()?;
-        let grid = RegularTimeGrid::try_new_start_end(
-            value.optimization_start_at,
-            step,
-            value.optimization_end_at,
-        )?;
+        // Round to next multiple of grid step.
+        let start = value
+            .optimization_start_at
+            .round(
+                TimestampRound::new().smallest(Unit::Minute).mode(jiff::RoundMode::Ceil),
+            )
+            .map_err(golion_domain::Error::JiffConversionError)?;
+        let grid =
+            RegularTimeGrid::try_new_start_end(start, step, value.optimization_end_at)?;
         Ok(grid)
     }
 }
@@ -92,8 +96,15 @@ impl TryFrom<OptimizationInput> for OptimizationProblem {
             .into_iter()
             .map(|perimeter| perimeter.try_into_definition(&country, &grid))
             .collect::<crate::Result<_>>()?;
-        Ok(ProblemData { grid, assets, brp_perimeters, reserve_perimeters, revenues }
-            .try_into()?)
+        Ok(ProblemData {
+            run_time: value.optimization_start_at,
+            grid,
+            assets,
+            brp_perimeters,
+            reserve_perimeters,
+            revenues,
+        }
+        .try_into()?)
     }
 }
 // endregion: Domain Conversions.
