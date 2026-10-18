@@ -3,6 +3,7 @@ use golion_contract::market::choice::MarketChoice;
 use golion_contract::market::commitments::{AncillaryCommitment, WholesaleCommitment};
 use golion_contract::market::revenue::{AncillaryRevenue, WholesaleRevenue};
 use golion_contract::optimization::input::OptimizationInput;
+use golion_contract::optimization::output::BessStateOutput;
 use golion_contract::perimeter::{reserve::ReservePerimeter, wholesale::BrpPerimeter};
 use golion_contract::{
     asset::{
@@ -19,7 +20,7 @@ use golion_domain::market::market_type::{
 };
 use golion_domain::temporal::grid::RegularTimeGrid;
 use golion_domain::temporal::step::MinuteStep;
-use jiff::RoundMode::Trunc;
+use jiff::RoundMode::{Expand, Trunc};
 use jiff::TimestampRound;
 use jiff::{SignedDuration, ToSpan, Unit, civil::date};
 use uuid::Uuid;
@@ -70,6 +71,15 @@ fn create_bess_asset(asset_id: Uuid, grid: &RegularTimeGrid) -> AssetData {
                     .build(),
             )
             .asset_id(asset_id)
+            .current_state(
+                BessStateOutput::builder()
+                    .dispatch(1.0)
+                    .ancillary_downward(1.0)
+                    .ancillary_upward(1.0)
+                    .soc(50_000.0)
+                    .start_at(grid.start() - grid.step().span())
+                    .build(),
+            )
             .build(),
     )
 }
@@ -115,8 +125,11 @@ fn create_wholesale_commitment(
 #[tokio::test]
 async fn test_optimize_bess() -> Result<()> {
     let hc = httpc_test::new_client("http://127.0.0.1:3000")?;
-    let start_zoned = date(2026, 10, 11).at(7, 30, 0, 0).in_tz("CET")?;
-    let start = start_zoned.timestamp();
+    let start_zoned = date(2026, 10, 11).at(7, 28, 0, 0).in_tz("CET")?;
+
+    let start = start_zoned
+        .timestamp()
+        .round(TimestampRound::new().smallest(Unit::Minute).increment(15).mode(Expand))?;
     let end =
         start_zoned.tomorrow().and_then(|dt| dt.end_of_day())?.timestamp().round(
             TimestampRound::new().smallest(Unit::Minute).increment(15).mode(Trunc),

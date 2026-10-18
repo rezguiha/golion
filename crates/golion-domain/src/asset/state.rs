@@ -8,8 +8,14 @@ use crate::units::power::{KiloWatt, KiloWattHour};
 #[derive(Debug)]
 pub struct BessState {
     pub start_at: Timestamp,
+    // Dispatch Signal sent to asset. Positive for charge
+    // negative for discharge.
     pub dispatch: KiloWatt,
     pub soc: KiloWattHour,
+    // Upward ancillary commitments contribution provisined for this asset.
+    pub ancillary_upward: KiloWatt,
+    // Downward ancillary commitments contribution provisined for this asset.
+    pub ancillary_downward: KiloWatt,
 }
 
 #[derive(Debug)]
