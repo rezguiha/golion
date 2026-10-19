@@ -88,6 +88,7 @@ pub struct RenewableData {
 /// use golion_contract::asset::throughput::{
 ///     BidirectionalThroughputContract, ThroughputData,
 /// };
+/// use golion_contract::optimization::output::BessStateOutput;
 /// use golion_domain::countries::Countries;
 /// use uuid::Uuid;
 ///
@@ -106,11 +107,19 @@ pub struct RenewableData {
 ///         .discharged_energy(0.0)
 ///         .build(),
 /// ]);
+/// let current_state = BessStateOutput::builder()
+///     .start_at(Timestamp::now())
+///     .dispatch(0.0)
+///     .soc(50.0)
+///     .ancillary_upward(0.0)
+///     .ancillary_downward(0.0)
+///     .build();
 /// let asset = AssetData::Bess(
 ///     BessData::builder()
 ///         .availability(availability)
 ///         .throughput(throughput)
 ///         .initial_soc(50.0)
+///         .current_state(current_state)
 ///         .specs(
 ///             BessSpecs::builder()
 ///                 .throughput_penalty(0.0)
