@@ -67,7 +67,10 @@ impl TryFrom<&OptimizationInput> for RegularTimeGrid {
         let start = value
             .optimization_start_at
             .round(
-                TimestampRound::new().smallest(Unit::Minute).mode(jiff::RoundMode::Ceil),
+                TimestampRound::new()
+                    .smallest(Unit::Minute)
+                    .increment(step.duration().as_mins())
+                    .mode(jiff::RoundMode::Ceil),
             )
             .map_err(golion_domain::Error::JiffConversionError)?;
         let grid =
