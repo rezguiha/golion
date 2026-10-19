@@ -57,6 +57,13 @@ impl TimeStampedUtc for SocBounds {
 
 /// State of charge bounds per slot: the soc range applied to the
 /// usable energy available over the slot.
+pub fn compute_soc_bound(availability: &Availability, soc_range: &SocRange) -> SocBounds {
+    SocBounds {
+        start_at: availability.start_at,
+        min: soc_range.min_soc().into_energy_kwh(&availability.max_usable_energy),
+        max: soc_range.max_soc().into_energy_kwh(&availability.max_usable_energy),
+    }
+}
 pub fn compute_soc_bounds(
     availability: &TimeSeries<Availability>,
     soc_range: &SocRange,
@@ -64,11 +71,7 @@ pub fn compute_soc_bounds(
     availability
         .data()
         .iter()
-        .map(|avail_point| SocBounds {
-            start_at: avail_point.start_at,
-            min: soc_range.min_soc().into_energy_kwh(&avail_point.max_usable_energy),
-            max: soc_range.max_soc().into_energy_kwh(&avail_point.max_usable_energy),
-        })
+        .map(|avail_point| compute_soc_bound(avail_point, soc_range))
         .collect::<Vec<_>>()
         .try_into()
 }

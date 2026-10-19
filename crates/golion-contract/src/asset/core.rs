@@ -166,7 +166,11 @@ impl AssetData {
             Self::Bess(data) => {
                 let specifications = BessSpecifications::try_from(&data)?;
                 let initial_soc = KiloWattHour(data.initial_soc);
-                let definition = AssetDefinition::Bess { specifications, initial_soc };
+                let definition = AssetDefinition::Bess {
+                    specifications,
+                    initial_soc,
+                    current_state: data.current_state.into(),
+                };
                 Ok((data.asset_id, definition))
             }
             Self::GasTurbine(GasTurbineData { asset_id, .. })

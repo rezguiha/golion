@@ -143,13 +143,18 @@ impl PhysicalStore {
             .into_iter()
             .map(|(asset_id, definition)| {
                 let asset = match definition {
-                    AssetDefinition::Bess { specifications, initial_soc } => {
+                    AssetDefinition::Bess {
+                        specifications,
+                        initial_soc,
+                        current_state,
+                    } => {
                         let battery = Battery::new(
-                            env.horizon().timestamps(),
+                            env.horizon(),
                             vars,
                             specifications,
                             initial_soc,
                             env.horizon().grid().step(),
+                            current_state,
                         )?;
                         Asset::from(battery)
                     }

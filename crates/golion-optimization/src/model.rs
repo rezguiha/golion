@@ -7,7 +7,7 @@ use golion_domain::problem::OptimizationProblem;
 use golion_domain::solution::OptimizationSolution;
 use golion_domain::temporal::grid::RegularTimeGrid;
 use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables};
-use jiff::Timestamp;
+use jiff::{SignedDuration, Timestamp};
 
 // region: Horizon
 /// Time horizon of the model. Owns the timestamps of the grid, computed
@@ -23,7 +23,7 @@ pub(crate) struct Horizon {
 }
 
 impl Horizon {
-    fn new(run_time: &Timestamp, grid: &RegularTimeGrid) -> Self {
+    pub fn new(run_time: &Timestamp, grid: &RegularTimeGrid) -> Self {
         Self { run_time: *run_time, grid: *grid, timestamps: grid.iter().collect() }
     }
     pub(crate) fn grid(&self) -> &RegularTimeGrid {
@@ -31,6 +31,10 @@ impl Horizon {
     }
     pub(crate) fn timestamps(&self) -> &[Timestamp] {
         &self.timestamps
+    }
+    pub(crate) fn duration_to_grid_start(&self) -> crate::Result<SignedDuration> {
+        Ok(SignedDuration::try_from(self.grid.start() - self.run_time)
+            .map_err(golion_domain::error::Error::JiffConversionError)?)
     }
 }
 // endregion: Horizon

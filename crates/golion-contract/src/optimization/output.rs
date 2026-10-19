@@ -9,6 +9,7 @@ use golion_domain::solution::{
     BrpSolution, MarketSolution, OptimizationSolution, PhysicalStates, ReserveSolution,
 };
 use golion_domain::temporal::series::TimeStampedUtc;
+use golion_domain::units::power::{KiloWatt, KiloWattHour};
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
@@ -195,7 +196,24 @@ impl From<BessState> for BessStateOutput {
         }
     }
 }
-
+impl From<BessStateOutput> for BessState {
+    fn from(value: BessStateOutput) -> Self {
+        let BessStateOutput {
+            start_at,
+            dispatch,
+            soc,
+            ancillary_upward,
+            ancillary_downward,
+        } = value;
+        Self {
+            start_at,
+            dispatch: KiloWatt(dispatch),
+            soc: KiloWattHour(soc),
+            ancillary_upward: KiloWatt(ancillary_upward),
+            ancillary_downward: KiloWatt(ancillary_downward),
+        }
+    }
+}
 impl From<OtherAssetState> for OtherAssetStateOutput {
     fn from(value: OtherAssetState) -> Self {
         Self { start_at: value.start_at, dispatch: value.dispatch.0 }

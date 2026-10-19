@@ -1,6 +1,7 @@
 /// Definitions of the elements taking part in an optimization problem.
 /// They describe what to optimize, independently of how it is modelled.
 use crate::asset::bess::specification::BessSpecifications;
+use crate::asset::state::BessState;
 use crate::market::activation::ExpectedActivationRatios;
 use crate::market::commitment::{EnergyCommitment, PowerCommitment};
 use crate::market::specification::MarketSpecs;
@@ -20,7 +21,11 @@ const WHOLESALE_PENALTY_EURO_PER_KW: f64 = -4.0;
 /// of the optimization run.
 #[derive(Debug)]
 pub enum AssetDefinition {
-    Bess { specifications: BessSpecifications, initial_soc: KiloWattHour },
+    Bess {
+        specifications: BessSpecifications,
+        initial_soc: KiloWattHour,
+        current_state: BessState,
+    },
 }
 impl AssetDefinition {
     pub(crate) fn max_input_power(&self) -> KiloWatt {
