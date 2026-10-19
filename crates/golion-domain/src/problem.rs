@@ -130,6 +130,7 @@ mod tests {
     use crate::asset::bess::throughput::{
         BidirectionalThroughput, Cycling, ThroughputHistory,
     };
+    use crate::asset::state::BessState;
     use crate::countries::Countries;
     use crate::market::bid::ProductSpecifications;
     use crate::market::commitment::EnergyCommitment;
@@ -190,6 +191,14 @@ mod tests {
             max_24h_avg_cycles: 1.0,
             penalty: 0.0,
         };
+        let initial_soc = KiloWattHour(20.0);
+        let current_state = BessState {
+            ancillary_downward: 0.0.into(),
+            ancillary_upward: 0.0.into(),
+            start_at: start() - *step().duration(),
+            dispatch: 0.0.into(),
+            soc: initial_soc,
+        };
         AssetDefinition::Bess {
             specifications: BessSpecifications {
                 soc_range: SocRange::try_new(
@@ -204,7 +213,8 @@ mod tests {
                 rated_discharge_power,
                 rated_energy,
             },
-            initial_soc: KiloWattHour(20.0),
+            initial_soc,
+            current_state,
         }
     }
     fn brp(composition: Vec<Uuid>, markets: Vec<MarketSpecs>) -> BrpDefinition {

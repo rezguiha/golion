@@ -1,4 +1,5 @@
 use crate::Result;
+use crate::model::Horizon;
 use crate::physical::ActivationEnergy;
 use crate::physical::bess::soc::transition_constraint;
 use crate::physical::bess::throughput::create_cycling_constraints;
@@ -6,6 +7,7 @@ use crate::physical::variables::BessVariables;
 use golion_domain::asset::bess::availability::Availability;
 use golion_domain::asset::bess::soc::SocBounds;
 use golion_domain::asset::bess::specification::BessSpecifications;
+use golion_domain::asset::state::BessState;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::MinuteStep;
 use golion_domain::units::power::{KiloWatt, KiloWattHour};
@@ -13,11 +15,41 @@ use good_lp::{
     Constraint, Expression, IntoAffineExpression, ProblemVariables, constraint,
 };
 use jiff::Timestamp;
+#[derive(Debug)]
+pub struct BessInitialState {
+    remaining_upward_activation: KiloWattHour,
+    remaining_downward_activation: KiloWattHour,
+    soc: KiloWattHour,
+}
+impl BessInitialState {
+    fn try_new(
+        current_state: &BessState,
+        initial_soc: KiloWattHour,
+        horizon: &Horizon,
+        initial_soc_bound: &SocBounds,
+    ) -> crate::Result<Self> {
+        let time_to_start = horizon.duration_to_grid_start()?;
+        // Add dispatch to initial soc and make sure to stay inside the soc_min and
+        // soc_max range so we do not trigger infeasabilities that needlessly block
+        // the optimization process as asset will not fulfill full dispatch signal
+        // and will stick to what is feasible.
+        let soc: KiloWattHour = (initial_soc.0
+            + current_state.dispatch.to_kwh(time_to_start).0)
+            .max(initial_soc_bound.min.0)
+            .min(initial_soc_bound.max.0)
+            .into();
+        let remaining_upward_activation =
+            current_state.ancillary_upward.to_kwh(time_to_start);
+        let remaining_downward_activation =
+            current_state.ancillary_downward.to_kwh(time_to_start);
+        Ok(Self { remaining_upward_activation, remaining_downward_activation, soc })
+    }
+}
 
 // region: Battery Definition
 #[derive(Debug)]
 pub struct Battery {
-    initial_soc: KiloWattHour,
+    initial_state: BessInitialState,
     step: MinuteStep,
     pub(crate) variable_store: TimeSeries<BessVariables>,
     pub(crate) constraints: Vec<Constraint>,
@@ -95,26 +127,38 @@ impl Battery {
         Ok((variable_store, constraints))
     }
 }
+
 impl Battery {
     pub(crate) fn new(
-        time_index: &[Timestamp],
+        horizon: &Horizon,
         vars: &mut ProblemVariables,
         specifications: BessSpecifications,
         initial_soc: KiloWattHour,
         step: MinuteStep,
+        current_state: BessState,
     ) -> Result<Self> {
+        let grid_start = &horizon.grid().start();
         let soc_bounds = specifications.soc_bounds()?;
+        let initial_soc_bound = soc_bounds.at(grid_start)?;
+        let initial_state = BessInitialState::try_new(
+            &current_state,
+            initial_soc,
+            horizon,
+            initial_soc_bound,
+        )?;
+
         let (variable_store, constraints) =
             Self::create_variables_and_minimal_constraints(
                 &specifications,
-                time_index,
+                horizon.timestamps(),
                 vars,
                 &soc_bounds,
-                initial_soc,
+                initial_state.soc,
                 step,
             )?;
+
         Ok(Self {
-            initial_soc,
+            initial_state,
             step,
             variable_store,
             constraints,
@@ -140,8 +184,10 @@ impl Battery {
         let factor =
             1.0_f64 / self.specifications.efficiencies.discharge_efficiency.value();
         // Activation energy drawn since the start of the activation.
-        let mut upward = 0.0.into_expression();
-        let mut downward = 0.0.into_expression();
+        let mut upward =
+            self.initial_state.remaining_upward_activation.0.into_expression();
+        let mut downward =
+            self.initial_state.remaining_downward_activation.0.into_expression();
         let mut constraints = Vec::with_capacity(2 * activation_path.len());
         for energy in activation_path {
             upward += &energy.upward;
@@ -186,6 +232,8 @@ impl Battery {
 // region: Tests
 #[cfg(test)]
 mod tests {
+    use crate::model::Horizon;
+
     use super::Battery;
     use golion_domain::asset::bess::availability::Availability;
     use golion_domain::asset::bess::efficiency::BessPowerEfficiencies;
@@ -194,6 +242,8 @@ mod tests {
     use golion_domain::asset::bess::throughput::{
         BidirectionalThroughput, Cycling, ThroughputHistory,
     };
+    use golion_domain::asset::state::BessState;
+    use golion_domain::temporal::grid::RegularTimeGrid;
     use golion_domain::temporal::step::MinuteStep;
     use golion_domain::units::efficiency::Efficiency;
     use golion_domain::units::power::{KiloWatt, KiloWattHour};
@@ -206,12 +256,13 @@ mod tests {
         let step = MinuteStep::try_from(SignedDuration::from_mins(15)).unwrap();
         let start_at =
             Timestamp::now().round((Unit::Minute, step.duration().as_mins())).unwrap();
-        let time_index: Vec<Timestamp> =
-            (0..4).map(|i| start_at + *step.duration() * i).collect();
+        let grid = RegularTimeGrid::try_new(start_at, step, 4).unwrap();
+        let horizon = Horizon::new(&start_at, &grid);
         let rated_charge_power = KiloWatt(50.0);
         let rated_discharge_power = KiloWatt(50.0);
         let rated_energy = KiloWattHour(100.0);
-        let availability: Vec<Availability> = time_index
+        let availability: Vec<Availability> = horizon
+            .timestamps()
             .iter()
             .map(|dt| Availability {
                 start_at: *dt,
@@ -249,13 +300,22 @@ mod tests {
             rated_discharge_power,
             rated_energy,
         };
+        let initial_soc = KiloWattHour(20.0);
+        let current_state = BessState {
+            ancillary_downward: 0.0.into(),
+            ancillary_upward: 0.0.into(),
+            dispatch: 0.0.into(),
+            start_at: start_at - *step.duration(),
+            soc: initial_soc,
+        };
 
         let battery = Battery::new(
-            &time_index,
+            &horizon,
             &mut vars,
             specifications,
-            KiloWattHour(20.0),
+            initial_soc,
             step,
+            current_state,
         )
         .expect("battery construction should succeed");
 
