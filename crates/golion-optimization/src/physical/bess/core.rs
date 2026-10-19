@@ -22,6 +22,11 @@ pub struct BessInitialState {
     soc: KiloWattHour,
 }
 impl BessInitialState {
+    /// Adds dispatch to initial soc and make sure to stay inside the soc_min and
+    /// soc_max range so we do not trigger infeasabilities that needlessly block
+    /// the optimization process as asset will not fulfill full dispatch signal
+    /// and will stick to what is feasible. We also cap the considered ancillary
+    /// repartition to start between soc_min and soc_max for the same reason.
     fn try_new(
         current_state: &BessState,
         initial_soc: KiloWattHour,
@@ -29,20 +34,22 @@ impl BessInitialState {
         initial_soc_bound: &SocBounds,
     ) -> crate::Result<Self> {
         let time_to_start = horizon.duration_to_grid_start()?;
-        // Add dispatch to initial soc and make sure to stay inside the soc_min and
-        // soc_max range so we do not trigger infeasabilities that needlessly block
-        // the optimization process as asset will not fulfill full dispatch signal
-        // and will stick to what is feasible.
-        let soc: KiloWattHour = (initial_soc.0
-            + current_state.dispatch.to_kwh(time_to_start).0)
-            .max(initial_soc_bound.min.0)
-            .min(initial_soc_bound.max.0)
-            .into();
-        let remaining_upward_activation =
-            current_state.ancillary_upward.to_kwh(time_to_start);
-        let remaining_downward_activation =
-            current_state.ancillary_downward.to_kwh(time_to_start);
-        Ok(Self { remaining_upward_activation, remaining_downward_activation, soc })
+        let energy = |power: KiloWatt| power.to_kwh(time_to_start).0;
+        // Compute clipped initial soc for wholesale only scenario.
+        let soc = (initial_soc.0 + energy(current_state.dispatch))
+            .clamp(initial_soc_bound.min.0, initial_soc_bound.max.0);
+        // Upward activation discharges: capped by the energy left above soc_min.
+        let upward =
+            energy(current_state.ancillary_upward).min(soc - initial_soc_bound.min.0);
+        // Downward activation charges: capped by the room left below soc_max.
+        let downward =
+            energy(current_state.ancillary_downward).min(initial_soc_bound.max.0 - soc);
+
+        Ok(Self {
+            remaining_upward_activation: upward.into(),
+            remaining_downward_activation: downward.into(),
+            soc: soc.into(),
+        })
     }
 }
 
