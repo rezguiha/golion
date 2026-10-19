@@ -5,6 +5,7 @@ use crate::physical::bess::soc::transition_constraint;
 use crate::physical::bess::throughput::create_cycling_constraints;
 use crate::physical::variables::BessVariables;
 use golion_domain::asset::bess::availability::Availability;
+use golion_domain::asset::bess::efficiency::BessPowerEfficiencies;
 use golion_domain::asset::bess::soc::SocBounds;
 use golion_domain::asset::bess::specification::BessSpecifications;
 use golion_domain::asset::state::BessState;
@@ -32,18 +33,31 @@ impl BessInitialState {
         initial_soc: KiloWattHour,
         horizon: &Horizon,
         initial_soc_bound: &SocBounds,
+        efficiencies: &BessPowerEfficiencies,
     ) -> crate::Result<Self> {
         let time_to_start = horizon.duration_to_grid_start()?;
         let energy = |power: KiloWatt| power.to_kwh(time_to_start).0;
+        // Compute delta soc with correct efficiency applied depending on sign
+        // of dispatch.
+        let delta_soc = match energy(current_state.dispatch) {
+            d if d > 0.0 => d * efficiencies.charge_efficiency.value(),
+            d => d / efficiencies.discharge_efficiency.value(),
+        };
         // Compute clipped initial soc for wholesale only scenario.
-        let soc = (initial_soc.0 + energy(current_state.dispatch))
+        let soc = (initial_soc.0 + delta_soc)
             .clamp(initial_soc_bound.min.0, initial_soc_bound.max.0);
         // Upward activation discharges: capped by the energy left above soc_min.
-        let upward =
-            energy(current_state.ancillary_upward).min(soc - initial_soc_bound.min.0);
+        // We make sure to use the same conservative projection used in soc
+        // reservation constraints for ancillary commitments.
+        let upward = energy(current_state.ancillary_upward).min(
+            (soc - initial_soc_bound.min.0) * efficiencies.discharge_efficiency.value(),
+        );
         // Downward activation charges: capped by the room left below soc_max.
-        let downward =
-            energy(current_state.ancillary_downward).min(initial_soc_bound.max.0 - soc);
+        // We make sure to use the same conservative projection used in soc
+        // reservation constraints for ancillary commitments.
+        let downward = energy(current_state.ancillary_downward).min(
+            (initial_soc_bound.max.0 - soc) * efficiencies.discharge_efficiency.value(),
+        );
 
         Ok(Self {
             remaining_upward_activation: upward.into(),
@@ -152,6 +166,7 @@ impl Battery {
             initial_soc,
             horizon,
             initial_soc_bound,
+            specifications.efficiencies(),
         )?;
 
         let (variable_store, constraints) =
