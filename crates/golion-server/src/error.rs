@@ -18,10 +18,8 @@ impl IntoResponse for ServerError {
             Self::Contract(golion_contract::Error::UnsupportedAssetType { .. }) => {
                 StatusCode::NOT_IMPLEMENTED
             }
-            Self::Optimization(golion_optimization::Error::Solver(_)) => {
-                StatusCode::UNPROCESSABLE_ENTITY
-            }
             Self::Optimization(golion_optimization::Error::MipGap(_))
+            | Self::Optimization(golion_optimization::Error::Solver(_))
             | Self::SpawnedTask(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Contract(_) | Self::Optimization(_) => StatusCode::BAD_REQUEST,
         };
