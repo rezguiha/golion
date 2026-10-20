@@ -4,7 +4,7 @@ use crate::perimeter::wholesale::WholesalePerimeter;
 use crate::physical::PhysicalStore;
 use golion_domain::market::revenue::RevenueStore;
 use golion_domain::problem::OptimizationProblem;
-use golion_domain::solution::OptimizationSolution;
+use golion_domain::solution::{FailureReason, OptimizationOutcome, OptimizationSolution};
 use golion_domain::temporal::grid::RegularTimeGrid;
 use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables};
 use jiff::{SignedDuration, Timestamp};
@@ -133,8 +133,9 @@ impl Model {
 // endregion: Model
 
 // region : Solution Conversion
+
 impl Model {
-    pub(crate) fn to_solution(
+    fn to_solution(
         &self,
         solution: &impl good_lp::Solution,
     ) -> crate::Result<OptimizationSolution> {
@@ -153,6 +154,35 @@ impl Model {
                 .collect::<crate::Result<_>>()?,
             physical: self.physical.to_solution(solution),
         })
+    }
+    pub(crate) fn to_outcome(
+        &self,
+        resolution: Result<impl good_lp::Solution, good_lp::ResolutionError>,
+    ) -> crate::Result<OptimizationOutcome> {
+        match resolution {
+            Err(e) => match e {
+                good_lp::ResolutionError::Infeasible => {
+                    Ok(OptimizationOutcome::Failure { reason: FailureReason::Infeasible })
+                }
+                good_lp::ResolutionError::Unbounded => {
+                    Ok(OptimizationOutcome::Failure { reason: FailureReason::Unbounded })
+                }
+                e => Err(e.into()),
+            },
+            Ok(solution) => match solution.status() {
+                good_lp::SolutionStatus::TimeLimit => Ok(OptimizationOutcome::Failure {
+                    reason: FailureReason::LimitReached,
+                }),
+                good_lp::SolutionStatus::GapLimit => Ok(OptimizationOutcome::Success {
+                    optimality: golion_domain::solution::Optimality::WithinGap,
+                    solution: self.to_solution(&solution)?,
+                }),
+                good_lp::SolutionStatus::Optimal => Ok(OptimizationOutcome::Success {
+                    optimality: golion_domain::solution::Optimality::Optimal,
+                    solution: self.to_solution(&solution)?,
+                }),
+            },
+        }
     }
 }
 
