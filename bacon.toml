@@ -65,6 +65,7 @@ command = [
     "cargo", "test",
     "--package", "golion-server",
     "--test", "quick_dev",
+    "--", "--no-capture"
 ]
 need_stdout = true
 default_watch = false
