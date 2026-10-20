@@ -1,5 +1,5 @@
 use crate::problem::OptimizationProblem;
-use crate::solution::OptimizationSolution;
+use crate::solution::OptimizationOutcome;
 
 // region: Optimizer Port
 /// Port through which an optimization problem gets solved.
@@ -10,6 +10,6 @@ pub trait Optimizer {
     fn optimize(
         &self,
         problem: OptimizationProblem,
-    ) -> Result<OptimizationSolution, Self::Error>;
+    ) -> Result<OptimizationOutcome, Self::Error>;
 }
 // endregion: Optimizer Port

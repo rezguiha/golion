@@ -6,6 +6,7 @@ use crate::{
     },
     temporal::{series::TimeStampedUtc, step::MinuteStep},
 };
+use serde::Serialize;
 use uuid::Uuid;
 #[derive(Debug)]
 pub enum PhysicalStates {
@@ -44,4 +45,23 @@ pub struct OptimizationSolution {
     pub ancillary: Vec<ReserveSolution>,
     pub wholesale: Vec<BrpSolution>,
     pub physical: Vec<PhysicalStates>,
+}
+
+#[derive(Debug, Serialize)]
+pub enum Optimality {
+    Optimal,
+    WithinGap,
+}
+
+#[derive(Debug, Serialize)]
+pub enum FailureReason {
+    LimitReached,
+    Infeasible,
+    Unbounded,
+}
+
+#[derive(Debug)]
+pub enum OptimizationOutcome {
+    Success { optimality: Optimality, solution: OptimizationSolution },
+    Failure { reason: FailureReason },
 }

@@ -1,7 +1,7 @@
 use crate::model::Model;
 use golion_domain::optimizer::Optimizer;
 use golion_domain::problem::OptimizationProblem;
-use golion_domain::solution::OptimizationSolution;
+use golion_domain::solution::OptimizationOutcome;
 use good_lp::{SolverModel, highs};
 
 // region: HiGHS Optimizer
@@ -28,7 +28,7 @@ impl Optimizer for HighsOptimizer {
     fn optimize(
         &self,
         problem: OptimizationProblem,
-    ) -> crate::Result<OptimizationSolution> {
+    ) -> crate::Result<OptimizationOutcome> {
         let (mut model, vars) = Model::try_new(problem)?;
         let objective = model.net_revenue();
         let mut highs_problem = vars
@@ -37,8 +37,8 @@ impl Optimizer for HighsOptimizer {
             .set_time_limit(self.time_limit)
             .set_mip_rel_gap(self.mip_rel_gap)?;
         highs_problem.set_verbose(self.verbose);
-        let solution = highs_problem.with_all(model.constraints()).solve()?;
-        model.to_solution(&solution)
+        let resolution = highs_problem.with_all(model.constraints()).solve();
+        model.to_outcome(resolution)
     }
 }
 // endregion: HiGHS Optimizer

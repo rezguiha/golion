@@ -6,7 +6,8 @@ use golion_domain::asset::state::{BessState, OtherAssetState};
 use golion_domain::market::bid::{AncillaryBid, WholesaleBid};
 use golion_domain::market::market_type::{AncillaryMarketType, WholesaleMarketType};
 use golion_domain::solution::{
-    BrpSolution, MarketSolution, OptimizationSolution, PhysicalStates, ReserveSolution,
+    BrpSolution, FailureReason, MarketSolution, Optimality, OptimizationOutcome,
+    OptimizationSolution, PhysicalStates, ReserveSolution,
 };
 use golion_domain::temporal::series::TimeStampedUtc;
 use golion_domain::units::power::{KiloWatt, KiloWattHour};
@@ -107,11 +108,36 @@ pub enum AssetOutput {
 // region: Optimization Output
 
 /// Optimization results per perimeter and per asset.
+
 #[derive(Debug, Serialize)]
-pub struct OptimizationOutput {
+pub struct SolutionOutput {
     pub wholesale: Vec<BrpPerimeterOutput>,
     pub ancillary: Vec<ReservePerimeterOutput>,
     pub physical: Vec<AssetOutput>,
+}
+
+impl From<OptimizationSolution> for SolutionOutput {
+    fn from(value: OptimizationSolution) -> Self {
+        Self {
+            wholesale: value
+                .wholesale
+                .into_iter()
+                .map(BrpPerimeterOutput::from)
+                .collect(),
+            ancillary: value
+                .ancillary
+                .into_iter()
+                .map(ReservePerimeterOutput::from)
+                .collect(),
+            physical: value.physical.into_iter().map(AssetOutput::from).collect(),
+        }
+    }
+}
+#[derive(Debug, Serialize)]
+#[serde(tag = "outcome")]
+pub enum OptimizationOutput {
+    Success { optimality: Optimality, solution: SolutionOutput },
+    Failure { reason: FailureReason },
 }
 // endregion: Optimization Output
 
@@ -239,13 +265,13 @@ impl From<PhysicalStates> for AssetOutput {
     }
 }
 
-impl From<OptimizationSolution> for OptimizationOutput {
-    fn from(value: OptimizationSolution) -> Self {
-        let OptimizationSolution { ancillary, wholesale, physical } = value;
-        Self {
-            wholesale: wholesale.into_iter().map(BrpPerimeterOutput::from).collect(),
-            ancillary: ancillary.into_iter().map(ReservePerimeterOutput::from).collect(),
-            physical: physical.into_iter().map(AssetOutput::from).collect(),
+impl From<OptimizationOutcome> for OptimizationOutput {
+    fn from(value: OptimizationOutcome) -> Self {
+        match value {
+            OptimizationOutcome::Failure { reason } => Self::Failure { reason },
+            OptimizationOutcome::Success { optimality, solution } => {
+                Self::Success { optimality, solution: solution.into() }
+            }
         }
     }
 }
