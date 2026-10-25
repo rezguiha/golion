@@ -39,7 +39,13 @@ pub trait ToBidWindows {
     /// TimeZone of the market. Necessary to make link with local time
     /// definitions like for open and close times for bidding or auction times.
     fn timezone(&self) -> &TimeZone;
-    // Computes the available bidding horizon at reference time.
+    /// Computes the available bidding horizon at reference time.
+    /// This needs to return zoned datetimes because the market bid windows
+    /// rely on local time cet.
+    ///
+    /// For example for FCR 4 hour bid. During DST a bid can be 3 hour or 5 hours.
+    /// Also even for other markets like sport day ahead. Bidding bounds are on local
+    /// time and during dst we may have 23 hour bidding or 25 hour bidding.
     fn bidding_horizon(
         &self,
         reference_time: &Timestamp,
@@ -110,17 +116,23 @@ impl ToBidWindows for StaticAuctionTemporality {
             self.open_interval.delta_start_end.value(),
             self.open_interval.end_time,
         )?;
-        let zoned_bidding_start = add_and_set_time(
-            &zoned_close_at,
-            self.delta_close_bidding_start.value(),
-            self.bidding_interval.start_time,
-        )?;
-        let zoned_bidding_end = add_and_set_time(
-            &zoned_bidding_start,
-            self.bidding_interval.delta_start_end.value(),
-            self.bidding_interval.end_time,
-        )?;
-        Ok((zoned_bidding_start, zoned_bidding_end))
+        // Past closure time return past and equal bound window that makes
+        // generating bid impossible.
+        if zoned_close_at <= zoned_reference_time {
+            Ok((zoned_reference_time.yesterday()?, zoned_reference_time.yesterday()?))
+        } else {
+            let zoned_bidding_start = add_and_set_time(
+                &zoned_close_at,
+                self.delta_close_bidding_start.value(),
+                self.bidding_interval.start_time,
+            )?;
+            let zoned_bidding_end = add_and_set_time(
+                &zoned_bidding_start,
+                self.bidding_interval.delta_start_end.value(),
+                self.bidding_interval.end_time,
+            )?;
+            Ok((zoned_bidding_start, zoned_bidding_end))
+        }
     }
 }
 

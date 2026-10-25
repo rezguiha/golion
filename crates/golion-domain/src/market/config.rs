@@ -85,7 +85,7 @@ impl AllMarketConfig {
 
     fn spot_day_ahead(country: &Countries) -> crate::Result<Self> {
         let common_european_temporality = StaticAuctionTemporality::try_new(
-            TimeDefinedInterval::try_new(0, 0, 12, 0, 1.days())?,
+            TimeDefinedInterval::try_new(0, 0, 12, 0, 0.days())?,
             TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
             1.days(),
             "CET",
@@ -161,7 +161,7 @@ impl AllMarketConfig {
     }
     fn intraday_auction_3(country: &Countries) -> crate::Result<Self> {
         let harmonized_sidc_ida3 = StaticAuctionTemporality::try_new(
-            TimeDefinedInterval::try_new(0, 0, 10, 0, 1.days())?,
+            TimeDefinedInterval::try_new(0, 0, 10, 0, 0.days())?,
             TimeDefinedInterval::try_new(12, 0, 0, 0, 1.days())?,
             0.days(),
             "CET",
