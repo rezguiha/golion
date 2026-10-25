@@ -1,8 +1,8 @@
 use super::market_type::MarketType;
 use crate::countries::Countries;
 use crate::market::bid::ProductSpecifications;
-use jiff::Span;
 use jiff::civil::Time;
+use jiff::{SignedDuration, Span, Timestamp};
 use std::collections::HashSet;
 #[derive(Debug)]
 pub enum MarketError {
@@ -15,7 +15,14 @@ pub enum MarketError {
         end_time: Time,
         delta_start_end: Span,
     },
-    EmptyContinuousBiddingBound,
+    BidStepNotMultipleGridStep {
+        bid_step: SignedDuration,
+        grid_step: SignedDuration,
+    },
+    BidWindowNotValid {
+        start: Timestamp,
+        end: Timestamp,
+    },
     // -- Specification
     InvalidProduct {
         market: MarketType,

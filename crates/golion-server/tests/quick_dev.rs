@@ -19,7 +19,7 @@ use golion_domain::market::market_type::{
     AncillaryMarketType, EnergyAncillaryMarketType, WholesaleMarketType,
 };
 use golion_domain::temporal::grid::RegularTimeGrid;
-use golion_domain::temporal::step::MinuteStep;
+use golion_domain::temporal::step::Step;
 use jiff::RoundMode::{Expand, Trunc};
 use jiff::TimestampRound;
 use jiff::{SignedDuration, ToSpan, Unit, civil::date};
@@ -134,7 +134,7 @@ async fn test_optimize_bess() -> Result<()> {
         start_zoned.tomorrow().and_then(|dt| dt.end_of_day())?.timestamp().round(
             TimestampRound::new().smallest(Unit::Minute).increment(15).mode(Trunc),
         )?;
-    let step = MinuteStep::try_new(15).unwrap();
+    let step = Step::try_from(15.minutes()).unwrap();
     let grid = RegularTimeGrid::try_new_start_end(start, step, end).unwrap();
 
     let asset_ids: Vec<Uuid> = (1..=NB_ASSETS).map(|_| Uuid::new_v4()).collect();

@@ -34,12 +34,7 @@ pub(crate) fn aggregate_market_bids(
         .zip(input_power_targets)
         .zip(output_power_targets)
         .map(|((start_at, input_power), output_power)| {
-            BidVariables::new(
-                *start_at,
-                input_power,
-                output_power,
-                time_grid.step().duration(),
-            )
+            BidVariables::new(*start_at, input_power, output_power, &time_grid.step())
         })
         .collect();
     let variable_store: TimeSeries<BidVariables> = bid_variables.try_into()?;
@@ -58,7 +53,7 @@ pub(crate) fn build_penalization_variables(
                 *dt,
                 vars.add(variable().min(0.0)).into_expression(),
                 vars.add(variable().min(0.0)).into_expression(),
-                horizon.grid().step().duration(),
+                &horizon.grid().step(),
             )
         })
         .collect();

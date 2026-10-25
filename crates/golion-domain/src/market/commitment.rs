@@ -1,7 +1,7 @@
 use jiff::Timestamp;
 
 use crate::{
-    temporal::{series::TimeStampedUtc, step::MinuteStep},
+    temporal::{series::TimeStampedUtc, step::Step},
     units::power::{KiloWatt, KiloWattHour},
 };
 #[derive(Debug)]
@@ -27,16 +27,14 @@ impl TimeStampedUtc for EnergyCommitment {
     }
 }
 impl EnergyCommitment {
-    pub fn to_power_commitment(&self, step: &MinuteStep) -> PowerCommitment {
-        let duration_seconds = step.duration().as_secs_f64();
+    pub fn to_power_commitment(&self, step: &Step) -> PowerCommitment {
         PowerCommitment {
             start_at: self.start_at,
-            input_power: (self.energy_net_position.0.max(0.0) * 3600.0_f64
-                / duration_seconds)
+            input_power: (self.energy_net_position.0.max(0.0) / step.total_hours_f64())
                 .into(),
-            output_power: (self.energy_net_position.0.min(0.0).abs() * 3600.0_f64
-                / duration_seconds)
-                .into(),
+            output_power: (self.energy_net_position.0.min(0.0).abs()
+                / step.total_hours_f64())
+            .into(),
         }
     }
 }

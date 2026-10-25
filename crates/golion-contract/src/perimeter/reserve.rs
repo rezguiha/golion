@@ -45,7 +45,7 @@ impl ReservePerimeter {
     ) -> crate::Result<ReserveDefinition> {
         Ok(ReserveDefinition::try_new(
             self.id,
-            self.market.try_into_market_specs(country)?,
+            self.market.try_to_market_specs(country)?,
             self.composition,
             self.commitments.iter().map(PowerCommitment::from),
             grid,

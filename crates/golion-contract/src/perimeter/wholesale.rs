@@ -38,7 +38,7 @@ impl BrpPerimeter {
         let markets = self
             .markets
             .iter()
-            .map(|market_choice| market_choice.try_into_market_specs(country))
+            .map(|market_choice| market_choice.try_to_market_specs(country))
             .collect::<crate::Result<_>>()?;
         let commitments = self
             .commitments

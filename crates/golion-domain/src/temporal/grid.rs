@@ -1,4 +1,4 @@
-use super::step::{MinuteStep, MinuteStepError};
+use super::step::{Step, StepError};
 /// Regular time grid definition that encapsulates
 /// the time related logic that enables us to have
 /// a computation of the index a particular row
@@ -18,14 +18,14 @@ pub enum TimeGridError {
     },
     MissAlignedDatetime {
         dt: Timestamp,
-        step: MinuteStep,
+        step: Step,
     },
     EndBeforeStart {
         start: Timestamp,
         end: Timestamp,
     },
     #[from]
-    StepError(MinuteStepError),
+    StepError(StepError),
     #[from]
     LengthOverFlow(std::num::TryFromIntError),
 }
@@ -38,7 +38,7 @@ pub struct RegularTimeGrid {
     /// First timestamp of timeseries.
     start: Timestamp,
     /// Granularity of timeseries.
-    step: MinuteStep,
+    step: Step,
     /// Length of timeseries.
     length: usize,
     /// Computed end of timeseries.
@@ -49,7 +49,7 @@ impl RegularTimeGrid {
     pub fn start(&self) -> Timestamp {
         self.start
     }
-    pub fn step(&self) -> MinuteStep {
+    pub fn step(&self) -> Step {
         self.step
     }
     pub fn end(&self) -> Timestamp {
@@ -58,19 +58,15 @@ impl RegularTimeGrid {
     pub fn length(&self) -> usize {
         self.length
     }
-    pub fn try_new(
-        start: Timestamp,
-        step: MinuteStep,
-        length: usize,
-    ) -> crate::Result<Self> {
+    pub fn try_new(start: Timestamp, step: Step, length: usize) -> crate::Result<Self> {
         step.check_datetime_multiple_step(start)?;
-        let end = start + *step.duration() * (length as i32 - 1);
+        let end = start + step.duration() * (length as i32 - 1);
         step.check_datetime_multiple_step(end)?;
         Ok(RegularTimeGrid { start, step, length, end })
     }
     pub fn try_new_start_end(
         start: Timestamp,
-        step: MinuteStep,
+        step: Step,
         end: Timestamp,
     ) -> crate::Result<Self> {
         if end <= start {

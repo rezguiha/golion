@@ -32,6 +32,10 @@ impl Horizon {
     pub(crate) fn timestamps(&self) -> &[Timestamp] {
         &self.timestamps
     }
+    pub(crate) fn run_time(&self) -> Timestamp {
+        self.run_time
+    }
+
     pub(crate) fn duration_to_grid_start(&self) -> crate::Result<SignedDuration> {
         Ok(SignedDuration::try_from(self.grid.start() - self.run_time)
             .map_err(golion_domain::error::Error::JiffConversionError)?)

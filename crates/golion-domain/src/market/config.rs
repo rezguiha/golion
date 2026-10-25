@@ -8,11 +8,12 @@ use crate::market::market_type::{
     AncillaryMarketType, CapacityAncillaryMarketType, EnergyAncillaryMarketType,
     MarketType, WholesaleMarketType,
 };
+use crate::market::temporality::bid_window::BidWindow;
 use crate::market::temporality::{
     auction::{
         ContinuousAuctionTemporality, DynamicAuctionTemporality, StaticAuctionTemporality,
     },
-    bid_time_bounds::ToBidTimeBounds,
+    bid_window::ToBidWindows,
     interval::TimeDefinedInterval,
 };
 use crate::temporal::grid::RegularTimeGrid;
@@ -23,7 +24,7 @@ const ANCILLARY_INCREMENT_KW: u16 = 1000;
 // region: Market config
 /// A particular market configuration
 #[derive(Debug)]
-pub struct MarketConfig<T: ToBidTimeBounds> {
+pub struct MarketConfig<T: ToBidWindows> {
     /// Country of market.
     pub country: Countries,
     /// Auction temporality
@@ -85,7 +86,7 @@ impl AllMarketConfig {
     fn spot_day_ahead(country: &Countries) -> crate::Result<Self> {
         let common_european_temporality = StaticAuctionTemporality::try_new(
             TimeDefinedInterval::try_new(0, 0, 12, 0, 1.days())?,
-            TimeDefinedInterval::try_new(0, 0, 23, 59, 0.days())?,
+            TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
             1.days(),
             "CET",
         )?;
@@ -111,7 +112,7 @@ impl AllMarketConfig {
     fn intraday_auction_1(country: &Countries) -> crate::Result<Self> {
         let harmonized_sidc_ida1 = StaticAuctionTemporality::try_new(
             TimeDefinedInterval::try_new(0, 0, 15, 0, 0.days())?,
-            TimeDefinedInterval::try_new(0, 0, 23, 59, 0.days())?,
+            TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
             1.days(),
             "CET",
         )?;
@@ -136,7 +137,7 @@ impl AllMarketConfig {
     fn intraday_auction_2(country: &Countries) -> crate::Result<Self> {
         let harmonized_sidc_ida2 = StaticAuctionTemporality::try_new(
             TimeDefinedInterval::try_new(0, 0, 22, 0, 0.days())?,
-            TimeDefinedInterval::try_new(0, 0, 23, 59, 0.days())?,
+            TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
             1.days(),
             "CET",
         )?;
@@ -161,7 +162,7 @@ impl AllMarketConfig {
     fn intraday_auction_3(country: &Countries) -> crate::Result<Self> {
         let harmonized_sidc_ida3 = StaticAuctionTemporality::try_new(
             TimeDefinedInterval::try_new(0, 0, 10, 0, 1.days())?,
-            TimeDefinedInterval::try_new(12, 0, 23, 59, 0.days())?,
+            TimeDefinedInterval::try_new(12, 0, 0, 0, 1.days())?,
             0.days(),
             "CET",
         )?;
@@ -211,7 +212,7 @@ impl AllMarketConfig {
 
     fn afrr_free(country: &Countries) -> crate::Result<Self> {
         let harmonized_picasso = DynamicAuctionTemporality::try_new(
-            TimeDefinedInterval::try_new(0, 0, 23, 59, 0.days())?,
+            TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
             30.minutes(),
             "CET",
         )?;
@@ -265,36 +266,37 @@ impl AllMarketConfig {
     }
 }
 
-impl ToBidTimeBounds for AllMarketConfig {
-    fn to_bid_time_bounds(
+impl AllMarketConfig {
+    pub fn to_bid_windows(
         &self,
         reference_time: &Timestamp,
+        grid: &RegularTimeGrid,
         product_specificationss: &ProductSpecifications,
-    ) -> crate::Result<Option<RegularTimeGrid>> {
+    ) -> crate::Result<Vec<BidWindow>> {
         match self {
             Self::SpotDayAhead(c) => {
-                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
+                c.auction.to_bid_windows(reference_time, grid, product_specificationss)
             }
             Self::IntradayAuction1(c) => {
-                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
+                c.auction.to_bid_windows(reference_time, grid, product_specificationss)
             }
             Self::IntradayAuction2(c) => {
-                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
+                c.auction.to_bid_windows(reference_time, grid, product_specificationss)
             }
             Self::IntradayAuction3(c) => {
-                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
+                c.auction.to_bid_windows(reference_time, grid, product_specificationss)
             }
             Self::IntradayContinuous(c) => {
-                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
+                c.auction.to_bid_windows(reference_time, grid, product_specificationss)
             }
             Self::AfrrFree(c) => {
-                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
+                c.auction.to_bid_windows(reference_time, grid, product_specificationss)
             }
             Self::Afrr(c) => {
-                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
+                c.auction.to_bid_windows(reference_time, grid, product_specificationss)
             }
             Self::Fcr(c) => {
-                c.auction.to_bid_time_bounds(reference_time, product_specificationss)
+                c.auction.to_bid_windows(reference_time, grid, product_specificationss)
             }
         }
     }

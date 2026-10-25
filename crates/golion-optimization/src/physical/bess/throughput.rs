@@ -8,7 +8,7 @@ use golion_domain::{
     },
     temporal::{
         series::{TimeSeries, TimeStampedUtc},
-        step::MinuteStep,
+        step::Step,
     },
     units::power::KiloWattHour,
 };
@@ -20,7 +20,7 @@ pub trait ComputeCycleContribution {
     fn modelled_throughput_expression(
         vars: &BessVariables,
         expected_activation: &ActivationEnergy,
-        step: &MinuteStep,
+        step: &Step,
         efficiencies: &BessPowerEfficiencies,
     ) -> Expression;
     fn throughput_limit(usable_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64;
@@ -33,12 +33,12 @@ impl ComputeCycleContribution for BidirectionalThroughput {
     fn modelled_throughput_expression(
         vars: &BessVariables,
         expected_activation: &ActivationEnergy,
-        step: &MinuteStep,
+        step: &Step,
         efficiencies: &BessPowerEfficiencies,
     ) -> Expression {
-        (vars.input_power * step.hours_f64() + &expected_activation.downward)
+        (vars.input_power * step.total_hours_f64() + &expected_activation.downward)
             * efficiencies.charge_efficiency.value()
-            + (vars.output_power * step.hours_f64() + &expected_activation.upward)
+            + (vars.output_power * step.total_hours_f64() + &expected_activation.upward)
                 / efficiencies.discharge_efficiency.value()
     }
     fn throughput_limit(usable_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64 {
@@ -52,10 +52,10 @@ impl ComputeCycleContribution for DischargeThroughput {
     fn modelled_throughput_expression(
         vars: &BessVariables,
         expected_activation: &ActivationEnergy,
-        step: &MinuteStep,
+        step: &Step,
         efficiencies: &BessPowerEfficiencies,
     ) -> Expression {
-        (vars.output_power * step.hours_f64() + &expected_activation.upward)
+        (vars.output_power * step.total_hours_f64() + &expected_activation.upward)
             / efficiencies.discharge_efficiency.value()
     }
     fn throughput_limit(usable_energy: KiloWattHour, max_24h_avg_cycles: f64) -> f64 {

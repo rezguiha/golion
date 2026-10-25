@@ -13,12 +13,12 @@ use golion_domain::{
     },
     problem::definition::ReserveDefinition,
     solution::{MarketSolution, ReserveSolution},
-    temporal::series::TimeSeries,
+    temporal::{series::TimeSeries, step::Step},
 };
 use good_lp::{
     Constraint, Expression, IntoAffineExpression, ProblemVariables, constraint, variable,
 };
-use jiff::{SignedDuration, Timestamp};
+use jiff::Timestamp;
 use std::collections::HashMap;
 
 use uuid::Uuid;
@@ -73,7 +73,7 @@ impl ReservePerimeter {
                 Self::create_asset_repartition_variables(
                     vars,
                     horizon.timestamps(),
-                    horizon.grid().step().duration(),
+                    &horizon.grid().step(),
                 )
                 .map(|series| (*id, series))
             })
@@ -113,7 +113,7 @@ impl ReservePerimeter {
     fn create_asset_repartition_variables(
         vars: &mut ProblemVariables,
         time_index: &[Timestamp],
-        step: &SignedDuration,
+        step: &Step,
     ) -> crate::Result<TimeSeries<BidVariables>> {
         Ok(time_index
             .iter()

@@ -6,9 +6,7 @@ use garde::Validate;
 use golion_domain::countries::Countries;
 use golion_domain::market::revenue::{Revenue, RevenueStore};
 use golion_domain::problem::{OptimizationProblem, ProblemData};
-use golion_domain::temporal::{
-    grid::RegularTimeGrid, series::TimeSeries, step::MinuteStep,
-};
+use golion_domain::temporal::{grid::RegularTimeGrid, series::TimeSeries, step::Step};
 use jiff::{SignedDuration, Timestamp, TimestampRound, Unit};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -62,7 +60,7 @@ impl TryFrom<&OptimizationInput> for RevenueStore {
 impl TryFrom<&OptimizationInput> for RegularTimeGrid {
     type Error = crate::Error;
     fn try_from(value: &OptimizationInput) -> crate::Result<Self> {
-        let step: MinuteStep = value.optimization_step.try_into()?;
+        let step: Step = value.optimization_step.try_into()?;
         // Round to next multiple of grid step.
         let start = value
             .optimization_start_at

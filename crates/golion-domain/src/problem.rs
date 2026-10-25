@@ -141,15 +141,15 @@ mod tests {
     use crate::problem::definition::{AssetDefinition, BrpDefinition};
     use crate::problem::error::ProblemError;
     use crate::temporal::grid::RegularTimeGrid;
-    use crate::temporal::step::MinuteStep;
+    use crate::temporal::step::Step;
     use crate::units::efficiency::Efficiency;
     use crate::units::power::{KiloWatt, KiloWattHour};
     use jiff::{SignedDuration, Timestamp, ToSpan};
     use std::collections::HashMap;
     use uuid::Uuid;
 
-    fn step() -> MinuteStep {
-        MinuteStep::try_from(SignedDuration::from_mins(15)).unwrap()
+    fn step() -> Step {
+        Step::try_from(SignedDuration::from_mins(15)).unwrap()
     }
     fn start() -> Timestamp {
         "2026-01-01T00:00:00Z".parse().unwrap()
@@ -195,7 +195,7 @@ mod tests {
         let current_state = BessState {
             ancillary_downward: 0.0.into(),
             ancillary_upward: 0.0.into(),
-            start_at: start() - *step().duration(),
+            start_at: start() - step().duration(),
             dispatch: 0.0.into(),
             soc: initial_soc,
         };

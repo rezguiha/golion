@@ -1,7 +1,7 @@
 use super::asset::bess::soc::InvalidSocRange;
 use super::temporal::grid::TimeGridError;
 use super::temporal::series::TimeSeriesError;
-use super::temporal::step::MinuteStepError;
+use super::temporal::step::StepError;
 use super::units::efficiency::InvalidEfficiency;
 use super::units::soc::InvalidSocFraction;
 use jiff::Error as JiffError;
@@ -17,7 +17,7 @@ pub enum Error {
     #[from]
     TimeSeries(TimeSeriesError),
     #[from]
-    Step(MinuteStepError),
+    Step(StepError),
     // -- Unit Errors
     #[from]
     SOC(InvalidSocFraction),

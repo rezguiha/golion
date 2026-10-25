@@ -34,17 +34,14 @@ impl TryFrom<Span> for DeltaDays {
 /// The times will be associated with a reference date and the delta will be applied
 /// between start and end to determine starting and ending datetimes.
 ///
-/// The convention used here is [start,end].
+/// The convention used here is [start,end[.
 ///
 /// For example:
 ///     To represent day ahead bidding interval:
 ///         start_time: 00:00
-///         end_time: 23:59
+///         end_time: 00:00
+///         delta_days: 1 day
 ///
-/// Make sure to use for end_time a value that represents correctly the end.
-/// For example if bidding ends at 11:00:
-/// Make sure to put 10:59 to avoid including 11:00 in your representation
-/// as it might lead to different results.
 #[derive(Debug)]
 pub struct TimeDefinedInterval {
     pub start_time: Time,
@@ -62,7 +59,7 @@ impl TimeDefinedInterval {
         let start_time = Time::new(open_hour, open_minute, 0, 0)?;
         let end_time = Time::new(close_hour, close_minute, 0, 0)?;
         let delta_start_end_days: DeltaDays = delta_start_end.try_into()?;
-        if (start_time > end_time) && (delta_start_end_days.0.get_days() == 0) {
+        if (start_time >= end_time) && (delta_start_end_days.0.get_days() == 0) {
             Err(MarketError::InvalidTimeDefinedBound {
                 start_time,
                 end_time,
