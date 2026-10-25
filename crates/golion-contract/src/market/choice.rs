@@ -13,10 +13,7 @@ pub struct MarketChoice<T: Into<MarketType>> {
 }
 
 impl<T: Into<MarketType> + Copy> MarketChoice<T> {
-    pub fn try_into_market_specs(
-        &self,
-        country: &Countries,
-    ) -> crate::Result<MarketSpecs> {
+    pub fn try_to_market_specs(&self, country: &Countries) -> crate::Result<MarketSpecs> {
         let product = ProductSpecifications::try_new(
             Span::new().minutes(self.product_step_minutes),
             self.product_increment_kw,

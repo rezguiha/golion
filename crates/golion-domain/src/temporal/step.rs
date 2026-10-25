@@ -1,72 +1,84 @@
-use derive_more::{Display, From};
-/// Step in minutes struct represents the possible
+/// Step struct represents the possible
 /// allowed values of steps to have in timeseries.
+use derive_more::{Display, From};
+
 use jiff::{Error as JiffError, SignedDuration, Span, Timestamp};
-// region: MinuteStep
+use strum::{EnumIter, IntoEnumIterator};
+// region: Step
 
-#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
-pub struct MinuteStep(SignedDuration);
-// Made the SignedDuration attribute private to force
-// during use the usage of the try_from method
-// to validate values and omit other ways of creation
-// that may bypass it.
-
-impl MinuteStep {
-    pub fn try_new(minutes: i64) -> crate::Result<Self> {
-        let duration = SignedDuration::from_mins(minutes);
-        duration.try_into()
-    }
-    pub fn duration(&self) -> &SignedDuration {
-        &self.0
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, EnumIter)]
+pub enum Step {
+    FifteenMinutes,
+    ThirtyMinutes,
+    OneHour,
+    FourHours,
+}
+impl Step {
+    pub fn duration(&self) -> SignedDuration {
+        match self {
+            Self::FifteenMinutes => SignedDuration::from_mins(15),
+            Self::ThirtyMinutes => SignedDuration::from_mins(30),
+            Self::OneHour => SignedDuration::from_hours(1),
+            Self::FourHours => SignedDuration::from_hours(4),
+        }
     }
     pub fn span(&self) -> Span {
-        Span::new().seconds(self.0.as_secs())
+        match self {
+            Self::FifteenMinutes => Span::new().minutes(15),
+            Self::ThirtyMinutes => Span::new().minutes(30),
+            Self::OneHour => Span::new().hours(1),
+            Self::FourHours => Span::new().hours(4),
+        }
     }
 
+    pub fn total_hours_f64(&self) -> f64 {
+        self.duration().as_secs_f64() / 3600.0_f64
+    }
     pub fn check_datetime_multiple_step(&self, dt: Timestamp) -> crate::Result<()> {
         match dt.as_second().rem_euclid(self.duration().as_secs()) {
             0 => Ok(()),
-            _ => Err(MinuteStepError::DatetimeNonMultipleOfStep {
-                dt,
-                step: *self.duration(),
+            _ => {
+                Err(StepError::DatetimeNonMultipleOfStep { dt, step: self.duration() }
+                    .into())
             }
-            .into()),
         }
     }
-    pub fn hours_f64(&self) -> f64 {
-        self.0.as_secs_f64() / 3600.0_f64
-    }
 }
+
 #[derive(Debug, Display, From)]
-pub enum MinuteStepError {
-    #[display("invalid step: {step:?} (must be 15, 30, or 60 minutes)")]
-    InvalidGranularity { step: SignedDuration },
+pub enum StepError {
+    #[display("invalid step: {step:?} ( possible values : {possible_values:?})")]
+    InvalidGranularity { step: SignedDuration, possible_values: Vec<SignedDuration> },
     #[display("Datetime {dt} must be multiple of {step}.")]
     DatetimeNonMultipleOfStep { dt: Timestamp, step: SignedDuration },
     #[from]
     JiffConversionError(JiffError),
 }
 
-impl TryFrom<SignedDuration> for MinuteStep {
+// endregion: Step
+
+// region: Conversions
+impl TryFrom<SignedDuration> for Step {
     type Error = crate::Error;
     fn try_from(value: SignedDuration) -> crate::Result<Self> {
-        [
-            SignedDuration::from_mins(15),
-            SignedDuration::from_mins(30),
-            SignedDuration::from_mins(60),
-        ]
-        .contains(&value)
-        .then_some(MinuteStep(value))
-        .ok_or(MinuteStepError::InvalidGranularity { step: value }.into())
+        for possible_step in Self::iter() {
+            if possible_step.duration() == value {
+                return Ok(possible_step);
+            }
+        }
+        Err(StepError::InvalidGranularity {
+            step: value,
+            possible_values: Self::iter().map(|step| step.duration()).collect(),
+        }
+        .into())
     }
 }
-impl TryFrom<Span> for MinuteStep {
+impl TryFrom<Span> for Step {
     type Error = crate::Error;
     fn try_from(value: Span) -> crate::Result<Self> {
         let value: SignedDuration =
-            value.try_into().map_err(MinuteStepError::JiffConversionError)?;
+            value.try_into().map_err(StepError::JiffConversionError)?;
         value.try_into()
     }
 }
-
-// endregion: MinuteStep
+// endregion: Conversions

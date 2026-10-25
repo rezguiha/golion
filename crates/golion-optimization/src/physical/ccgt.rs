@@ -1,6 +1,6 @@
 /// Temporary implementation of a gas turbine asset.
 use golion_domain::{
-    temporal::{series::TimeSeries, step::MinuteStep},
+    temporal::{series::TimeSeries, step::Step},
     units::power::KiloWatt,
 };
 
@@ -10,7 +10,7 @@ use good_lp::Constraint;
 
 #[derive(Debug)]
 pub struct GasTurbine {
-    pub(crate) step: MinuteStep,
+    pub(crate) step: Step,
     pub(crate) variable_store: TimeSeries<OtherAssetVariables>,
     pub(crate) constraints: Vec<Constraint>,
     pub(crate) rated_output_power: KiloWatt,

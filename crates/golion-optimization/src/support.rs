@@ -1,10 +1,7 @@
-use good_lp::{Expression, IntoAffineExpression};
+use golion_domain::temporal::step::Step;
 /// Support Methods and Definitions for handlers.
-use jiff::SignedDuration;
+use good_lp::{Expression, IntoAffineExpression};
 #[inline]
-pub(crate) fn power_to_energy(
-    v: impl IntoAffineExpression,
-    duration: &SignedDuration,
-) -> Expression {
-    (duration.as_secs_f64() / 3600.0) * v.into_expression()
+pub(crate) fn power_to_energy(v: impl IntoAffineExpression, step: &Step) -> Expression {
+    step.total_hours_f64() * v.into_expression()
 }

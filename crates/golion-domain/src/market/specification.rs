@@ -1,9 +1,10 @@
+use crate::market::temporality::bid_window::BidWindow;
 use crate::temporal::grid::RegularTimeGrid;
 use crate::{
     countries::Countries,
     market::{
         bid::ProductSpecifications, config::AllMarketConfig, error::MarketError,
-        market_type::MarketType, temporality::bid_time_bounds::ToBidTimeBounds,
+        market_type::MarketType,
     },
 };
 use jiff::Timestamp;
@@ -37,11 +38,12 @@ impl MarketSpecs {
 }
 
 impl MarketSpecs {
-    /// Get bidding time bounds using the configuration and reference run time.
-    pub fn get_bid_time_bounds(
+    /// Get bidding time windows using the configuration and reference run time.
+    pub fn get_bid_windows(
         &self,
+        grid: &RegularTimeGrid,
         reference_time: &Timestamp,
-    ) -> crate::Result<Option<RegularTimeGrid>> {
-        self.config.to_bid_time_bounds(reference_time, &self.product)
+    ) -> crate::Result<Vec<BidWindow>> {
+        self.config.to_bid_windows(reference_time, grid, &self.product)
     }
 }

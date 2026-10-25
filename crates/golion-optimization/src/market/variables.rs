@@ -1,11 +1,11 @@
 use crate::support::power_to_energy;
 use golion_domain::{
     market::bid::{AncillaryBid, WholesaleBid},
-    temporal::series::TimeStampedUtc,
+    temporal::{series::TimeStampedUtc, step::Step},
     units::power::KiloWatt,
 };
 use good_lp::{Constraint, Expression, ProblemVariables, constraint, variable};
-use jiff::{SignedDuration, Timestamp};
+use jiff::Timestamp;
 
 /// Bidding Variables container with time information
 #[derive(Debug)]
@@ -21,7 +21,7 @@ impl BidVariables {
         start_at: Timestamp,
         input_power: Expression,
         output_power: Expression,
-        grid_step: &SignedDuration,
+        grid_step: &Step,
     ) -> Self {
         let output_energy = power_to_energy(&output_power, grid_step);
         let input_energy = power_to_energy(&input_power, grid_step);

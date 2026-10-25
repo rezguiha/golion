@@ -4,7 +4,7 @@ use crate::{
         bid::{AncillaryBid, WholesaleBid},
         market_type::{AncillaryMarketType, WholesaleMarketType},
     },
-    temporal::{series::TimeStampedUtc, step::MinuteStep},
+    temporal::{series::TimeStampedUtc, step::Step},
 };
 use serde::Serialize;
 use uuid::Uuid;
@@ -19,7 +19,7 @@ pub enum PhysicalStates {
 pub struct MarketSolution<T, D: TimeStampedUtc> {
     pub market_type: T,
     pub revenue: f64,
-    pub step: MinuteStep,
+    pub step: Step,
     pub series: Vec<D>,
 }
 

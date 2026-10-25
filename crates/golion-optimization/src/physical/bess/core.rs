@@ -10,7 +10,7 @@ use golion_domain::asset::bess::soc::SocBounds;
 use golion_domain::asset::bess::specification::BessSpecifications;
 use golion_domain::asset::state::BessState;
 use golion_domain::temporal::series::TimeSeries;
-use golion_domain::temporal::step::MinuteStep;
+use golion_domain::temporal::step::Step;
 use golion_domain::units::power::{KiloWatt, KiloWattHour};
 use good_lp::{
     Constraint, Expression, IntoAffineExpression, ProblemVariables, constraint,
@@ -71,7 +71,7 @@ impl BessInitialState {
 #[derive(Debug)]
 pub struct Battery {
     initial_state: BessInitialState,
-    step: MinuteStep,
+    step: Step,
     pub(crate) variable_store: TimeSeries<BessVariables>,
     pub(crate) constraints: Vec<Constraint>,
     soc_bounds: TimeSeries<SocBounds>,
@@ -102,7 +102,7 @@ impl Battery {
         vars: &mut ProblemVariables,
         soc_bounds: &TimeSeries<SocBounds>,
         initial_soc: KiloWattHour,
-        step: MinuteStep,
+        step: Step,
     ) -> crate::Result<(TimeSeries<BessVariables>, Vec<Constraint>)> {
         let time_index_length = time_index.len();
         // Initialize battery physical variables and constraints containers.
@@ -155,7 +155,7 @@ impl Battery {
         vars: &mut ProblemVariables,
         specifications: BessSpecifications,
         initial_soc: KiloWattHour,
-        step: MinuteStep,
+        step: Step,
         current_state: BessState,
     ) -> Result<Self> {
         let grid_start = &horizon.grid().start();
@@ -266,7 +266,7 @@ mod tests {
     };
     use golion_domain::asset::state::BessState;
     use golion_domain::temporal::grid::RegularTimeGrid;
-    use golion_domain::temporal::step::MinuteStep;
+    use golion_domain::temporal::step::Step;
     use golion_domain::units::efficiency::Efficiency;
     use golion_domain::units::power::{KiloWatt, KiloWattHour};
     use good_lp::ProblemVariables;
@@ -275,7 +275,7 @@ mod tests {
     #[test]
     fn build_battery_over_four_slots() {
         // 4 slots at 15-minute step.
-        let step = MinuteStep::try_from(SignedDuration::from_mins(15)).unwrap();
+        let step = Step::try_from(SignedDuration::from_mins(15)).unwrap();
         let start_at =
             Timestamp::now().round((Unit::Minute, step.duration().as_mins())).unwrap();
         let grid = RegularTimeGrid::try_new(start_at, step, 4).unwrap();
@@ -303,7 +303,7 @@ mod tests {
         let history: Vec<BidirectionalThroughput> = (1..=96)
             .rev()
             .map(|i| BidirectionalThroughput {
-                start_at: start_at - *step.duration() * i,
+                start_at: start_at - step.duration() * i,
                 charged_energy: KiloWattHour(0.0),
                 discharged_energy: KiloWattHour(0.0),
             })
@@ -327,7 +327,7 @@ mod tests {
             ancillary_downward: 0.0.into(),
             ancillary_upward: 0.0.into(),
             dispatch: 0.0.into(),
-            start_at: start_at - *step.duration(),
+            start_at: start_at - step.duration(),
             soc: initial_soc,
         };
 

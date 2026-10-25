@@ -133,7 +133,7 @@ impl ReserveDefinition {
         expected_activation_ratios: ExpectedActivationRatios,
     ) -> crate::Result<Self> {
         // The activation window must cover a whole, positive number of grid steps.
-        let step = *grid.step().duration();
+        let step = grid.step().duration();
         let (window_secs, step_secs) = (activation_window.as_secs(), step.as_secs());
         if window_secs <= 0 || window_secs % step_secs != 0 {
             return Err(ProblemError::InvalidActivationWindow {

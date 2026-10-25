@@ -1,12 +1,12 @@
 /// State of Charge related constraints.
 use crate::physical::variables::BessVariables;
 use crate::support::power_to_energy;
-use golion_domain::{temporal::step::MinuteStep, units::efficiency::Efficiency};
+use golion_domain::{temporal::step::Step, units::efficiency::Efficiency};
 use good_lp::{Constraint, IntoAffineExpression, constraint};
 pub fn transition_constraint(
     current_step_variables: &BessVariables,
     previous_step_soc: impl IntoAffineExpression,
-    step: &MinuteStep,
+    step: &Step,
     charge_efficiency: &Efficiency,
     discharge_efficiency: &Efficiency,
 ) -> Constraint {
@@ -17,7 +17,7 @@ pub fn transition_constraint(
                     current_step_variables.input_power * charge_efficiency.value()
                         - current_step_variables.output_power
                             * (1.0_f64 / discharge_efficiency.value()),
-                    step.duration()
+                    step
                 )
     )
 }
