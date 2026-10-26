@@ -17,6 +17,9 @@ pub struct OptimizationInput {
     /// to compute which market bid windows are still open.
     #[garde(skip)]
     pub optimization_start_at: Timestamp,
+    /// Reference end of the optimization. The convention here is [start,end[
+    /// For example, For an optimization ending at tomorrow at midnight an end
+    /// 00:00 of the day after are accepted. 23:59 will be truncated to 2E:45
     #[garde(skip)]
     pub optimization_end_at: Timestamp,
     #[garde(skip)]
@@ -68,11 +71,19 @@ impl TryFrom<&OptimizationInput> for RegularTimeGrid {
                 TimestampRound::new()
                     .smallest(Unit::Minute)
                     .increment(step.duration().as_mins())
-                    .mode(jiff::RoundMode::Ceil),
+                    .mode(jiff::RoundMode::Expand),
             )
             .map_err(golion_domain::Error::JiffConversionError)?;
-        let grid =
-            RegularTimeGrid::try_new_start_end(start, step, value.optimization_end_at)?;
+        let end = value
+            .optimization_end_at
+            .round(
+                TimestampRound::new()
+                    .smallest(Unit::Minute)
+                    .increment(step.duration().as_mins())
+                    .mode(jiff::RoundMode::Expand),
+            )
+            .map_err(golion_domain::Error::JiffConversionError)?;
+        let grid = RegularTimeGrid::try_new_start_end(start, step, end)?;
         Ok(grid)
     }
 }
