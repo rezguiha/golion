@@ -6,7 +6,7 @@ use crate::problem::definition::{AssetDefinition, BrpDefinition, ReserveDefiniti
 use crate::problem::error::ProblemError;
 use crate::temporal::grid::RegularTimeGrid;
 use jiff::Timestamp;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use uuid::Uuid;
 
 // region: Optimization Problem
@@ -17,7 +17,7 @@ use uuid::Uuid;
 pub struct ProblemData {
     pub run_time: Timestamp,
     pub grid: RegularTimeGrid,
-    pub assets: HashMap<Uuid, AssetDefinition>,
+    pub assets: BTreeMap<Uuid, AssetDefinition>,
     pub brp_perimeters: Vec<BrpDefinition>,
     pub reserve_perimeters: Vec<ReserveDefinition>,
     pub revenues: RevenueStore,
@@ -27,7 +27,7 @@ pub struct OptimizationProblem(ProblemData);
 impl OptimizationProblem {
     /// Make sure every perimeter is only composed of known assets.
     fn check_compositions(
-        assets: &HashMap<Uuid, AssetDefinition>,
+        assets: &BTreeMap<Uuid, AssetDefinition>,
         brp_perimeters: &[BrpDefinition],
         reserve_perimeters: &[ReserveDefinition],
     ) -> crate::Result<()> {
@@ -145,7 +145,7 @@ mod tests {
     use crate::units::efficiency::Efficiency;
     use crate::units::power::{KiloWatt, KiloWattHour};
     use jiff::{SignedDuration, Timestamp, ToSpan};
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
     use uuid::Uuid;
 
     fn step() -> Step {
@@ -229,7 +229,7 @@ mod tests {
     }
     /// Problem data over the test grid, without reserve perimeters nor revenues.
     fn data(
-        assets: HashMap<Uuid, AssetDefinition>,
+        assets: BTreeMap<Uuid, AssetDefinition>,
         brp_perimeters: Vec<BrpDefinition>,
     ) -> ProblemData {
         ProblemData {
@@ -245,7 +245,7 @@ mod tests {
     #[test]
     fn accepts_consistent_problem() {
         let asset_id = Uuid::new_v4();
-        let assets = HashMap::from([(asset_id, bess())]);
+        let assets = BTreeMap::from([(asset_id, bess())]);
         let problem = OptimizationProblem::try_from(data(
             assets,
             vec![brp(vec![asset_id], vec![])],
@@ -256,7 +256,7 @@ mod tests {
     #[test]
     fn rejects_unknown_asset_in_perimeter() {
         let unknown_id = Uuid::new_v4();
-        let assets = HashMap::from([(Uuid::new_v4(), bess())]);
+        let assets = BTreeMap::from([(Uuid::new_v4(), bess())]);
         let problem = OptimizationProblem::try_from(data(
             assets,
             vec![brp(vec![unknown_id], vec![])],
@@ -271,7 +271,7 @@ mod tests {
     #[test]
     fn rejects_asset_in_multiple_brps() {
         let asset_id = Uuid::new_v4();
-        let assets = HashMap::from([(asset_id, bess())]);
+        let assets = BTreeMap::from([(asset_id, bess())]);
         let problem = OptimizationProblem::try_from(data(
             assets,
             vec![brp(vec![asset_id], vec![]), brp(vec![asset_id], vec![])],
@@ -286,7 +286,7 @@ mod tests {
     #[test]
     fn rejects_market_without_revenue() {
         let asset_id = Uuid::new_v4();
-        let assets = HashMap::from([(asset_id, bess())]);
+        let assets = BTreeMap::from([(asset_id, bess())]);
         let product = ProductSpecifications::try_new(15.minutes(), 100).unwrap();
         let specs = MarketSpecs::try_new(
             MarketType::WholeSale(WholesaleMarketType::SpotDayAhead),

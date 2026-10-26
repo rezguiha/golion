@@ -9,7 +9,7 @@ use golion_domain::problem::{OptimizationProblem, ProblemData};
 use golion_domain::temporal::{grid::RegularTimeGrid, series::TimeSeries, step::Step};
 use jiff::{SignedDuration, Timestamp, TimestampRound, Unit};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 /// Optimization full payload struct.
 #[derive(Debug, Validate, Serialize, Deserialize)]
 pub struct OptimizationInput {
@@ -88,7 +88,7 @@ impl TryFrom<OptimizationInput> for OptimizationProblem {
         let assets = assets
             .into_iter()
             .map(AssetData::try_into_definition)
-            .collect::<crate::Result<HashMap<_, _>>>()?;
+            .collect::<crate::Result<BTreeMap<_, _>>>()?;
         let brp_perimeters = brp_perimeters
             .into_iter()
             .map(|perimeter| perimeter.try_into_definition(&country, &grid))

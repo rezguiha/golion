@@ -11,7 +11,7 @@ use golion_domain::temporal::series::{TimeSeries, TimeStampedUtc};
 use golion_domain::units::power::KiloWatt;
 use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables};
 use jiff::Timestamp;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use uuid::Uuid;
 // region: Activation Path
 
@@ -132,11 +132,11 @@ pub enum PhysicalError {
 }
 
 #[derive(Debug)]
-pub struct PhysicalStore(HashMap<Uuid, Asset>);
+pub struct PhysicalStore(BTreeMap<Uuid, Asset>);
 impl PhysicalStore {
     /// Builds the physical variables and constraints of every asset.
     pub(crate) fn try_new(
-        assets: HashMap<Uuid, AssetDefinition>,
+        assets: BTreeMap<Uuid, AssetDefinition>,
         env: &BuildEnv<'_>,
         vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
