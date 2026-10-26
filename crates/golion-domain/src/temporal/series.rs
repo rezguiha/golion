@@ -62,14 +62,14 @@ impl<T: TimeStampedUtc> TryFrom<Vec<T>> for TimeSeries<T> {
         let start = data.first().unwrap().start_at();
         let second = data.get(1).unwrap().start_at();
         let step = Step::try_from(second - start)?;
-        let end = data.last().unwrap().start_at();
+        let last = data.last().unwrap().start_at();
         let grid = RegularTimeGrid::try_new(start, step, length)?;
 
-        match grid.end().eq(&end) {
+        match grid.last().eq(&last) {
             true => Ok(Self { grid, data }),
             _ => Err(TimeSeriesError::GridEndMismatch {
-                expected: end,
-                actual: grid.end(),
+                expected: last,
+                actual: grid.last(),
             }
             .into()),
         }

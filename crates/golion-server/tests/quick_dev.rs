@@ -20,7 +20,7 @@ use golion_domain::market::market_type::{
 };
 use golion_domain::temporal::grid::RegularTimeGrid;
 use golion_domain::temporal::step::Step;
-use jiff::RoundMode::{Expand, Trunc};
+use jiff::RoundMode::Expand;
 use jiff::TimestampRound;
 use jiff::{SignedDuration, ToSpan, Unit, civil::date};
 use uuid::Uuid;
@@ -125,14 +125,14 @@ fn create_wholesale_commitment(
 #[tokio::test]
 async fn test_optimize_bess() -> Result<()> {
     let hc = httpc_test::new_client("http://127.0.0.1:3000")?;
-    let start_zoned = date(2026, 10, 11).at(7, 28, 0, 0).in_tz("CET")?;
+    let start_zoned = date(2026, 10, 11).at(16, 0, 0, 0).in_tz("CET")?;
 
     let start = start_zoned
         .timestamp()
         .round(TimestampRound::new().smallest(Unit::Minute).increment(15).mode(Expand))?;
     let end =
         start_zoned.tomorrow().and_then(|dt| dt.end_of_day())?.timestamp().round(
-            TimestampRound::new().smallest(Unit::Minute).increment(15).mode(Trunc),
+            TimestampRound::new().smallest(Unit::Minute).increment(15).mode(Expand),
         )?;
     let step = Step::try_from(15.minutes()).unwrap();
     let grid = RegularTimeGrid::try_new_start_end(start, step, end).unwrap();
@@ -204,7 +204,7 @@ async fn test_optimize_bess() -> Result<()> {
                     AncillaryCommitment::builder()
                         .start_at(t)
                         .upward_power(0.0)
-                        .downward_power(2.0)
+                        .downward_power(2000.0)
                         .build()
                 })
                 .collect();

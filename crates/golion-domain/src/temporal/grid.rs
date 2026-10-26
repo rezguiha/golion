@@ -55,12 +55,15 @@ impl RegularTimeGrid {
     pub fn end(&self) -> Timestamp {
         self.end
     }
+    pub fn last(&self) -> Timestamp {
+        self.end - self.step.duration()
+    }
     pub fn length(&self) -> usize {
         self.length
     }
     pub fn try_new(start: Timestamp, step: Step, length: usize) -> crate::Result<Self> {
         step.check_datetime_multiple_step(start)?;
-        let end = start + step.duration() * (length as i32 - 1);
+        let end = start + step.duration() * length as i32;
         step.check_datetime_multiple_step(end)?;
         Ok(RegularTimeGrid { start, step, length, end })
     }
@@ -85,7 +88,7 @@ impl RegularTimeGrid {
     }
 
     pub fn index_of(&self, dt: &Timestamp) -> crate::Result<usize> {
-        if (*dt < self.start) || (*dt > self.end) {
+        if (*dt < self.start) || (*dt >= self.end) {
             return Err(TimeGridError::OutsideBounds {
                 dt: *dt,
                 start: self.start,
@@ -105,7 +108,7 @@ impl RegularTimeGrid {
         }
     }
     pub fn iter(&self) -> impl Iterator<Item = Timestamp> {
-        self.start.series(self.step.span()).take_while(|dt| dt <= &self.end)
+        self.start.series(self.step.span()).take_while(|dt| dt < &self.end)
     }
 }
 
