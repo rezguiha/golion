@@ -228,9 +228,11 @@ impl Battery {
 
     pub(crate) fn cycling_constraints(
         &self,
+        vars: &mut ProblemVariables,
         expected_activation_series: &TimeSeries<ActivationEnergy>,
     ) -> crate::Result<Vec<Constraint>> {
         create_cycling_constraints(
+            vars,
             &self.specifications,
             &self.variable_store,
             expected_activation_series,

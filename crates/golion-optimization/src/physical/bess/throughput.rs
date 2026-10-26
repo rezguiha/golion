@@ -12,7 +12,10 @@ use golion_domain::{
     },
     units::power::KiloWattHour,
 };
-use good_lp::{Constraint, Expression, IntoAffineExpression, constraint};
+use good_lp::{
+    Constraint, Expression, IntoAffineExpression, ProblemVariables, Variable, constraint,
+    variable,
+};
 use jiff::ToSpan;
 
 pub trait ComputeCycleContribution {
@@ -63,7 +66,17 @@ impl ComputeCycleContribution for DischargeThroughput {
     }
 }
 
+/// Limits the modelled throughput over every rolling 24-hour window ending
+/// with a grid slot.
+///
+/// We compute at each timestamp the throughput from the start of the optimization.
+/// At a particular step t , we make the difference of the total at that time step
+/// minus the total at the timestep at start of rolling 24 hour window.
+///
+/// This gives us exactly the throughput we want to account for and it reduces
+/// the density of the matrix for solve which reduces solve time.
 fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
+    vars: &mut ProblemVariables,
     past_series: &TimeSeries<C>,
     expected_activation_series: &TimeSeries<ActivationEnergy>,
     variable_store: &TimeSeries<BessVariables>,
@@ -71,60 +84,58 @@ fn compute_throughput_constraints<C: ComputeCycleContribution + TimeStampedUtc>(
     efficiencies: &BessPowerEfficiencies,
     max_24h_avg_cycles: f64,
 ) -> crate::Result<Vec<Constraint>> {
-    let mut constraints =
-        Vec::<Constraint>::with_capacity(variable_store.grid().length());
-    let grid_start = variable_store.grid().start();
-    let step = variable_store.grid().step();
-    for dt in variable_store.grid().iter() {
-        let start_consideration = dt - 24.hours() + step.span();
-        let start_future_consideration =
-            start_consideration.max(variable_store.grid().start());
-        let relevant_past_throughput = past_series
+    let grid = variable_store.grid();
+    let step = grid.step();
+    let limit = C::throughput_limit(usable_energy, max_24h_avg_cycles);
+    let mut constraints = Vec::<Constraint>::with_capacity(2 * grid.length());
+    let mut since_start = Vec::<Variable>::with_capacity(grid.length());
+    for (i, dt) in grid.iter().enumerate() {
+        // since_start[i] = since_start[i - 1] + throughput of slot i.
+        let mut sum = C::modelled_throughput_expression(
+            &variable_store.data()[i],
+            &expected_activation_series.data()[i],
+            &step,
+            efficiencies,
+        );
+        if let Some(previous) = since_start.last() {
+            sum += *previous;
+        }
+        let total = vars.add(variable());
+        constraints.push(constraint!(total == sum));
+        since_start.push(total);
+
+        // 24-hour window ending with slot i, split at the grid start.
+        let window_start = dt - 24.hours() + step.span();
+        let first = grid.index_of(&window_start.max(grid.start()))?;
+        // Part on the grid, slots first..=i.
+        let mut window_on_grid = total.into_expression();
+        if let Some(before_first) = first.checked_sub(1) {
+            window_on_grid -= since_start[before_first];
+        }
+        // Part before the grid, from the throughput history.
+        let window_before_grid: f64 = past_series
             .data()
             .iter()
-            .filter(|throughput_row| {
-                throughput_row.start_at() >= start_consideration
-                    && throughput_row.start_at() < grid_start
-            })
-            .map(|throughput_row| throughput_row.modelled_throughput(efficiencies))
-            .fold(0.0, |acc, x| acc + x);
-        let current_element_index = variable_store.grid().index_of(&dt)?;
-        let start_element_index =
-            variable_store.grid().index_of(&start_future_consideration)?;
-        let relevant_future_throughput = variable_store.data()
-            [start_element_index..=current_element_index]
-            .iter()
-            .zip(
-                &expected_activation_series.data()
-                    [start_element_index..=current_element_index],
-            )
-            .fold(0.0.into_expression(), |acc, (vars, expected_activation)| {
-                acc + C::modelled_throughput_expression(
-                    vars,
-                    expected_activation,
-                    &step,
-                    efficiencies,
-                )
-            });
-        constraints.push(constraint!(
-            // Make sure in case past throughput exceeds limit
-            // We get no infeasible solution.
-            relevant_future_throughput
-                <= (C::throughput_limit(usable_energy, max_24h_avg_cycles)
-                    - relevant_past_throughput)
-                    .max(0.0)
-        ));
+            .filter(|row| row.start_at() >= window_start && row.start_at() < grid.start())
+            .map(|row| row.modelled_throughput(efficiencies))
+            .sum();
+        // Clamped at zero so a history already over the limit cannot make the
+        // problem infeasible.
+        constraints
+            .push(constraint!(window_on_grid <= (limit - window_before_grid).max(0.0)));
     }
     Ok(constraints)
 }
 
 pub(crate) fn create_cycling_constraints(
+    vars: &mut ProblemVariables,
     specifications: &BessSpecifications,
     variable_store: &TimeSeries<BessVariables>,
     expected_activation_series: &TimeSeries<ActivationEnergy>,
 ) -> crate::Result<Vec<Constraint>> {
     match &specifications.cycling.history {
         ThroughputHistory::Bidirectional(past_series) => compute_throughput_constraints(
+            vars,
             past_series,
             expected_activation_series,
             variable_store,
@@ -133,6 +144,7 @@ pub(crate) fn create_cycling_constraints(
             specifications.cycling.max_24h_avg_cycles,
         ),
         ThroughputHistory::DischargeOnly(past_series) => compute_throughput_constraints(
+            vars,
             past_series,
             expected_activation_series,
             variable_store,

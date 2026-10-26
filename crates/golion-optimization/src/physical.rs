@@ -92,10 +92,11 @@ impl Asset {
     /// limitations.
     pub fn maximum_usage_constraints(
         &self,
+        vars: &mut ProblemVariables,
         expected_activation_series: &TimeSeries<ActivationEnergy>,
     ) -> crate::Result<Vec<Constraint>> {
         Ok(match self {
-            Self::Bess(b) => b.cycling_constraints(expected_activation_series)?,
+            Self::Bess(b) => b.cycling_constraints(vars, expected_activation_series)?,
             Self::Ccgt(_) | Self::Ren(_) => Vec::<Constraint>::new(),
         })
     }
