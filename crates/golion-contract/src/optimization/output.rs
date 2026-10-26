@@ -111,6 +111,8 @@ pub enum AssetOutput {
 
 #[derive(Debug, Serialize)]
 pub struct SolutionOutput {
+    pub revenue: f64,
+    pub penalty: f64,
     pub wholesale: Vec<BrpPerimeterOutput>,
     pub ancillary: Vec<ReservePerimeterOutput>,
     pub physical: Vec<AssetOutput>,
@@ -118,17 +120,26 @@ pub struct SolutionOutput {
 
 impl From<OptimizationSolution> for SolutionOutput {
     fn from(value: OptimizationSolution) -> Self {
+        let mut wholesale = Vec::with_capacity(value.wholesale.len());
+        let mut ancillary = Vec::with_capacity(value.ancillary.len());
+        let mut revenue = 0.0;
+        let mut penalty = 0.0;
+        for brp in value.wholesale.into_iter().map(BrpPerimeterOutput::from) {
+            revenue += brp.revenue;
+            penalty += brp.penalty;
+            wholesale.push(brp);
+        }
+        for bsp in value.ancillary.into_iter().map(ReservePerimeterOutput::from) {
+            revenue += bsp.market.revenue;
+            penalty += bsp.penalty;
+            ancillary.push(bsp);
+        }
+
         Self {
-            wholesale: value
-                .wholesale
-                .into_iter()
-                .map(BrpPerimeterOutput::from)
-                .collect(),
-            ancillary: value
-                .ancillary
-                .into_iter()
-                .map(ReservePerimeterOutput::from)
-                .collect(),
+            revenue,
+            penalty,
+            wholesale,
+            ancillary,
             physical: value.physical.into_iter().map(AssetOutput::from).collect(),
         }
     }
