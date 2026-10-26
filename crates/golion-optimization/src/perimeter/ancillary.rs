@@ -56,11 +56,21 @@ impl ReservePerimeter {
     /// bids and commitments over its assets.
     pub(crate) fn try_new(
         definition: &ReserveDefinition,
+        physical_store: &PhysicalStore,
         env: &BuildEnv<'_>,
         vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
         let horizon = env.horizon();
-        let market = Market::try_new(definition.market(), env, vars)?;
+        // Largest reserve the assets can deliver either way: swinging from one
+        // physical limit to the opposite one.
+        let (sum_rated_input_power, sum_rated_output_power) =
+            physical_store.maximum_physical_limits(definition.composition())?;
+        let market = Market::try_new(
+            definition.market(),
+            sum_rated_input_power + sum_rated_output_power,
+            env,
+            vars,
+        )?;
         let bid_store = aggregate_market_bids(
             horizon.timestamps(),
             horizon.grid(),
@@ -189,7 +199,9 @@ impl AncillaryPerimeter {
     ) -> crate::Result<Self> {
         let reserve_perimeters: Vec<ReservePerimeter> = definitions
             .iter()
-            .map(|definition| ReservePerimeter::try_new(definition, env, vars))
+            .map(|definition| {
+                ReservePerimeter::try_new(definition, physical_store, env, vars)
+            })
             .collect::<crate::Result<_>>()?;
         let mut constraints = Vec::<Constraint>::new();
         Self::physical_reserve_perimeters_constraints(

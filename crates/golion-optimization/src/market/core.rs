@@ -5,6 +5,7 @@ use golion_domain::market::market_type::MarketType;
 use golion_domain::market::specification::MarketSpecs;
 use golion_domain::temporal::series::TimeSeries;
 use golion_domain::temporal::step::Step;
+use golion_domain::units::power::KiloWatt;
 use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables, variable};
 
 #[derive(Debug)]
@@ -36,8 +37,10 @@ impl Market {
         &self.bid_step
     }
     /// Builds the market bid variables, valued with the market revenues.
+    /// max_bid_power is the largest power a single bid can carry.
     pub(crate) fn try_new(
         market_specs: &MarketSpecs,
+        max_bid_power: KiloWatt,
         env: &BuildEnv<'_>,
         vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
@@ -63,11 +66,15 @@ impl Market {
             })
         } else {
             let increment_value = market_specs.product.increment.value();
+            // Bid volumes are whole increments within the largest bid power.
+            let max_increments = (max_bid_power.0 / f64::from(increment_value)).floor();
             let mut variable_store: Vec<BidVariables> = Vec::new();
 
             for bid_window in bid_windows.into_iter() {
-                let input_variable = vars.add(variable().min(0).integer());
-                let output_variable = vars.add(variable().min(0).integer());
+                let input_variable =
+                    vars.add(variable().min(0).max(max_increments).integer());
+                let output_variable =
+                    vars.add(variable().min(0).max(max_increments).integer());
                 for dt in bid_window.try_iter(&step)? {
                     // We associate same variables for the whole window of the bid step.
                     let input_power = input_variable * increment_value;
