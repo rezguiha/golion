@@ -212,7 +212,7 @@ impl ToBidWindows for ContinuousAuctionTemporality {
 // region: Tests
 #[cfg(test)]
 mod tests {
-    use jiff::{SignedDuration, Timestamp, ToSpan};
+    use jiff::{SignedDuration, Timestamp, ToSpan, Zoned};
 
     use crate::market::bid::{KiloWattIncrement, ProductSpecifications};
     use crate::market::temporality::{
@@ -220,6 +220,7 @@ mod tests {
         bid_window::ToBidWindows,
         interval::TimeDefinedInterval,
     };
+    use crate::temporal::grid::RegularTimeGrid;
     use crate::temporal::step::Step;
 
     fn product_specifications(step_minutes: i64) -> ProductSpecifications {
@@ -358,6 +359,68 @@ mod tests {
                 "2024-01-16T23:00:00Z".parse().unwrap(),
             ),
         );
+    }
+
+    /// Bid windows of an auction open the whole CET day starting at `day_start`,
+    /// for products of `product_minutes` on a 15-minute grid.
+    fn day_bid_windows(
+        day_start: &str,
+        product_minutes: i64,
+    ) -> Vec<(Timestamp, Timestamp)> {
+        let auction = DynamicAuctionTemporality::try_new(
+            TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days()).unwrap(),
+            0.minutes(),
+            "CET",
+        )
+        .unwrap();
+        let start: Zoned = day_start.parse().unwrap();
+        let end = start.tomorrow().unwrap();
+        let grid = RegularTimeGrid::try_new_start_end(
+            start.timestamp(),
+            product_specifications(15).step,
+            end.timestamp(),
+        )
+        .unwrap();
+        auction
+            .to_bid_windows(
+                &start.timestamp(),
+                &grid,
+                &product_specifications(product_minutes),
+            )
+            .unwrap()
+            .iter()
+            .map(|window| (window.start, window.end))
+            .collect()
+    }
+    /// Length in hours of each bid window.
+    fn window_hours(windows: &[(Timestamp, Timestamp)]) -> Vec<i64> {
+        windows.iter().map(|(start, end)| end.duration_since(*start).as_hours()).collect()
+    }
+    #[test]
+    fn four_hour_products_spring_forward() {
+        // 29 March 2026, clocks jump from 02:00 CET to 03:00 CEST: the 00:00-04:00
+        // product lasts 3h and ends at 04:00 CEST.
+        let windows = day_bid_windows("2026-03-29T00:00[CET]", 240);
+        assert_eq!(window_hours(&windows), [3, 4, 4, 4, 4, 4]);
+        assert_eq!(windows[0].1, "2026-03-29T02:00:00Z".parse::<Timestamp>().unwrap());
+    }
+    #[test]
+    fn four_hour_products_fall_back() {
+        // 25 October 2026, clocks go back from 03:00 CEST to 02:00 CET: the
+        // 00:00-04:00 product lasts 5h and ends at 04:00 CET.
+        let windows = day_bid_windows("2026-10-25T00:00[CET]", 240);
+        assert_eq!(window_hours(&windows), [5, 4, 4, 4, 4, 4]);
+        assert_eq!(windows[0].1, "2026-10-25T03:00:00Z".parse::<Timestamp>().unwrap());
+    }
+    #[test]
+    fn hourly_products_fall_back_keep_repeated_hour() {
+        // 25 October 2026 has 25 hourly products: 02:00 CEST and 02:00 CET are
+        // two separate products.
+        let windows = day_bid_windows("2026-10-25T00:00[CET]", 60);
+        assert_eq!(window_hours(&windows), [1; 25]);
+        let starts: Vec<Timestamp> = windows.iter().map(|(start, _)| *start).collect();
+        assert!(starts.contains(&"2026-10-25T00:00:00Z".parse().unwrap()));
+        assert!(starts.contains(&"2026-10-25T01:00:00Z".parse().unwrap()));
     }
 }
 // endregion: Tests
