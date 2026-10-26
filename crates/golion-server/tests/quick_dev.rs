@@ -137,9 +137,14 @@ async fn test_optimize_bess() -> Result<()> {
     let step = Step::try_from(15.minutes()).unwrap();
     let grid = RegularTimeGrid::try_new_start_end(start, step, end).unwrap();
 
-    let asset_ids: Vec<Uuid> = (1..=NB_ASSETS).map(|_| Uuid::new_v4()).collect();
-    let brp_ids: Vec<Uuid> = (1..=NB_BRP).map(|_| Uuid::new_v4()).collect();
-    let bsp_ids: Vec<Uuid> = (1..=NB_BSP).map(|_| Uuid::new_v4()).collect();
+    // Fixed ids, in disjoint ranges per kind, so the model reaches HiGHS in the
+    // same order on every run.
+    let asset_ids: Vec<Uuid> =
+        (1..=NB_ASSETS).map(|i| Uuid::from_u128(u128::from(i))).collect();
+    let brp_ids: Vec<Uuid> =
+        (1..=NB_BRP).map(|i| Uuid::from_u128(1_000 + u128::from(i))).collect();
+    let bsp_ids: Vec<Uuid> =
+        (1..=NB_BSP).map(|i| Uuid::from_u128(2_000 + u128::from(i))).collect();
     let asset_brp: Vec<(Uuid, Uuid)> =
         asset_ids.iter().copied().zip(brp_ids.iter().copied().cycle()).collect();
     let asset_bsp: Vec<(Uuid, Uuid)> =
