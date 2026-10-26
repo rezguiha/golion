@@ -208,6 +208,7 @@ impl AncillaryPerimeter {
             &reserve_perimeters,
             physical_store,
             env.horizon().timestamps(),
+            vars,
             &mut constraints,
         )?;
         // Compute Overall Revnue.
@@ -350,6 +351,7 @@ impl AncillaryPerimeter {
         reserve_perimeters: &[ReservePerimeter],
         physical_store: &PhysicalStore,
         time_index: &[Timestamp],
+        vars: &mut ProblemVariables,
         constraints: &mut Vec<Constraint>,
     ) -> crate::Result<()> {
         for (asset_id, asset) in physical_store.iter() {
@@ -358,7 +360,8 @@ impl AncillaryPerimeter {
                 asset_id,
                 time_index,
             )?;
-            constraints.extend(asset.maximum_usage_constraints(&expected_activations)?);
+            constraints
+                .extend(asset.maximum_usage_constraints(vars, &expected_activations)?);
         }
         Ok(())
     }
