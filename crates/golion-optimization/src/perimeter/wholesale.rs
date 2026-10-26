@@ -49,11 +49,16 @@ impl BrpPerimeter {
         vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
         let horizon = env.horizon();
+        // Largest useful trade on either side in one slot: cancelling the
+        // committed position and swinging to the opposite physical limit.
+        let (sum_rated_input_power, sum_rated_output_power) =
+            physical_store.maximum_physical_limits(definition.composition())?;
+        let max_bid_power = sum_rated_input_power + sum_rated_output_power;
         // Create the markets of the perimeter.
         let markets: Vec<Market> = definition
             .markets()
             .iter()
-            .map(|market_specs| Market::try_new(market_specs, env, vars))
+            .map(|market_specs| Market::try_new(market_specs, max_bid_power, env, vars))
             .collect::<crate::Result<_>>()?;
         // Aggregate market bids at brp perimeter level.
         let bid_store =
