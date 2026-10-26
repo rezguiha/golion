@@ -202,7 +202,7 @@ impl ToBidWindows for ContinuousAuctionTemporality {
             reference if reference >= next_day_gate_open_at => {
                 reference.saturating_add(2.days()).start_of_day()?
             }
-            reference => reference.end_of_day()?,
+            reference => reference.tomorrow()?.start_of_day()?,
         };
         Ok((bidding_start, bidding_end))
     }
