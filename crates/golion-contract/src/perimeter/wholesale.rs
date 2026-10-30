@@ -1,11 +1,11 @@
-use golion_domain::market::market_type::WholesaleMarketType;
 use golion_domain::problem::definition::BrpDefinition;
 use golion_domain::temporal::grid::RegularTimeGrid;
 use golion_domain::{countries::Countries, market::commitment::EnergyCommitment};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::market::{choice::MarketChoice, commitments::WholesaleCommitments};
+use crate::market::choice::WholesaleChoice;
+use crate::market::commitments::WholesaleCommitments;
 use garde::Validate;
 /// Represents the balance responsible party identification.
 /// It is the entity facing the TSOs and on which imbalances
@@ -20,7 +20,7 @@ pub struct BrpPerimeter {
     pub composition: Vec<Uuid>,
     /// List of wholesale markets to bid on.
     #[garde(skip)]
-    pub markets: Vec<MarketChoice<WholesaleMarketType>>,
+    pub markets: Vec<WholesaleChoice>,
     /// List of wholesale market commitments at the perimeter.
     #[garde(dive)]
     pub commitments: WholesaleCommitments,
@@ -38,7 +38,12 @@ impl BrpPerimeter {
         let markets = self
             .markets
             .iter()
-            .map(|market_choice| market_choice.try_to_market_specs(country))
+            .map(|market_choice| {
+                market_choice
+                    .try_to_product_def(*country)?
+                    .try_into()
+                    .map_err(crate::Error::from)
+            })
             .collect::<crate::Result<_>>()?;
         let commitments = self
             .commitments

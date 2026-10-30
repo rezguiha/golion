@@ -20,7 +20,7 @@ impl KiloWattIncrement {
 }
 
 /// Represents market product specifications.
-#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
 pub struct ProductSpecifications {
     pub step: Step,
     pub increment: KiloWattIncrement,

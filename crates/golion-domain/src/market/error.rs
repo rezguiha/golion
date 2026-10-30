@@ -1,9 +1,9 @@
 use super::market_type::MarketType;
 use crate::countries::Countries;
-use crate::market::bid::ProductSpecifications;
+use crate::market::market_type::WholesaleMarketType;
+use crate::temporal::step::Step;
 use jiff::civil::Time;
 use jiff::{SignedDuration, Span, Timestamp};
-use std::collections::HashSet;
 #[derive(Debug)]
 pub enum MarketError {
     // -- Temporality
@@ -24,11 +24,11 @@ pub enum MarketError {
         end: Timestamp,
     },
     // -- Specification
-    InvalidProduct {
-        market: MarketType,
+    InvalidWholesaleProduct {
+        market: WholesaleMarketType,
         country: Countries,
-        product: ProductSpecifications,
-        possible_products: HashSet<ProductSpecifications>,
+        product_step: Step,
+        possible_product_steps: Vec<Step>,
     },
 
     // -- Revenue

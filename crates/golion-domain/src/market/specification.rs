@@ -1,49 +1,365 @@
-use crate::market::temporality::bid_window::BidWindow;
-use crate::temporal::grid::RegularTimeGrid;
-use crate::{
-    countries::Countries,
-    market::{
-        bid::ProductSpecifications, config::AllMarketConfig, error::MarketError,
-        market_type::MarketType,
-    },
+use jiff::{Timestamp, ToSpan};
+
+use crate::countries::Countries;
+use crate::market::bid::ProductSpecifications;
+use crate::market::error::MarketError;
+use crate::market::market_type::{
+    AncillaryMarketType, CapacityAncillaryMarketType, EnergyAncillaryMarketType,
+    MarketType, WholesaleMarketType,
 };
-use jiff::Timestamp;
+use crate::market::product::{AncillaryProductDef, WholesaleProductDef};
+use crate::market::temporality::auction::AuctionTemporality;
+use crate::market::temporality::bid_window::BidWindow;
+use crate::market::temporality::{
+    auction::{
+        ContinuousAuctionTemporality, DynamicAuctionTemporality, StaticAuctionTemporality,
+    },
+    interval::TimeDefinedInterval,
+};
+use crate::temporal::grid::RegularTimeGrid;
+use crate::temporal::step::Step;
+
+const WHOLESALE_INCREMENT_KW: u16 = 100;
+const ANCILLARY_INCREMENT_KW: u16 = 1000;
+
+// region: Market specs
+
+/// Specification of one market in one country, with the product chosen to bid on.
+///
+/// The market functions below are the place to set any country specific
+/// configuration: open and closure times, a neutralization delay translating a
+/// liquidity constraint... They match every country explicitly so that adding a
+/// country forces a decision for each market.
+///
+/// aFRR and FCR are not implemented yet and some configurations may be corrected
+/// later on with further verifications.
 #[derive(Debug)]
 pub struct MarketSpecs {
     pub market: MarketType,
+    /// Country of market.
     pub country: Countries,
+    /// Auction temporality
+    pub auction: AuctionTemporality,
+    /// Chosen product (step and bid increment).
     pub product: ProductSpecifications,
-    pub config: AllMarketConfig,
+}
+impl MarketSpecs {
+    pub fn get_bid_windows(
+        &self,
+        reference_time: Timestamp,
+        grid: &RegularTimeGrid,
+    ) -> crate::Result<Vec<BidWindow>> {
+        self.auction.compute_bid_windows(&reference_time, grid, &self.product)
+    }
 }
 
-impl MarketSpecs {
-    pub fn try_new(
-        market: MarketType,
-        country: Countries,
-        product: ProductSpecifications,
-    ) -> crate::Result<Self> {
-        let config = AllMarketConfig::try_new(&market, &country)?;
-        if config.possible_products().contains(&product) {
-            Ok(MarketSpecs { market, country, product, config })
-        } else {
-            Err(MarketError::InvalidProduct {
-                market,
-                country,
-                product,
-                possible_products: config.possible_products().clone(),
+// endregion: Market specs
+
+// region: Wholesale Markets
+
+/// Selects the requested product if its step is allowed on the market.
+fn select_wholesale_product(
+    product_def: WholesaleProductDef,
+    allowed_steps: &[Step],
+) -> crate::Result<ProductSpecifications> {
+    if allowed_steps.contains(&product_def.step) {
+        Ok(ProductSpecifications {
+            step: product_def.step,
+            increment: WHOLESALE_INCREMENT_KW.into(),
+        })
+    } else {
+        Err(MarketError::InvalidWholesaleProduct {
+            market: product_def.market,
+            country: product_def.country,
+            product_step: product_def.step,
+            possible_product_steps: allowed_steps.to_vec(),
+        }
+        .into())
+    }
+}
+
+fn spot_day_ahead(product_def: WholesaleProductDef) -> crate::Result<MarketSpecs> {
+    let product =
+        select_wholesale_product(product_def, &[Step::FifteenMinutes, Step::OneHour])?;
+    let common_european_temporality = StaticAuctionTemporality::try_new(
+        TimeDefinedInterval::try_new(0, 0, 12, 0, 0.days())?,
+        TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
+        1.days(),
+        "CET",
+    )?;
+    let auction = match product_def.country {
+        Countries::BE
+        | Countries::DE
+        | Countries::IT
+        | Countries::FR
+        | Countries::ES
+        | Countries::PT => common_european_temporality,
+    };
+    Ok(MarketSpecs {
+        market: product_def.market.into(),
+        country: product_def.country,
+        auction: auction.into(),
+        product,
+    })
+}
+
+fn intraday_auction_1(product_def: WholesaleProductDef) -> crate::Result<MarketSpecs> {
+    let product =
+        select_wholesale_product(product_def, &[Step::FifteenMinutes, Step::OneHour])?;
+    let harmonized_sidc_ida1 = StaticAuctionTemporality::try_new(
+        TimeDefinedInterval::try_new(0, 0, 15, 0, 0.days())?,
+        TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
+        1.days(),
+        "CET",
+    )?;
+    let auction = match product_def.country {
+        Countries::BE
+        | Countries::DE
+        | Countries::IT
+        | Countries::FR
+        | Countries::ES
+        | Countries::PT => harmonized_sidc_ida1,
+    };
+    Ok(MarketSpecs {
+        market: product_def.market.into(),
+        country: product_def.country,
+        auction: auction.into(),
+        product,
+    })
+}
+fn intraday_auction_2(product_def: WholesaleProductDef) -> crate::Result<MarketSpecs> {
+    let product =
+        select_wholesale_product(product_def, &[Step::FifteenMinutes, Step::OneHour])?;
+    let harmonized_sidc_ida2 = StaticAuctionTemporality::try_new(
+        TimeDefinedInterval::try_new(0, 0, 22, 0, 0.days())?,
+        TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
+        1.days(),
+        "CET",
+    )?;
+    let auction = match product_def.country {
+        Countries::BE
+        | Countries::DE
+        | Countries::IT
+        | Countries::FR
+        | Countries::ES
+        | Countries::PT => harmonized_sidc_ida2,
+    };
+    Ok(MarketSpecs {
+        market: product_def.market.into(),
+        country: product_def.country,
+        auction: auction.into(),
+        product,
+    })
+}
+fn intraday_auction_3(product_def: WholesaleProductDef) -> crate::Result<MarketSpecs> {
+    let product =
+        select_wholesale_product(product_def, &[Step::FifteenMinutes, Step::OneHour])?;
+    let harmonized_sidc_ida3 = StaticAuctionTemporality::try_new(
+        TimeDefinedInterval::try_new(0, 0, 10, 0, 0.days())?,
+        TimeDefinedInterval::try_new(12, 0, 0, 0, 1.days())?,
+        0.days(),
+        "CET",
+    )?;
+    let auction = match product_def.country {
+        Countries::BE
+        | Countries::DE
+        | Countries::IT
+        | Countries::FR
+        | Countries::ES
+        | Countries::PT => harmonized_sidc_ida3,
+    };
+    Ok(MarketSpecs {
+        market: product_def.market.into(),
+        country: product_def.country,
+        auction: auction.into(),
+        product,
+    })
+}
+
+fn intraday_continuous(product_def: WholesaleProductDef) -> crate::Result<MarketSpecs> {
+    let product = select_wholesale_product(
+        product_def,
+        &[Step::FifteenMinutes, Step::ThirtyMinutes, Step::OneHour],
+    )?;
+    let auction = match product_def.country {
+        Countries::FR | Countries::ES | Countries::PT | Countries::IT => {
+            ContinuousAuctionTemporality::try_new(15, 0, 1.hours(), "CET")?
+        }
+        Countries::DE => {
+            ContinuousAuctionTemporality::try_new(15, 0, 15.minutes(), "CET")?
+        }
+        Countries::BE => ContinuousAuctionTemporality::try_new(14, 0, 1.hours(), "CET")?,
+    };
+    Ok(MarketSpecs {
+        market: product_def.market.into(),
+        country: product_def.country,
+        auction: auction.into(),
+        product,
+    })
+}
+
+// endregion: Wholesale Markets
+
+// region: Ancillary Services
+fn afrr_free(product_def: AncillaryProductDef) -> crate::Result<MarketSpecs> {
+    let harmonized_picasso = DynamicAuctionTemporality::try_new(
+        TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
+        30.minutes(),
+        "CET",
+    )?;
+    let auction = match product_def.country {
+        Countries::BE
+        | Countries::DE
+        | Countries::IT
+        | Countries::FR
+        | Countries::ES
+        | Countries::PT => harmonized_picasso,
+    };
+    let product_specs: ProductSpecifications =
+        ProductSpecifications::try_new(15.minutes(), ANCILLARY_INCREMENT_KW)?;
+    Ok(MarketSpecs {
+        market: product_def.market.into(),
+        country: product_def.country,
+        auction: auction.into(),
+        product: product_specs,
+    })
+}
+
+fn afrr(product_def: AncillaryProductDef) -> crate::Result<MarketSpecs> {
+    Err(MarketError::NotImplemented {
+        market: MarketType::Ancillary(AncillaryMarketType::Capacity(
+            CapacityAncillaryMarketType::Afrr,
+        )),
+        country: product_def.country,
+    }
+    .into())
+}
+
+fn fcr(product_def: AncillaryProductDef) -> crate::Result<MarketSpecs> {
+    Err(MarketError::NotImplemented {
+        market: MarketType::Ancillary(AncillaryMarketType::Capacity(
+            CapacityAncillaryMarketType::Fcr,
+        )),
+        country: product_def.country,
+    }
+    .into())
+}
+// endregion: Ancillary Services
+
+// region: Conversions
+impl TryFrom<AncillaryProductDef> for MarketSpecs {
+    type Error = crate::Error;
+    fn try_from(value: AncillaryProductDef) -> crate::Result<Self> {
+        match value.market {
+            AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree) => {
+                afrr_free(value)
             }
-            .into())
+            AncillaryMarketType::Capacity(CapacityAncillaryMarketType::Afrr) => {
+                afrr(value)
+            }
+            AncillaryMarketType::Capacity(CapacityAncillaryMarketType::Fcr) => fcr(value),
         }
     }
 }
 
-impl MarketSpecs {
-    /// Get bidding time windows using the configuration and reference run time.
-    pub fn get_bid_windows(
-        &self,
-        grid: &RegularTimeGrid,
-        reference_time: &Timestamp,
-    ) -> crate::Result<Vec<BidWindow>> {
-        self.config.to_bid_windows(reference_time, grid, &self.product)
+impl TryFrom<WholesaleProductDef> for MarketSpecs {
+    type Error = crate::Error;
+    fn try_from(value: WholesaleProductDef) -> crate::Result<Self> {
+        match value.market {
+            WholesaleMarketType::SpotDayAhead => spot_day_ahead(value),
+            WholesaleMarketType::IntradayAuction1 => intraday_auction_1(value),
+            WholesaleMarketType::IntradayAuction2 => intraday_auction_2(value),
+            WholesaleMarketType::IntradayAuction3 => intraday_auction_3(value),
+            WholesaleMarketType::IntradayContinuous => intraday_continuous(value),
+        }
     }
 }
+// endregion: Conversions
+
+// region: Tests
+#[cfg(test)]
+mod tests {
+    use super::{ANCILLARY_INCREMENT_KW, MarketSpecs, WHOLESALE_INCREMENT_KW};
+    use crate::Error;
+    use crate::countries::Countries;
+    use crate::market::error::MarketError;
+    use crate::market::market_type::{
+        AncillaryMarketType, CapacityAncillaryMarketType, EnergyAncillaryMarketType,
+        WholesaleMarketType,
+    };
+    use crate::market::product::{AncillaryProductDef, WholesaleProductDef};
+    use crate::temporal::step::Step;
+
+    fn wholesale(market: WholesaleMarketType, step: Step) -> crate::Result<MarketSpecs> {
+        MarketSpecs::try_from(WholesaleProductDef {
+            country: Countries::FR,
+            market,
+            step,
+        })
+    }
+
+    fn ancillary(market: AncillaryMarketType) -> crate::Result<MarketSpecs> {
+        MarketSpecs::try_from(AncillaryProductDef { country: Countries::FR, market })
+    }
+
+    #[test]
+    fn accepts_allowed_wholesale_step() {
+        let specs =
+            wholesale(WholesaleMarketType::SpotDayAhead, Step::FifteenMinutes).unwrap();
+        assert_eq!(specs.product.step, Step::FifteenMinutes);
+        assert_eq!(specs.product.increment.value(), WHOLESALE_INCREMENT_KW);
+    }
+
+    #[test]
+    fn rejects_disallowed_wholesale_step_with_ordered_alternatives() {
+        let Err(Error::Market(MarketError::InvalidWholesaleProduct {
+            possible_product_steps,
+            ..
+        })) = wholesale(WholesaleMarketType::SpotDayAhead, Step::ThirtyMinutes)
+        else {
+            panic!("thirty minute products are not traded on the day-ahead auction");
+        };
+        assert_eq!(possible_product_steps, [Step::FifteenMinutes, Step::OneHour]);
+    }
+
+    #[test]
+    fn only_continuous_accepts_thirty_minute_products() {
+        for market in [
+            WholesaleMarketType::SpotDayAhead,
+            WholesaleMarketType::IntradayAuction1,
+            WholesaleMarketType::IntradayAuction2,
+            WholesaleMarketType::IntradayAuction3,
+        ] {
+            assert!(matches!(
+                wholesale(market, Step::ThirtyMinutes),
+                Err(Error::Market(MarketError::InvalidWholesaleProduct { .. }))
+            ));
+        }
+        assert!(
+            wholesale(WholesaleMarketType::IntradayContinuous, Step::ThirtyMinutes)
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn afrr_free_uses_ancillary_increment() {
+        let specs =
+            ancillary(AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree))
+                .unwrap();
+        assert_eq!(specs.product.step, Step::FifteenMinutes);
+        assert_eq!(specs.product.increment.value(), ANCILLARY_INCREMENT_KW);
+    }
+
+    #[test]
+    fn capacity_reserves_are_not_implemented() {
+        for market in
+            [CapacityAncillaryMarketType::Afrr, CapacityAncillaryMarketType::Fcr]
+        {
+            assert!(matches!(
+                ancillary(AncillaryMarketType::Capacity(market)),
+                Err(Error::Market(MarketError::NotImplemented { .. }))
+            ));
+        }
+    }
+}
+// endregion: Tests

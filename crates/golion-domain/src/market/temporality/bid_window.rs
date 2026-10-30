@@ -207,6 +207,7 @@ impl ToBidWindows for ContinuousAuctionTemporality {
         Ok((bidding_start, bidding_end))
     }
 }
+
 // endregion: Bidding Time Boundaries and its trait implementations
 
 // region: Tests

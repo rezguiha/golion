@@ -1,9 +1,9 @@
 pub mod activation;
 pub mod bid;
 pub mod commitment;
-pub mod config;
 pub mod error;
 pub mod market_type;
+pub mod product;
 pub mod revenue;
 pub mod specification;
 pub mod temporality;

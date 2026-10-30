@@ -132,10 +132,10 @@ mod tests {
     };
     use crate::asset::state::BessState;
     use crate::countries::Countries;
-    use crate::market::bid::ProductSpecifications;
     use crate::market::commitment::EnergyCommitment;
     use crate::market::error::MarketError;
-    use crate::market::market_type::{MarketType, WholesaleMarketType};
+    use crate::market::market_type::WholesaleMarketType;
+    use crate::market::product::WholesaleProductDef;
     use crate::market::revenue::RevenueStore;
     use crate::market::specification::MarketSpecs;
     use crate::problem::definition::{AssetDefinition, BrpDefinition};
@@ -287,13 +287,13 @@ mod tests {
     fn rejects_market_without_revenue() {
         let asset_id = Uuid::new_v4();
         let assets = BTreeMap::from([(asset_id, bess())]);
-        let product = ProductSpecifications::try_new(15.minutes(), 100).unwrap();
-        let specs = MarketSpecs::try_new(
-            MarketType::WholeSale(WholesaleMarketType::SpotDayAhead),
-            Countries::FR,
-            product,
-        )
-        .unwrap();
+        let product = WholesaleProductDef {
+            country: Countries::FR,
+            market: WholesaleMarketType::SpotDayAhead,
+            step: 15.minutes().try_into().unwrap(),
+        };
+        let specs = MarketSpecs::try_from(product).unwrap();
+
         let perimeter = brp(vec![asset_id], vec![specs]);
         let problem = OptimizationProblem::try_from(data(assets, vec![perimeter]));
         assert!(matches!(

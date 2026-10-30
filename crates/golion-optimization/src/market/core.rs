@@ -48,8 +48,7 @@ impl Market {
             env.revenues().get(market_specs.market, market_specs.country)?;
         let grid = env.horizon().grid();
         let step = grid.step();
-        let bid_windows =
-            market_specs.get_bid_windows(grid, &env.horizon().run_time())?;
+        let bid_windows = market_specs.get_bid_windows(env.horizon().run_time(), grid)?;
         let constraints: Vec<Constraint> = Vec::new();
         let mut revenue: Expression = 0.0.into_expression();
 

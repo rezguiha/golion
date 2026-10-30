@@ -1,5 +1,5 @@
 use anyhow::Result;
-use golion_contract::market::choice::MarketChoice;
+use golion_contract::market::choice::{AncillaryChoice, WholesaleChoice};
 use golion_contract::market::commitments::{AncillaryCommitment, WholesaleCommitment};
 use golion_contract::market::revenue::{AncillaryRevenue, WholesaleRevenue};
 use golion_contract::optimization::input::OptimizationInput;
@@ -153,10 +153,9 @@ async fn test_optimize_bess() -> Result<()> {
     let brp_perimeters = brp_ids
         .iter()
         .map(|brp_id| {
-            let wholesale_market_choices = vec![MarketChoice {
+            let wholesale_market_choices = vec![WholesaleChoice {
                 market: WholesaleMarketType::IntradayContinuous,
-                product_step_minutes: 15,
-                product_increment_kw: 100,
+                product_step: SignedDuration::from_mins(15),
             }];
             let wholesale_commitments = vec![
                 create_wholesale_commitment(
@@ -216,12 +215,10 @@ async fn test_optimize_bess() -> Result<()> {
 
             ReservePerimeter::builder()
                 .id(*bsp_id)
-                .market(MarketChoice {
+                .market(AncillaryChoice {
                     market: AncillaryMarketType::Energy(
                         EnergyAncillaryMarketType::AfrrFree,
                     ),
-                    product_increment_kw: 1000,
-                    product_step_minutes: 15,
                 })
                 .composition(composition)
                 .commitments(reserve_commitments)

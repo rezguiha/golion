@@ -1,23 +1,35 @@
 /// Definition of market choices for assets and their inputs.
-use golion_domain::market::bid::ProductSpecifications;
-use golion_domain::market::specification::MarketSpecs;
-use golion_domain::{countries::Countries, market::market_type::MarketType};
-use jiff::Span;
+use golion_domain::market::market_type::{AncillaryMarketType, WholesaleMarketType};
+use golion_domain::market::product::{AncillaryProductDef, WholesaleProductDef};
+
+use golion_domain::countries::Countries;
+use jiff::SignedDuration;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct MarketChoice<T: Into<MarketType>> {
-    pub market: T,
-    pub product_step_minutes: u16,
-    pub product_increment_kw: u16,
+pub struct AncillaryChoice {
+    pub market: AncillaryMarketType,
+}
+#[derive(Debug, Deserialize, Serialize)]
+pub struct WholesaleChoice {
+    pub market: WholesaleMarketType,
+    pub product_step: SignedDuration,
+}
+impl AncillaryChoice {
+    pub(crate) fn to_product_def(&self, country: Countries) -> AncillaryProductDef {
+        AncillaryProductDef { country, market: self.market }
+    }
 }
 
-impl<T: Into<MarketType> + Copy> MarketChoice<T> {
-    pub fn try_to_market_specs(&self, country: &Countries) -> crate::Result<MarketSpecs> {
-        let product = ProductSpecifications::try_new(
-            Span::new().minutes(self.product_step_minutes),
-            self.product_increment_kw,
-        )?;
-        Ok(MarketSpecs::try_new(self.market.into(), *country, product)?)
+impl WholesaleChoice {
+    pub(crate) fn try_to_product_def(
+        &self,
+        country: Countries,
+    ) -> crate::Result<WholesaleProductDef> {
+        Ok(WholesaleProductDef {
+            market: self.market,
+            step: self.product_step.try_into()?,
+            country,
+        })
     }
 }
