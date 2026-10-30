@@ -44,8 +44,7 @@ impl Market {
         env: &BuildEnv<'_>,
         vars: &mut ProblemVariables,
     ) -> crate::Result<Self> {
-        let market_revenues =
-            env.revenues().get(market_specs.market, market_specs.country)?;
+        let market_revenues = env.revenues().get(&market_specs.into())?;
         let grid = env.horizon().grid();
         let step = grid.step();
         let bid_windows = market_specs.get_bid_windows(env.horizon().run_time(), grid)?;

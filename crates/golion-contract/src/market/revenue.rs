@@ -2,16 +2,16 @@
 /// the revenue generated from the market.
 use garde::Validate;
 use golion_domain::{
-    market::{
-        market_type::{AncillaryMarketType, WholesaleMarketType},
-        revenue::{Revenue, RevenueUnit},
-    },
+    market::revenue::{Revenue, RevenueUnit},
     temporal::series::TimeStampedUtc,
 };
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
-use crate::market::series::MarketSeries;
+use crate::market::{
+    choice::{AncillaryChoice, WholesaleChoice},
+    series::MarketSeries,
+};
 
 #[derive(Debug, Deserialize, Serialize, Validate)]
 #[serde(untagged)]
@@ -82,9 +82,9 @@ impl TimeStampedUtc for WholesaleRevenue {
 /// on each market. This could be simplified later on if project
 /// does not evolve in that direction.
 pub(crate) type AncillaryRevenueSeries =
-    Vec<MarketSeries<AncillaryMarketType, AncillaryRevenue>>;
+    Vec<MarketSeries<AncillaryChoice, AncillaryRevenue>>;
 pub(crate) type WholesaleRevenueSeries =
-    Vec<MarketSeries<WholesaleMarketType, WholesaleRevenue>>;
+    Vec<MarketSeries<WholesaleChoice, WholesaleRevenue>>;
 // region: Domain conversion
 /// Converts revenue input values to revenue values
 impl From<&AncillaryRevenue> for Revenue {

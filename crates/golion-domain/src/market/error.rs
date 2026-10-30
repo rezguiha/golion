@@ -1,6 +1,7 @@
 use super::market_type::MarketType;
 use crate::countries::Countries;
 use crate::market::market_type::WholesaleMarketType;
+use crate::market::product::ProductDef;
 use crate::temporal::step::Step;
 use jiff::civil::Time;
 use jiff::{SignedDuration, Span, Timestamp};
@@ -33,8 +34,7 @@ pub enum MarketError {
 
     // -- Revenue
     MissingMarketRevenue {
-        market: MarketType,
-        country: Countries,
+        product: ProductDef,
     },
 
     // -- config

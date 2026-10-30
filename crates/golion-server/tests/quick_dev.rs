@@ -85,13 +85,13 @@ fn create_bess_asset(asset_id: Uuid, grid: &RegularTimeGrid) -> AssetData {
 }
 
 fn create_wholesale_market_revenue(
-    market_type: WholesaleMarketType,
+    market: WholesaleChoice,
     grid: &RegularTimeGrid,
     ref_sell_price: f64,
     ref_buy_price: f64,
-) -> MarketSeries<WholesaleMarketType, WholesaleRevenue> {
+) -> MarketSeries<WholesaleChoice, WholesaleRevenue> {
     MarketSeries {
-        market: market_type,
+        market,
         values: grid
             .iter()
             .map(|t| WholesaleRevenue::SimplifiedWholesaleRevenue {
@@ -185,11 +185,15 @@ async fn test_optimize_bess() -> Result<()> {
         })
         .collect::<Vec<_>>();
 
-    let wholesale_revenues = brp_perimeters
-        .iter()
-        .flat_map(|brp| &brp.markets)
-        .map(|choice| create_wholesale_market_revenue(choice.market, &grid, 75.0, 80.0))
-        .collect::<Vec<_>>();
+    let wholesale_revenues = vec![create_wholesale_market_revenue(
+        WholesaleChoice {
+            market: WholesaleMarketType::IntradayContinuous,
+            product_step: SignedDuration::from_mins(15),
+        },
+        &grid,
+        75.0,
+        80.0,
+    )];
 
     let assets: Vec<AssetData> =
         asset_ids.iter().map(|asset_id| create_bess_asset(*asset_id, &grid)).collect();
@@ -229,7 +233,9 @@ async fn test_optimize_bess() -> Result<()> {
         })
         .collect::<Vec<_>>();
     let ancillary_revenues = vec![MarketSeries {
-        market: AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
+        market: AncillaryChoice {
+            market: AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
+        },
         values: grid
             .iter()
             .map(|t| AncillaryRevenue::SimplifiedAncillaryRevenue {

@@ -88,7 +88,7 @@ impl OptimizationProblem {
             .flat_map(|perimeter| perimeter.markets().iter())
             .chain(reserve_perimeters.iter().map(|perimeter| perimeter.market()));
         for specs in markets {
-            revenues.get(specs.market, specs.country)?;
+            revenues.get(&specs.into())?;
         }
         Ok(())
     }

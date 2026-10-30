@@ -46,13 +46,13 @@ impl TryFrom<&OptimizationInput> for RevenueStore {
             let values: Vec<Revenue> =
                 revenue_series.values.iter().map(Revenue::from).collect();
             let series = TimeSeries::<Revenue>::try_from(values)?;
-            Ok((revenue_series.market.into(), series))
+            Ok((revenue_series.market.to_product_def(value.country).into(), series))
         });
         let wholesale = value.wholesale_revenues.iter().map(|revenue_series| {
             let values: Vec<Revenue> =
                 revenue_series.values.iter().map(Revenue::from).collect();
             let series = TimeSeries::<Revenue>::try_from(values)?;
-            Ok((revenue_series.market.into(), series))
+            Ok((revenue_series.market.try_to_product_def(value.country)?.into(), series))
         });
         let store: HashMap<_, _> =
             ancillary.chain(wholesale).collect::<crate::Result<_>>()?;
