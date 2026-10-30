@@ -1,7 +1,11 @@
+use crate::market::bid::ProductSpecifications;
+use crate::market::temporality::bid_window::{BidWindow, ToBidWindows};
 use crate::market::temporality::interval::{DeltaDays, TimeDefinedInterval};
-use jiff::Span;
+use crate::temporal::grid::RegularTimeGrid;
+use derive_more::From;
 use jiff::civil::Time;
 use jiff::tz::TimeZone;
+use jiff::{Span, Timestamp};
 
 /// Market temporality where an auction is held at fixed times
 /// and where bidding starts and ends at fixed times.
@@ -82,5 +86,33 @@ impl ContinuousAuctionTemporality {
         let next_day_gate_open_time =
             Time::new(next_day_gate_open_hour, next_day_gate_open_minute, 0, 0)?;
         Ok(Self { next_day_gate_open_time, neutralization_delay, timezone })
+    }
+}
+
+#[derive(Debug, From)]
+pub enum AuctionTemporality {
+    Static(StaticAuctionTemporality),
+    Dynamic(DynamicAuctionTemporality),
+    Continuous(ContinuousAuctionTemporality),
+}
+
+impl AuctionTemporality {
+    pub fn compute_bid_windows(
+        &self,
+        reference_time: &Timestamp,
+        grid: &RegularTimeGrid,
+        product_specifications: &ProductSpecifications,
+    ) -> crate::Result<Vec<BidWindow>> {
+        match self {
+            Self::Continuous(c) => {
+                c.to_bid_windows(reference_time, grid, product_specifications)
+            }
+            Self::Dynamic(d) => {
+                d.to_bid_windows(reference_time, grid, product_specifications)
+            }
+            Self::Static(s) => {
+                s.to_bid_windows(reference_time, grid, product_specifications)
+            }
+        }
     }
 }

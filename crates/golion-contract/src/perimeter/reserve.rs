@@ -1,7 +1,5 @@
-use crate::market::choice::MarketChoice;
 use garde::Validate;
 use golion_domain::market::commitment::PowerCommitment;
-use golion_domain::market::market_type::AncillaryMarketType;
 use golion_domain::problem::definition::ReserveDefinition;
 use golion_domain::temporal::grid::RegularTimeGrid;
 use golion_domain::{countries::Countries, market::activation::ExpectedActivationRatios};
@@ -10,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 use uuid::Uuid;
 
+use crate::market::choice::AncillaryChoice;
 use crate::market::commitments::AncillaryCommitment;
 /// Represents the reserve perimeter
 #[derive(Debug, Serialize, Deserialize, Validate, TypedBuilder)]
@@ -17,7 +16,7 @@ pub struct ReservePerimeter {
     #[garde(skip)]
     pub id: Uuid,
     #[garde(skip)]
-    pub market: MarketChoice<AncillaryMarketType>,
+    pub market: AncillaryChoice,
     /// List of reserve units/groups composing the reserve perimeter
     /// for that particular ancillary service.
     #[garde(skip)]
@@ -45,7 +44,7 @@ impl ReservePerimeter {
     ) -> crate::Result<ReserveDefinition> {
         Ok(ReserveDefinition::try_new(
             self.id,
-            self.market.try_to_market_specs(country)?,
+            self.market.to_product_def(*country).try_into()?,
             self.composition,
             self.commitments.iter().map(PowerCommitment::from),
             grid,
