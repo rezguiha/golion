@@ -21,14 +21,29 @@ impl KiloWattIncrement {
 
 /// Represents market product specifications.
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
+pub enum Symmetry {
+    Symmetric,
+    Asymmetric,
+}
+
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
 pub struct ProductSpecifications {
     pub step: Step,
     pub increment: KiloWattIncrement,
+    pub symmetry: Symmetry,
 }
 
 impl ProductSpecifications {
-    pub fn try_new(step: Span, increment_kw: u16) -> crate::Result<Self> {
-        Ok(Self { step: step.try_into()?, increment: KiloWattIncrement(increment_kw) })
+    pub fn try_new(
+        step: Span,
+        increment_kw: u16,
+        symmetry: Symmetry,
+    ) -> crate::Result<Self> {
+        Ok(Self {
+            step: step.try_into()?,
+            increment: KiloWattIncrement(increment_kw),
+            symmetry,
+        })
     }
 }
 impl ProductSpecifications {

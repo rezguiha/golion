@@ -215,6 +215,7 @@ impl ToBidWindows for ContinuousAuctionTemporality {
 mod tests {
     use jiff::{SignedDuration, Timestamp, ToSpan, Zoned};
 
+    use crate::market::bid::Symmetry;
     use crate::market::bid::{KiloWattIncrement, ProductSpecifications};
     use crate::market::temporality::{
         auction::{ContinuousAuctionTemporality, DynamicAuctionTemporality},
@@ -228,6 +229,7 @@ mod tests {
         ProductSpecifications {
             step: Step::try_from(SignedDuration::from_mins(step_minutes)).unwrap(),
             increment: KiloWattIncrement::from(100),
+            symmetry: Symmetry::Asymmetric,
         }
     }
 

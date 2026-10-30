@@ -1,7 +1,7 @@
 use jiff::{Timestamp, ToSpan};
 
 use crate::countries::Countries;
-use crate::market::bid::ProductSpecifications;
+use crate::market::bid::{ProductSpecifications, Symmetry};
 use crate::market::error::MarketError;
 use crate::market::market_type::{
     AncillaryMarketType, CapacityAncillaryMarketType, EnergyAncillaryMarketType,
@@ -67,6 +67,7 @@ fn select_wholesale_product(
         Ok(ProductSpecifications {
             step: product_def.step,
             increment: WHOLESALE_INCREMENT_KW.into(),
+            symmetry: Symmetry::Asymmetric,
         })
     } else {
         Err(MarketError::InvalidWholesaleProduct {
@@ -216,8 +217,11 @@ fn afrr_free(product_def: AncillaryProductDef) -> crate::Result<MarketSpecs> {
         | Countries::ES
         | Countries::PT => harmonized_picasso,
     };
-    let product_specs: ProductSpecifications =
-        ProductSpecifications::try_new(15.minutes(), ANCILLARY_INCREMENT_KW)?;
+    let product_specs: ProductSpecifications = ProductSpecifications::try_new(
+        15.minutes(),
+        ANCILLARY_INCREMENT_KW,
+        Symmetry::Asymmetric,
+    )?;
     Ok(MarketSpecs {
         market: product_def.market.into(),
         country: product_def.country,
@@ -256,8 +260,11 @@ fn fcr(product_def: AncillaryProductDef) -> crate::Result<MarketSpecs> {
         }
     };
 
-    let product_specs: ProductSpecifications =
-        ProductSpecifications::try_new(4.hours(), ANCILLARY_INCREMENT_KW)?;
+    let product_specs: ProductSpecifications = ProductSpecifications::try_new(
+        4.hours(),
+        ANCILLARY_INCREMENT_KW,
+        Symmetry::Symmetric,
+    )?;
     Ok(MarketSpecs {
         market: product_def.market.into(),
         country: product_def.country,
