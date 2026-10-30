@@ -16,7 +16,7 @@ use golion_contract::{
 };
 use golion_domain::countries::Countries;
 use golion_domain::market::market_type::{
-    AncillaryMarketType, EnergyAncillaryMarketType, WholesaleMarketType,
+    CapacityAncillaryMarketType, EnergyAncillaryMarketType, WholesaleMarketType,
 };
 use golion_domain::temporal::grid::RegularTimeGrid;
 use golion_domain::temporal::step::Step;
@@ -120,12 +120,31 @@ fn create_wholesale_commitment(
             .collect(),
     }
 }
+
+fn create_ancillary_revenue(
+    market: AncillaryChoice,
+    grid: &RegularTimeGrid,
+    upward_price: f64,
+    downward_price: f64,
+) -> MarketSeries<AncillaryChoice, AncillaryRevenue> {
+    MarketSeries {
+        market,
+        values: grid
+            .iter()
+            .map(|t| AncillaryRevenue::SimplifiedAncillaryRevenue {
+                start_at: t,
+                sell_revenue: upward_price,
+                buy_revenue: downward_price,
+            })
+            .collect(),
+    }
+}
 /// Temporary simple test of sending assetdata as a payload
 /// on optimize endpoint.
 #[tokio::test]
 async fn test_optimize_bess() -> Result<()> {
     let hc = httpc_test::new_client("http://127.0.0.1:3000")?;
-    let start_zoned = date(2026, 10, 11).at(16, 0, 0, 0).in_tz("CET")?;
+    let start_zoned = date(2026, 10, 11).at(7, 30, 0, 0).in_tz("CET")?;
 
     let start = start_zoned
         .timestamp()
@@ -198,53 +217,46 @@ async fn test_optimize_bess() -> Result<()> {
     let assets: Vec<AssetData> =
         asset_ids.iter().map(|asset_id| create_bess_asset(*asset_id, &grid)).collect();
 
-    let reserve_perimeters = bsp_ids
+    let ancillary_markets = [
+        AncillaryChoice { market: EnergyAncillaryMarketType::AfrrFree.into() },
+        AncillaryChoice { market: CapacityAncillaryMarketType::Fcr.into() },
+    ];
+    let reserve_perimeters = ancillary_markets
         .iter()
-        .map(|bsp_id| {
-            let reserve_commitments: Vec<AncillaryCommitment> = grid
-                .iter()
-                .map(|t| {
-                    AncillaryCommitment::builder()
-                        .start_at(t)
-                        .upward_power(0.0)
-                        .downward_power(2000.0)
-                        .build()
-                })
-                .collect();
-            let composition = asset_bsp
-                .iter()
-                .filter(|(_, owner)| owner == bsp_id)
-                .map(|&(asset_id, _)| asset_id)
-                .collect();
+        .flat_map(|market| {
+            bsp_ids.iter().map(|bsp_id| {
+                let reserve_commitments: Vec<AncillaryCommitment> = grid
+                    .iter()
+                    .map(|t| {
+                        AncillaryCommitment::builder()
+                            .start_at(t)
+                            .upward_power(0.0)
+                            .downward_power(2000.0)
+                            .build()
+                    })
+                    .collect();
+                let composition = asset_bsp
+                    .iter()
+                    .filter(|(_, owner)| owner == bsp_id)
+                    .map(|&(asset_id, _)| asset_id)
+                    .collect();
 
-            ReservePerimeter::builder()
-                .id(*bsp_id)
-                .market(AncillaryChoice {
-                    market: AncillaryMarketType::Energy(
-                        EnergyAncillaryMarketType::AfrrFree,
-                    ),
-                })
-                .composition(composition)
-                .commitments(reserve_commitments)
-                .activation_window(30.minutes().try_into().unwrap())
-                .upward_expected_activation_ratio(0.333)
-                .downward_expected_activation_ratio(0.333)
-                .build()
+                ReservePerimeter::builder()
+                    .id(*bsp_id)
+                    .market(*market)
+                    .composition(composition)
+                    .commitments(reserve_commitments)
+                    .activation_window(30.minutes().try_into().unwrap())
+                    .upward_expected_activation_ratio(0.333)
+                    .downward_expected_activation_ratio(0.333)
+                    .build()
+            })
         })
         .collect::<Vec<_>>();
-    let ancillary_revenues = vec![MarketSeries {
-        market: AncillaryChoice {
-            market: AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree),
-        },
-        values: grid
-            .iter()
-            .map(|t| AncillaryRevenue::SimplifiedAncillaryRevenue {
-                start_at: t,
-                sell_revenue: 15.0,
-                buy_revenue: 15.0,
-            })
-            .collect(),
-    }];
+    let ancillary_revenues = ancillary_markets
+        .iter()
+        .map(|market| create_ancillary_revenue(*market, &grid, 15.0, 15.0))
+        .collect();
     let input = OptimizationInput {
         optimization_start_at: start,
         optimization_end_at: end,

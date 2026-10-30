@@ -237,13 +237,33 @@ fn afrr(product_def: AncillaryProductDef) -> crate::Result<MarketSpecs> {
 }
 
 fn fcr(product_def: AncillaryProductDef) -> crate::Result<MarketSpecs> {
-    Err(MarketError::NotImplemented {
-        market: MarketType::Ancillary(AncillaryMarketType::Capacity(
-            CapacityAncillaryMarketType::Fcr,
-        )),
+    let harmonized = StaticAuctionTemporality::try_new(
+        TimeDefinedInterval::try_new(0, 0, 8, 0, 0.days())?,
+        TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
+        1.days(),
+        "CET",
+    )?;
+    let auction: crate::Result<StaticAuctionTemporality> = match product_def.country {
+        Countries::BE | Countries::DE | Countries::FR => Ok(harmonized),
+        Countries::ES | Countries::PT | Countries::IT => {
+            Err(MarketError::NotImplemented {
+                market: MarketType::Ancillary(AncillaryMarketType::Capacity(
+                    CapacityAncillaryMarketType::Fcr,
+                )),
+                country: product_def.country,
+            }
+            .into())
+        }
+    };
+
+    let product_specs: ProductSpecifications =
+        ProductSpecifications::try_new(4.hours(), ANCILLARY_INCREMENT_KW)?;
+    Ok(MarketSpecs {
+        market: product_def.market.into(),
         country: product_def.country,
-    }
-    .into())
+        auction: auction?.into(),
+        product: product_specs,
+    })
 }
 // endregion: Ancillary Services
 
