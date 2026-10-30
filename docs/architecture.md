@@ -21,12 +21,34 @@ is still quite small and it may lead to some slower feature integration at first
 4- server crate contains Axum API definitions.
 
 ## Dependency graph
-2->1
-3->1
-4->1,2,3
+
+Each arrow points from a crate to a crate it depends on.
+
+```mermaid
+graph TD
+    server["golion-server"] --> contract["golion-contract"]
+    server --> optimization["golion-optimization"]
+    server --> domain["golion-domain"]
+    contract --> domain
+    optimization --> domain
+```
 
 ## Future work
 
 - Continue integrating crucial elements to project and implement the link between crates.
 - Continue adding ports for domain through traits as the project continue to evolve.
 - Improve and restructure as projects grows.
+
+
+# Architecture 30/10/2026
+
+## Ports and adapters
+
+- `golion-domain` defines the `Optimizer` port: it takes an `OptimizationProblem` and
+  returns an `OptimizationOutcome`.
+- `golion-optimization` implements it with `HighsOptimizer`. It is the only crate that
+  depends on `good_lp` and HiGHS.
+- `golion-contract` converts the request into an `OptimizationProblem` and the outcome
+  into the response.
+- `golion-server` is the composition root: it chooses `HighsOptimizer` and runs the solve
+  on tokio's blocking pool.
