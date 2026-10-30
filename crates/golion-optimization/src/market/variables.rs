@@ -55,6 +55,11 @@ impl BidVariables {
             ),
         ]
     }
+    // Set Symmetry between input and output power. This is needed for symmetric markets
+    // like FCR.
+    pub fn symmetry_constraint(&self) -> Constraint {
+        constraint!(self.input_power.clone() == self.output_power.clone())
+    }
 }
 
 // Implement TimeStampedUtc to enable creation

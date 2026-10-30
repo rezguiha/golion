@@ -1,6 +1,6 @@
 use crate::market::{revenue::RevenueSetter, variables::BidVariables};
 use crate::model::BuildEnv;
-use golion_domain::market::bid::KiloWattIncrement;
+use golion_domain::market::bid::{KiloWattIncrement, Symmetry};
 use golion_domain::market::market_type::MarketType;
 use golion_domain::market::specification::MarketSpecs;
 use golion_domain::temporal::series::TimeSeries;
@@ -48,7 +48,7 @@ impl Market {
         let grid = env.horizon().grid();
         let step = grid.step();
         let bid_windows = market_specs.get_bid_windows(env.horizon().run_time(), grid)?;
-        let constraints: Vec<Constraint> = Vec::new();
+        let mut constraints: Vec<Constraint> = Vec::new();
         let mut revenue: Expression = 0.0.into_expression();
 
         if bid_windows.is_empty() {
@@ -79,6 +79,9 @@ impl Market {
                     let output_power = output_variable * increment_value;
                     let bidding_variables =
                         BidVariables::new(dt, input_power, output_power, &step);
+                    if let Symmetry::Symmetric = market_specs.product.symmetry {
+                        constraints.push(bidding_variables.symmetry_constraint());
+                    }
                     let revenue_setter = market_revenues.at(&dt)?;
                     revenue += revenue_setter.revenue_expression(&bidding_variables);
                     variable_store.push(bidding_variables);
