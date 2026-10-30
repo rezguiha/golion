@@ -1,6 +1,5 @@
-use crate::countries::Countries;
 use crate::market::error::MarketError;
-use crate::market::market_type::MarketType;
+use crate::market::product::ProductDef;
 use crate::temporal::series::{TimeSeries, TimeStampedUtc};
 use derive_more::From;
 use jiff::Timestamp;
@@ -36,17 +35,13 @@ impl TimeStampedUtc for Revenue {
 /// Revenue series of every market taking part in the optimization,
 /// indexed by the market and the country it is run in.
 #[derive(Debug, Default, From)]
-pub struct RevenueStore(HashMap<MarketType, TimeSeries<Revenue>>);
+pub struct RevenueStore(HashMap<ProductDef, TimeSeries<Revenue>>);
 
 impl RevenueStore {
-    pub fn get(
-        &self,
-        market: MarketType,
-        country: Countries,
-    ) -> crate::Result<&TimeSeries<Revenue>> {
-        self.0
-            .get(&market)
-            .ok_or_else(|| MarketError::MissingMarketRevenue { market, country }.into())
+    pub fn get(&self, product_def: &ProductDef) -> crate::Result<&TimeSeries<Revenue>> {
+        self.0.get(product_def).ok_or_else(|| {
+            MarketError::MissingMarketRevenue { product: *product_def }.into()
+        })
     }
 }
 // endregion: Revenue store

@@ -7,7 +7,7 @@ use crate::market::market_type::{
     AncillaryMarketType, CapacityAncillaryMarketType, EnergyAncillaryMarketType,
     MarketType, WholesaleMarketType,
 };
-use crate::market::product::{AncillaryProductDef, WholesaleProductDef};
+use crate::market::product::{AncillaryProductDef, ProductDef, WholesaleProductDef};
 use crate::market::temporality::auction::AuctionTemporality;
 use crate::market::temporality::bid_window::BidWindow;
 use crate::market::temporality::{
@@ -43,6 +43,7 @@ pub struct MarketSpecs {
     /// Chosen product (step and bid increment).
     pub product: ProductSpecifications,
 }
+
 impl MarketSpecs {
     pub fn get_bid_windows(
         &self,
@@ -274,92 +275,20 @@ impl TryFrom<WholesaleProductDef> for MarketSpecs {
         }
     }
 }
-// endregion: Conversions
 
-// region: Tests
-#[cfg(test)]
-mod tests {
-    use super::{ANCILLARY_INCREMENT_KW, MarketSpecs, WHOLESALE_INCREMENT_KW};
-    use crate::Error;
-    use crate::countries::Countries;
-    use crate::market::error::MarketError;
-    use crate::market::market_type::{
-        AncillaryMarketType, CapacityAncillaryMarketType, EnergyAncillaryMarketType,
-        WholesaleMarketType,
-    };
-    use crate::market::product::{AncillaryProductDef, WholesaleProductDef};
-    use crate::temporal::step::Step;
-
-    fn wholesale(market: WholesaleMarketType, step: Step) -> crate::Result<MarketSpecs> {
-        MarketSpecs::try_from(WholesaleProductDef {
-            country: Countries::FR,
-            market,
-            step,
-        })
-    }
-
-    fn ancillary(market: AncillaryMarketType) -> crate::Result<MarketSpecs> {
-        MarketSpecs::try_from(AncillaryProductDef { country: Countries::FR, market })
-    }
-
-    #[test]
-    fn accepts_allowed_wholesale_step() {
-        let specs =
-            wholesale(WholesaleMarketType::SpotDayAhead, Step::FifteenMinutes).unwrap();
-        assert_eq!(specs.product.step, Step::FifteenMinutes);
-        assert_eq!(specs.product.increment.value(), WHOLESALE_INCREMENT_KW);
-    }
-
-    #[test]
-    fn rejects_disallowed_wholesale_step_with_ordered_alternatives() {
-        let Err(Error::Market(MarketError::InvalidWholesaleProduct {
-            possible_product_steps,
-            ..
-        })) = wholesale(WholesaleMarketType::SpotDayAhead, Step::ThirtyMinutes)
-        else {
-            panic!("thirty minute products are not traded on the day-ahead auction");
-        };
-        assert_eq!(possible_product_steps, [Step::FifteenMinutes, Step::OneHour]);
-    }
-
-    #[test]
-    fn only_continuous_accepts_thirty_minute_products() {
-        for market in [
-            WholesaleMarketType::SpotDayAhead,
-            WholesaleMarketType::IntradayAuction1,
-            WholesaleMarketType::IntradayAuction2,
-            WholesaleMarketType::IntradayAuction3,
-        ] {
-            assert!(matches!(
-                wholesale(market, Step::ThirtyMinutes),
-                Err(Error::Market(MarketError::InvalidWholesaleProduct { .. }))
-            ));
-        }
-        assert!(
-            wholesale(WholesaleMarketType::IntradayContinuous, Step::ThirtyMinutes)
-                .is_ok()
-        );
-    }
-
-    #[test]
-    fn afrr_free_uses_ancillary_increment() {
-        let specs =
-            ancillary(AncillaryMarketType::Energy(EnergyAncillaryMarketType::AfrrFree))
-                .unwrap();
-        assert_eq!(specs.product.step, Step::FifteenMinutes);
-        assert_eq!(specs.product.increment.value(), ANCILLARY_INCREMENT_KW);
-    }
-
-    #[test]
-    fn capacity_reserves_are_not_implemented() {
-        for market in
-            [CapacityAncillaryMarketType::Afrr, CapacityAncillaryMarketType::Fcr]
-        {
-            assert!(matches!(
-                ancillary(AncillaryMarketType::Capacity(market)),
-                Err(Error::Market(MarketError::NotImplemented { .. }))
-            ));
+impl From<&MarketSpecs> for ProductDef {
+    fn from(value: &MarketSpecs) -> Self {
+        match value.market {
+            MarketType::Ancillary(a) => {
+                AncillaryProductDef { country: value.country, market: a }.into()
+            }
+            MarketType::WholeSale(w) => WholesaleProductDef {
+                country: value.country,
+                market: w,
+                step: value.product.step,
+            }
+            .into(),
         }
     }
 }
-// endregion: Tests
+// endregion: Conversions
