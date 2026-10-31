@@ -1,0 +1,196 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="816" viewBox="0 0 800 816" role="img" aria-labelledby="t d">
+<title id="t">Projected state of charge for activations from 10:00, 10:15 and 10:30</title>
+<desc id="d">Each activation draws FCR for 30 minutes and aFRR for 60 minutes from its start. The lowest projected state of charge of each path is reached at 11:00: 490, 622 and 753 kWh, against soc_min 400 kWh.</desc>
+<style>
+  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
+    sans-serif; font-size: 12px; fill: #0b0b0b; font-variant-numeric: tabular-nums; }
+  .t2 { fill: #52514e; }
+  .small { font-size: 11px; }
+  .title { font-size: 14px; font-weight: 600; }
+  .panel { font-size: 13px; font-weight: 600; }
+  .grid { stroke: #ebebe8; stroke-width: 1; }
+  .axis { stroke: #c9c8c3; stroke-width: 1; }
+  .marker { stroke: #a3a29d; stroke-width: 1; }
+  .limit { stroke: #52514e; stroke-width: 1.5; }
+  .line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .dot { stroke: #ffffff; stroke-width: 2; }
+</style>
+<text class="title" x="130" y="24">Projected state of charge in kWh, one panel per activation start</text>
+<line x1="130" y1="48" x2="148" y2="48" stroke="#2a78d6" stroke-width="2" stroke-linecap="round"/>
+<text x="154" y="52">soc</text>
+<line x1="196.6" y1="48" x2="214.6" y2="48" stroke="#1baf7a" stroke-width="2" stroke-linecap="round"/>
+<text x="220.6" y="52">soc + DOWN / eta_d</text>
+<line x1="356.20000000000005" y1="48" x2="374.20000000000005" y2="48" stroke="#eb6834" stroke-width="2" stroke-linecap="round"/>
+<text x="380.20000000000005" y="52">soc - UP / eta_d</text>
+<line x1="503.40000000000003" y1="48" x2="521.4000000000001" y2="48" stroke="#52514e" stroke-width="1.5" stroke-linecap="round"/>
+<text x="527.4000000000001" y="52">soc_min, soc_max</text>
+<text class="t2" x="122" y="80" text-anchor="end">Dispatch</text>
+<text x="180.83333333333334" y="80" text-anchor="middle">+1,000 kW</text>
+<text x="282.5" y="80" text-anchor="middle">−500 kW</text>
+<text x="384.1666666666667" y="80" text-anchor="middle">−500 kW</text>
+<text x="485.8333333333333" y="80" text-anchor="middle">−500 kW</text>
+<text x="587.5000000000001" y="80" text-anchor="middle">+1,000 kW</text>
+<text x="689.1666666666667" y="80" text-anchor="middle">+1,000 kW</text>
+<text class="panel" x="130" y="118">Activation from 10:00</text>
+<line class="axis" x1="130" y1="284.0" x2="740" y2="284.0"/>
+<text class="t2" x="122" y="288.0" text-anchor="end">0</text>
+<line class="grid" x1="130" y1="249.0" x2="740" y2="249.0"/>
+<text class="t2" x="122" y="253.0" text-anchor="end">1,000</text>
+<line class="grid" x1="130" y1="214.0" x2="740" y2="214.0"/>
+<text class="t2" x="122" y="218.0" text-anchor="end">2,000</text>
+<line class="grid" x1="130" y1="179.0" x2="740" y2="179.0"/>
+<text class="t2" x="122" y="183.0" text-anchor="end">3,000</text>
+<line class="grid" x1="130" y1="144.0" x2="740" y2="144.0"/>
+<text class="t2" x="122" y="148.0" text-anchor="end">4,000</text>
+<line class="marker" x1="130.0" y1="140" x2="130.0" y2="284"/>
+<text class="t2 small" x="130.0" y="135" text-anchor="middle">activation starts</text>
+<line class="marker" x1="333.33333333333337" y1="140" x2="333.33333333333337" y2="284"/>
+<text class="t2 small" x="333.33333333333337" y="135" text-anchor="middle">FCR window ends</text>
+<line class="marker" x1="536.6666666666667" y1="140" x2="536.6666666666667" y2="284"/>
+<text class="t2 small" x="536.6666666666667" y="135" text-anchor="middle">aFRR window ends</text>
+<line class="limit" x1="130" y1="158.0" x2="740" y2="158.0"/>
+<text class="t2 small" x="138" y="153.0">soc_max 3,600</text>
+<line class="limit" x1="130" y1="270.0" x2="740" y2="270.0"/>
+<text class="t2 small" x="138" y="265.0">soc_min 400</text>
+<path class="line" stroke="#1baf7a" d="M130.0,224.5 L231.7,207.0 L333.3,202.4 L435.0,207.0 L536.7,211.6"/>
+<path class="line" stroke="#eb6834" d="M130.0,224.5 L231.7,230.0 L333.3,248.4 L435.0,257.6 L536.7,266.8"/>
+<path class="line" stroke="#2a78d6" d="M130.0,224.5 L231.7,216.2 L333.3,220.8 L435.0,225.4 L536.7,230.0 L638.3,221.7 L740.0,213.4"/>
+<circle class="dot" fill="#1baf7a" cx="130.0" cy="224.5" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="231.7" cy="207.0" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="333.3" cy="202.4" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="435.0" cy="207.0" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="536.7" cy="211.6" r="4"/>
+<circle class="dot" fill="#eb6834" cx="130.0" cy="224.5" r="4"/>
+<circle class="dot" fill="#eb6834" cx="231.7" cy="230.0" r="4"/>
+<circle class="dot" fill="#eb6834" cx="333.3" cy="248.4" r="4"/>
+<circle class="dot" fill="#eb6834" cx="435.0" cy="257.6" r="4"/>
+<circle class="dot" fill="#eb6834" cx="536.7" cy="266.8" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="130.0" cy="224.5" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="231.7" cy="216.2" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="333.3" cy="220.8" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="435.0" cy="225.4" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="536.7" cy="230.0" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="638.3" cy="221.7" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="740.0" cy="213.4" r="4"/>
+<text x="544.6666666666667" y="253.8">490 kWh, tightest</text>
+<text class="t2" x="130.0" y="302" text-anchor="middle">10:00</text>
+<text class="t2" x="231.66666666666669" y="302" text-anchor="middle">10:15</text>
+<text class="t2" x="333.33333333333337" y="302" text-anchor="middle">10:30</text>
+<text class="t2" x="435.0" y="302" text-anchor="middle">10:45</text>
+<text class="t2" x="536.6666666666667" y="302" text-anchor="middle">11:00</text>
+<text class="t2" x="638.3333333333334" y="302" text-anchor="middle">11:15</text>
+<text class="t2" x="740.0" y="302" text-anchor="middle">11:30</text>
+<text class="t2" x="122" y="324" text-anchor="end">Reserves drawing</text>
+<text x="180.83333333333334" y="324" text-anchor="middle">FCR + aFRR</text>
+<text x="282.5" y="324" text-anchor="middle">FCR + aFRR</text>
+<text x="384.1666666666667" y="324" text-anchor="middle">aFRR</text>
+<text x="485.8333333333333" y="324" text-anchor="middle">aFRR</text>
+<text class="panel" x="130" y="354">Activation from 10:15</text>
+<line class="axis" x1="130" y1="520.0" x2="740" y2="520.0"/>
+<text class="t2" x="122" y="524.0" text-anchor="end">0</text>
+<line class="grid" x1="130" y1="485.0" x2="740" y2="485.0"/>
+<text class="t2" x="122" y="489.0" text-anchor="end">1,000</text>
+<line class="grid" x1="130" y1="450.0" x2="740" y2="450.0"/>
+<text class="t2" x="122" y="454.0" text-anchor="end">2,000</text>
+<line class="grid" x1="130" y1="415.0" x2="740" y2="415.0"/>
+<text class="t2" x="122" y="419.0" text-anchor="end">3,000</text>
+<line class="grid" x1="130" y1="380.0" x2="740" y2="380.0"/>
+<text class="t2" x="122" y="384.0" text-anchor="end">4,000</text>
+<line class="marker" x1="231.66666666666669" y1="376" x2="231.66666666666669" y2="520"/>
+<text class="t2 small" x="231.66666666666669" y="371" text-anchor="middle">activation starts</text>
+<line class="marker" x1="435.0" y1="376" x2="435.0" y2="520"/>
+<text class="t2 small" x="435.0" y="371" text-anchor="middle">FCR window ends</text>
+<line class="marker" x1="638.3333333333334" y1="376" x2="638.3333333333334" y2="520"/>
+<text class="t2 small" x="638.3333333333334" y="371" text-anchor="middle">aFRR window ends</text>
+<line class="limit" x1="130" y1="394.0" x2="740" y2="394.0"/>
+<text class="t2 small" x="138" y="389.0">soc_max 3,600</text>
+<line class="limit" x1="130" y1="506.0" x2="740" y2="506.0"/>
+<text class="t2 small" x="138" y="501.0">soc_min 400</text>
+<path class="line" stroke="#1baf7a" d="M231.7,452.2 L333.3,447.6 L435.0,443.0 L536.7,447.6 L638.3,439.3"/>
+<path class="line" stroke="#eb6834" d="M231.7,452.2 L333.3,470.6 L435.0,489.0 L536.7,498.2 L638.3,494.5"/>
+<path class="line" stroke="#2a78d6" d="M130.0,460.5 L231.7,452.2 L333.3,456.8 L435.0,461.4 L536.7,466.0 L638.3,457.7 L740.0,449.4"/>
+<circle class="dot" fill="#1baf7a" cx="231.7" cy="452.2" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="333.3" cy="447.6" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="435.0" cy="443.0" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="536.7" cy="447.6" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="638.3" cy="439.3" r="4"/>
+<circle class="dot" fill="#eb6834" cx="231.7" cy="452.2" r="4"/>
+<circle class="dot" fill="#eb6834" cx="333.3" cy="470.6" r="4"/>
+<circle class="dot" fill="#eb6834" cx="435.0" cy="489.0" r="4"/>
+<circle class="dot" fill="#eb6834" cx="536.7" cy="498.2" r="4"/>
+<circle class="dot" fill="#eb6834" cx="638.3" cy="494.5" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="130.0" cy="460.5" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="231.7" cy="452.2" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="333.3" cy="456.8" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="435.0" cy="461.4" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="536.7" cy="466.0" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="638.3" cy="457.7" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="740.0" cy="449.4" r="4"/>
+<text x="544.6666666666667" y="485.2">622 kWh, tightest</text>
+<text class="t2" x="130.0" y="538" text-anchor="middle">10:00</text>
+<text class="t2" x="231.66666666666669" y="538" text-anchor="middle">10:15</text>
+<text class="t2" x="333.33333333333337" y="538" text-anchor="middle">10:30</text>
+<text class="t2" x="435.0" y="538" text-anchor="middle">10:45</text>
+<text class="t2" x="536.6666666666667" y="538" text-anchor="middle">11:00</text>
+<text class="t2" x="638.3333333333334" y="538" text-anchor="middle">11:15</text>
+<text class="t2" x="740.0" y="538" text-anchor="middle">11:30</text>
+<text class="t2" x="122" y="560" text-anchor="end">Reserves drawing</text>
+<text x="282.5" y="560" text-anchor="middle">FCR + aFRR</text>
+<text x="384.1666666666667" y="560" text-anchor="middle">FCR + aFRR</text>
+<text x="485.8333333333333" y="560" text-anchor="middle">aFRR</text>
+<text x="587.5000000000001" y="560" text-anchor="middle">aFRR</text>
+<text class="panel" x="130" y="590">Activation from 10:30</text>
+<line class="axis" x1="130" y1="756.0" x2="740" y2="756.0"/>
+<text class="t2" x="122" y="760.0" text-anchor="end">0</text>
+<line class="grid" x1="130" y1="721.0" x2="740" y2="721.0"/>
+<text class="t2" x="122" y="725.0" text-anchor="end">1,000</text>
+<line class="grid" x1="130" y1="686.0" x2="740" y2="686.0"/>
+<text class="t2" x="122" y="690.0" text-anchor="end">2,000</text>
+<line class="grid" x1="130" y1="651.0" x2="740" y2="651.0"/>
+<text class="t2" x="122" y="655.0" text-anchor="end">3,000</text>
+<line class="grid" x1="130" y1="616.0" x2="740" y2="616.0"/>
+<text class="t2" x="122" y="620.0" text-anchor="end">4,000</text>
+<line class="marker" x1="333.33333333333337" y1="612" x2="333.33333333333337" y2="756"/>
+<text class="t2 small" x="333.33333333333337" y="607" text-anchor="middle">activation starts</text>
+<line class="marker" x1="536.6666666666667" y1="612" x2="536.6666666666667" y2="756"/>
+<text class="t2 small" x="536.6666666666667" y="607" text-anchor="middle">FCR window ends</text>
+<line class="marker" x1="740.0" y1="612" x2="740.0" y2="756"/>
+<text class="t2 small" x="740.0" y="607" text-anchor="middle">aFRR window ends</text>
+<line class="limit" x1="130" y1="630.0" x2="740" y2="630.0"/>
+<text class="t2 small" x="138" y="625.0">soc_max 3,600</text>
+<line class="limit" x1="130" y1="742.0" x2="740" y2="742.0"/>
+<text class="t2 small" x="138" y="737.0">soc_min 400</text>
+<path class="line" stroke="#1baf7a" d="M333.3,692.8 L435.0,688.2 L536.7,683.6 L638.3,675.3 L740.0,667.0"/>
+<path class="line" stroke="#eb6834" d="M333.3,692.8 L435.0,711.2 L536.7,729.6 L638.3,725.9 L740.0,722.2"/>
+<path class="line" stroke="#2a78d6" d="M130.0,696.5 L231.7,688.2 L333.3,692.8 L435.0,697.4 L536.7,702.0 L638.3,693.7 L740.0,685.4"/>
+<circle class="dot" fill="#1baf7a" cx="333.3" cy="692.8" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="435.0" cy="688.2" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="536.7" cy="683.6" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="638.3" cy="675.3" r="4"/>
+<circle class="dot" fill="#1baf7a" cx="740.0" cy="667.0" r="4"/>
+<circle class="dot" fill="#eb6834" cx="333.3" cy="692.8" r="4"/>
+<circle class="dot" fill="#eb6834" cx="435.0" cy="711.2" r="4"/>
+<circle class="dot" fill="#eb6834" cx="536.7" cy="729.6" r="4"/>
+<circle class="dot" fill="#eb6834" cx="638.3" cy="725.9" r="4"/>
+<circle class="dot" fill="#eb6834" cx="740.0" cy="722.2" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="130.0" cy="696.5" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="231.7" cy="688.2" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="333.3" cy="692.8" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="435.0" cy="697.4" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="536.7" cy="702.0" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="638.3" cy="693.7" r="4"/>
+<circle class="dot" fill="#2a78d6" cx="740.0" cy="685.4" r="4"/>
+<text x="544.6666666666667" y="716.6">753 kWh, tightest</text>
+<text class="t2" x="130.0" y="774" text-anchor="middle">10:00</text>
+<text class="t2" x="231.66666666666669" y="774" text-anchor="middle">10:15</text>
+<text class="t2" x="333.33333333333337" y="774" text-anchor="middle">10:30</text>
+<text class="t2" x="435.0" y="774" text-anchor="middle">10:45</text>
+<text class="t2" x="536.6666666666667" y="774" text-anchor="middle">11:00</text>
+<text class="t2" x="638.3333333333334" y="774" text-anchor="middle">11:15</text>
+<text class="t2" x="740.0" y="774" text-anchor="middle">11:30</text>
+<text class="t2" x="122" y="796" text-anchor="end">Reserves drawing</text>
+<text x="384.1666666666667" y="796" text-anchor="middle">FCR + aFRR</text>
+<text x="485.8333333333333" y="796" text-anchor="middle">FCR + aFRR</text>
+<text x="587.5000000000001" y="796" text-anchor="middle">aFRR</text>
+<text x="689.1666666666667" y="796" text-anchor="middle">aFRR</text>
+</svg>
