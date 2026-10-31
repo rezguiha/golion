@@ -52,6 +52,24 @@ Golion models how a portfolio is traded and settled, not only how each asset dis
 - 📈 Linear programming with the HiGHS solver.
 - 🦀 Built in Rust (2024 edition).
 
+## 🏪 Supported markets
+
+Countries: 🇧🇪 BE, 🇩🇪 DE, 🇪🇸 ES, 🇫🇷 FR, 🇮🇹 IT, 🇵🇹 PT. Every market is supported in all
+six countries, except where flags are given.
+
+**Wholesale**
+
+- [x] Day-ahead (15 min, 1 h)
+- [x] Intraday auctions IDA1, IDA2, IDA3 (15 min, 1 h)
+- [x] Intraday continuous (15 min, 30 min, 1 h)
+
+**Ancillary services**
+
+- [x] FCR capacity: 🇧🇪 🇩🇪 🇫🇷
+- [ ] FCR capacity: 🇪🇸 🇮🇹 🇵🇹
+- [x] aFRR energy (free bids)
+- [ ] aFRR capacity
+
 ## 🛠️ Prerequisites
 
 - `bacon`
