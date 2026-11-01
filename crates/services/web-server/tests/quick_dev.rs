@@ -23,6 +23,7 @@ use lib_domain::market::market_type::{
 };
 use lib_domain::temporal::grid::RegularTimeGrid;
 use lib_domain::temporal::step::Step;
+
 use uuid::Uuid;
 
 const NB_ASSETS: u8 = 10;
@@ -143,8 +144,9 @@ fn create_ancillary_revenue(
 /// on optimize endpoint.
 #[tokio::test]
 async fn test_optimize_bess() -> Result<()> {
-    let hc = httpc_test::new_client("http://127.0.0.1:3000")?;
-    let start_zoned = date(2026, 10, 11).at(7, 30, 0, 0).in_tz("CET")?;
+    let port = std::env::var("SERVER_PORT")?;
+    let hc = httpc_test::new_client(format!("http://127.0.0.1:{port}"))?;
+    let start_zoned = date(2026, 10, 11).at(7, 30, 0, 0).in_tz("Europe/Brussels")?;
 
     let start = start_zoned
         .timestamp()

@@ -87,7 +87,7 @@ fn spot_day_ahead(product_def: WholesaleProductDef) -> crate::Result<MarketSpecs
         TimeDefinedInterval::try_new(0, 0, 12, 0, 0.days())?,
         TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
         1.days(),
-        "CET",
+        "Europe/Brussels",
     )?;
     let auction = match product_def.country {
         Countries::BE
@@ -112,7 +112,7 @@ fn intraday_auction_1(product_def: WholesaleProductDef) -> crate::Result<MarketS
         TimeDefinedInterval::try_new(0, 0, 15, 0, 0.days())?,
         TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
         1.days(),
-        "CET",
+        "Europe/Brussels",
     )?;
     let auction = match product_def.country {
         Countries::BE
@@ -136,7 +136,7 @@ fn intraday_auction_2(product_def: WholesaleProductDef) -> crate::Result<MarketS
         TimeDefinedInterval::try_new(0, 0, 22, 0, 0.days())?,
         TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
         1.days(),
-        "CET",
+        "Europe/Brussels",
     )?;
     let auction = match product_def.country {
         Countries::BE
@@ -160,7 +160,7 @@ fn intraday_auction_3(product_def: WholesaleProductDef) -> crate::Result<MarketS
         TimeDefinedInterval::try_new(0, 0, 10, 0, 0.days())?,
         TimeDefinedInterval::try_new(12, 0, 0, 0, 1.days())?,
         0.days(),
-        "CET",
+        "Europe/Brussels",
     )?;
     let auction = match product_def.country {
         Countries::BE
@@ -185,12 +185,14 @@ fn intraday_continuous(product_def: WholesaleProductDef) -> crate::Result<Market
     )?;
     let auction = match product_def.country {
         Countries::FR | Countries::ES | Countries::PT | Countries::IT => {
-            ContinuousAuctionTemporality::try_new(15, 0, 1.hours(), "CET")?
+            ContinuousAuctionTemporality::try_new(15, 0, 1.hours(), "Europe/Brussels")?
         }
         Countries::DE => {
-            ContinuousAuctionTemporality::try_new(15, 0, 15.minutes(), "CET")?
+            ContinuousAuctionTemporality::try_new(15, 0, 15.minutes(), "Europe/Brussels")?
         }
-        Countries::BE => ContinuousAuctionTemporality::try_new(14, 0, 1.hours(), "CET")?,
+        Countries::BE => {
+            ContinuousAuctionTemporality::try_new(14, 0, 1.hours(), "Europe/Brussels")?
+        }
     };
     Ok(MarketSpecs {
         market: product_def.market.into(),
@@ -207,7 +209,7 @@ fn afrr_free(product_def: AncillaryProductDef) -> crate::Result<MarketSpecs> {
     let harmonized_picasso = DynamicAuctionTemporality::try_new(
         TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
         30.minutes(),
-        "CET",
+        "Europe/Brussels",
     )?;
     let auction = match product_def.country {
         Countries::BE
@@ -245,7 +247,7 @@ fn fcr(product_def: AncillaryProductDef) -> crate::Result<MarketSpecs> {
         TimeDefinedInterval::try_new(0, 0, 8, 0, 0.days())?,
         TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days())?,
         1.days(),
-        "CET",
+        "Europe/Brussels",
     )?;
     let auction: crate::Result<StaticAuctionTemporality> = match product_def.country {
         Countries::BE | Countries::DE | Countries::FR => Ok(harmonized),
