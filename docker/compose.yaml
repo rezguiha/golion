@@ -6,13 +6,17 @@ services:
       dockerfile: docker/web-server/Dockerfile
     init: true
     environment:
+      SERVER_PORT: ${SERVER_PORT}
       RUST_LOG: ${RUST_LOG}
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      POSTGRES_HOST: db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     networks:
       - client-side
       - server-side
     ports:
-      - "127.0.0.1:3000:3000"
+      - ${SERVER_PORT}:${SERVER_PORT}
     depends_on:
       db:
         condition: service_healthy
@@ -34,7 +38,7 @@ services:
     networks:
       - server-side
     ports:
-      - "127.0.0.1:5432:5432"
+      - 5432:5432
     volumes:
       - db-data:/var/lib/postgresql
     healthcheck:
