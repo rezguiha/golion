@@ -13,3 +13,7 @@ server:
 
 test-client:
 	bacon test-client
+
+# Runs the stack and rebuilds it when the sources change.
+up:
+	docker compose -f docker/compose.yaml --env-file .env up --watch
