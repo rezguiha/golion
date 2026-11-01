@@ -406,7 +406,7 @@ mod tests {
     fn four_hour_products_spring_forward() {
         // 29 March 2026, clocks jump from 02:00 CET to 03:00 CEST: the 00:00-04:00
         // product lasts 3h and ends at 04:00 CEST.
-        let windows = day_bid_windows("2026-03-29T00:00[CET]", 240);
+        let windows = day_bid_windows("2026-03-29T00:00[Europe/Brussels]", 240);
         assert_eq!(window_hours(&windows), [3, 4, 4, 4, 4, 4]);
         assert_eq!(windows[0].1, "2026-03-29T02:00:00Z".parse::<Timestamp>().unwrap());
     }
@@ -414,7 +414,7 @@ mod tests {
     fn four_hour_products_fall_back() {
         // 25 October 2026, clocks go back from 03:00 CEST to 02:00 CET: the
         // 00:00-04:00 product lasts 5h and ends at 04:00 CET.
-        let windows = day_bid_windows("2026-10-25T00:00[CET]", 240);
+        let windows = day_bid_windows("2026-10-25T00:00[Europe/Brussels]", 240);
         assert_eq!(window_hours(&windows), [5, 4, 4, 4, 4, 4]);
         assert_eq!(windows[0].1, "2026-10-25T03:00:00Z".parse::<Timestamp>().unwrap());
     }
@@ -422,7 +422,7 @@ mod tests {
     fn hourly_products_fall_back_keep_repeated_hour() {
         // 25 October 2026 has 25 hourly products: 02:00 CEST and 02:00 CET are
         // two separate products.
-        let windows = day_bid_windows("2026-10-25T00:00[CET]", 60);
+        let windows = day_bid_windows("2026-10-25T00:00[Europe/Brussels]", 60);
         assert_eq!(window_hours(&windows), [1; 25]);
         let starts: Vec<Timestamp> = windows.iter().map(|(start, _)| *start).collect();
         assert!(starts.contains(&"2026-10-25T00:00:00Z".parse().unwrap()));
