@@ -39,10 +39,10 @@ Golion models how a portfolio is traded and settled, not only how each asset dis
 
 ## 🧩 Crates
 
-- 🔩 `golion-domain` — shared units and primitives across all crates.
-- 📦 `golion-contract` — serde data models defining the server's request contract.
-- ⚡ `golion-optimization` — optimization models using `good_lp` with HiGHS.
-- 🌐 `golion-server` — HTTP server wiring the contract and optimization logic.
+- 🔩 `lib-domain` — shared units and primitives across all crates.
+- 📦 `lib-contract` — serde data models defining the server's request contract.
+- ⚡ `lib-optimization` — optimization models using `good_lp` with HiGHS.
+- 🌐 `web-server` — HTTP server wiring the contract and optimization logic.
 
 ## ✨ Features
 

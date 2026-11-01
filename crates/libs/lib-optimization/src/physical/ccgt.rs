@@ -1,0 +1,17 @@
+/// Temporary implementation of a gas turbine asset.
+use lib_domain::{
+    temporal::{series::TimeSeries, step::Step},
+    units::power::KiloWatt,
+};
+
+use crate::physical::variables::OtherAssetVariables;
+
+use good_lp::Constraint;
+
+#[derive(Debug)]
+pub struct GasTurbine {
+    pub(crate) step: Step,
+    pub(crate) variable_store: TimeSeries<OtherAssetVariables>,
+    pub(crate) constraints: Vec<Constraint>,
+    pub(crate) rated_output_power: KiloWatt,
+}

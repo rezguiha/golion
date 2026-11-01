@@ -44,11 +44,21 @@ graph TD
 
 ## Ports and adapters
 
-- `golion-domain` defines the `Optimizer` port: it takes an `OptimizationProblem` and
+- `lib-domain` defines the `Optimizer` port: it takes an `OptimizationProblem` and
   returns an `OptimizationOutcome`.
-- `golion-optimization` implements it with `HighsOptimizer`. It is the only crate that
+- `lib-optimization` implements it with `HighsOptimizer`. It is the only crate that
   depends on `good_lp` and HiGHS.
 - `golion-contract` converts the request into an `OptimizationProblem` and the outcome
   into the response.
 - `golion-server` is the composition root: it chooses `HighsOptimizer` and runs the solve
   on tokio's blocking pool.
+
+
+# Architecture 01/11/2026
+
+## Libraries and services
+
+- `crates/libs/`: libraries (`lib-domain`, `lib-contract`, `lib-optimization`).
+- `crates/services/`: binaries (`web-server`).
+- Services depend on libs. Libs never depend on services.
+- `golion-*` libs are renamed `lib-*`; `golion-server` is renamed `web-server`.
