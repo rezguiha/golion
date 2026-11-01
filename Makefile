@@ -1,3 +1,7 @@
+# Local settings shared with docker/compose.yaml, bacon and cargo.
+-include .env
+export
+
 lint:
 	bacon clippy
 format:

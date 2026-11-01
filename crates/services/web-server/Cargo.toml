@@ -27,6 +27,7 @@ lib-optimization = { path ="../../libs/lib-optimization"}
 derive_more = { workspace = true }
 uuid = { workspace = true }
 jiff = { workspace = true }
+config = "0.15.27"
 
 [dev-dependencies]
 anyhow = "1"
