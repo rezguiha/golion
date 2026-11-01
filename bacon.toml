@@ -33,7 +33,7 @@ need_stdout = false
 
 # This job lets you run tests and doc examples for all crates but server for now.
 [jobs.test]
-command = ["cargo", "test","--workspace","--exclude","golion-server"]
+command = ["cargo", "test","--workspace","--exclude","web-server"]
 need_stdout = true
 
 [jobs.doc]
@@ -63,7 +63,7 @@ scroll_anchor = "auto"
 [jobs.test-client]
 command = [
     "cargo", "test",
-    "--package", "golion-server",
+    "--package", "web-server",
     "--test", "quick_dev",
     "--", "--no-capture"
 ]

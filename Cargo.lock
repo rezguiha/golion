@@ -528,64 +528,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
-name = "golion-contract"
-version = "0.0.0"
-dependencies = [
- "derive_more",
- "garde",
- "golion-domain",
- "jiff",
- "serde",
- "thiserror 2.0.18",
- "typed-builder",
- "uuid",
-]
-
-[[package]]
-name = "golion-domain"
-version = "0.0.0"
-dependencies = [
- "derive_more",
- "jiff",
- "serde",
- "strum",
- "thiserror 2.0.18",
- "uuid",
-]
-
-[[package]]
-name = "golion-optimization"
-version = "0.0.0"
-dependencies = [
- "derive_more",
- "golion-domain",
- "good_lp",
- "jiff",
- "uuid",
-]
-
-[[package]]
-name = "golion-server"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "axum",
- "axum-valid",
- "derive_more",
- "golion-contract",
- "golion-domain",
- "golion-optimization",
- "httpc-test",
- "jiff",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
 name = "good_lp"
 version = "1.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -987,6 +929,43 @@ name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
+
+[[package]]
+name = "lib-contract"
+version = "0.0.0"
+dependencies = [
+ "derive_more",
+ "garde",
+ "jiff",
+ "lib-domain",
+ "serde",
+ "thiserror 2.0.18",
+ "typed-builder",
+ "uuid",
+]
+
+[[package]]
+name = "lib-domain"
+version = "0.0.0"
+dependencies = [
+ "derive_more",
+ "jiff",
+ "serde",
+ "strum",
+ "thiserror 2.0.18",
+ "uuid",
+]
+
+[[package]]
+name = "lib-optimization"
+version = "0.0.0"
+dependencies = [
+ "derive_more",
+ "good_lp",
+ "jiff",
+ "lib-domain",
+ "uuid",
+]
 
 [[package]]
 name = "libc"
@@ -2164,6 +2143,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc1b4cb0cc549fcf58d7dfc081778139b3d283a081644e833e84682ad71cea24"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "web-server"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "axum-valid",
+ "derive_more",
+ "httpc-test",
+ "jiff",
+ "lib-contract",
+ "lib-domain",
+ "lib-optimization",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]

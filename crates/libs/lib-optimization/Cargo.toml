@@ -1,0 +1,19 @@
+[package]
+name = "lib-optimization"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+
+[dependencies]
+# -- Optimization Modeler
+good_lp = { version = "1.15.1", features = ["highs"], default-features = false }
+# -- Workspace
+lib-domain = { path ="../../libs/lib-domain"}
+# Others
+derive_more = { workspace = true }
+jiff = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

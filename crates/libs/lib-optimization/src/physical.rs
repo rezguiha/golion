@@ -1,0 +1,244 @@
+pub mod bess;
+pub mod ccgt;
+pub mod ren;
+pub mod variables;
+use crate::model::BuildEnv;
+use crate::physical::{bess::core::Battery, ccgt::GasTurbine, ren::Renewable};
+use derive_more::From;
+use good_lp::{Constraint, Expression, IntoAffineExpression, ProblemVariables};
+use jiff::Timestamp;
+use lib_domain::problem::definition::AssetDefinition;
+use lib_domain::solution::PhysicalStates;
+use lib_domain::temporal::series::{TimeSeries, TimeStampedUtc};
+use lib_domain::units::power::KiloWatt;
+use std::collections::BTreeMap;
+use uuid::Uuid;
+// region: Activation Path
+
+/// Activation energy drawn over one step of an activation path, in kWh during the step.
+/// The energy contains the aggregation of each reserve that is within each respective activation
+/// window and zero otherwise.
+#[derive(Debug)]
+pub struct ActivationEnergy {
+    pub(crate) start_at: Timestamp,
+    pub(crate) upward: Expression,
+    pub(crate) downward: Expression,
+}
+impl TimeStampedUtc for ActivationEnergy {
+    fn start_at(&self) -> Timestamp {
+        self.start_at
+    }
+}
+// endregion: Activation Path
+
+// region: Asset Enum
+#[derive(Debug, From)]
+pub enum Asset {
+    Bess(Battery),
+    Ccgt(GasTurbine),
+    Ren(Renewable),
+}
+
+impl Asset {
+    /// Active charge power in kW.
+    pub fn input_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
+        Ok(match self {
+            Self::Bess(b) => b.variable_store.at(dt)?.input_power.into_expression(),
+            // Non-storage assets never charge.
+            Self::Ccgt(_) | Self::Ren(_) => 0.0.into_expression(),
+        })
+    }
+    /// Active discharge power in kW.
+    pub fn output_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
+        Ok(match self {
+            Self::Bess(b) => b.variable_store.at(dt)?.output_power.into_expression(),
+            Self::Ccgt(c) => c.variable_store.at(dt)?.output_power.into_expression(),
+            Self::Ren(r) => r.variable_store.at(dt)?.output_power.into_expression(),
+        })
+    }
+    /// Asset level ancillary signal for charge in kW.
+    /// Represents the how much we reserve on asset to deliver
+    /// the perimeter commitments and bids.
+    pub fn ancillary_input_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
+        Ok(match self {
+            Self::Bess(b) => b.variable_store.at(dt)?.input_ancillary.into_expression(),
+            // Non-storage assets never charge.
+            Self::Ccgt(_) | Self::Ren(_) => 0.0.into_expression(),
+        })
+    }
+    /// Asset level ancillary signal for discharge in kW.
+    /// Represents the how much we reserve on asset to deliver
+    /// the perimeter commitments and bids.
+    pub fn ancillary_output_power_at(&self, dt: &Timestamp) -> crate::Result<Expression> {
+        Ok(match self {
+            Self::Bess(b) => b.variable_store.at(dt)?.output_ancillary.into_expression(),
+            Self::Ccgt(c) => c.variable_store.at(dt)?.output_ancillary.into_expression(),
+            Self::Ren(r) => r.variable_store.at(dt)?.output_ancillary.into_expression(),
+        })
+    }
+    /// Asset level constraints ensuring it can deliver the ancillary activation
+    /// energy drawn along an activation path.
+    /// Only storage is energy limited: other assets return no constraint.
+    pub fn ancillary_energy_constraints(
+        &self,
+        activation_path: &[ActivationEnergy],
+    ) -> crate::Result<Vec<Constraint>> {
+        Ok(match self {
+            Self::Bess(b) => b.soc_reservation_constraints(activation_path)?,
+            Self::Ccgt(_) | Self::Ren(_) => Vec::new(),
+        })
+    }
+    /// Asset level constraints ensuring it does not exceed maximum usage
+    /// limitations.
+    pub fn maximum_usage_constraints(
+        &self,
+        vars: &mut ProblemVariables,
+        expected_activation_series: &TimeSeries<ActivationEnergy>,
+    ) -> crate::Result<Vec<Constraint>> {
+        Ok(match self {
+            Self::Bess(b) => b.cycling_constraints(vars, expected_activation_series)?,
+            Self::Ccgt(_) | Self::Ren(_) => Vec::<Constraint>::new(),
+        })
+    }
+
+    /// Moves  asset physical constraints out leaving it empty
+    pub(crate) fn take_constraints(&mut self) -> Vec<Constraint> {
+        match self {
+            Self::Bess(b) => std::mem::take(&mut b.constraints),
+            Self::Ccgt(c) => std::mem::take(&mut c.constraints),
+            Self::Ren(r) => std::mem::take(&mut r.constraints),
+        }
+    }
+    pub(crate) fn max_input_power(&self) -> KiloWatt {
+        match self {
+            Self::Bess(b) => *b.rated_input_power(),
+            Self::Ccgt(_) | Self::Ren(_) => KiloWatt(0.0),
+        }
+    }
+    pub(crate) fn max_output_power(&self) -> KiloWatt {
+        match self {
+            Self::Bess(b) => *b.rated_output_power(),
+            Self::Ccgt(c) => c.rated_output_power,
+            Self::Ren(r) => r.rated_output_power,
+        }
+    }
+}
+// endregion: Asset Enum
+
+// region: Asset store
+#[derive(Debug)]
+pub enum PhysicalError {
+    MissingAssetInStore { asset_id: Uuid },
+}
+
+#[derive(Debug)]
+pub struct PhysicalStore(BTreeMap<Uuid, Asset>);
+impl PhysicalStore {
+    /// Builds the physical variables and constraints of every asset.
+    pub(crate) fn try_new(
+        assets: BTreeMap<Uuid, AssetDefinition>,
+        env: &BuildEnv<'_>,
+        vars: &mut ProblemVariables,
+    ) -> crate::Result<Self> {
+        let store = assets
+            .into_iter()
+            .map(|(asset_id, definition)| {
+                let asset = match definition {
+                    AssetDefinition::Bess {
+                        specifications,
+                        initial_soc,
+                        current_state,
+                    } => {
+                        let battery = Battery::new(
+                            env.horizon(),
+                            vars,
+                            specifications,
+                            initial_soc,
+                            env.horizon().grid().step(),
+                            current_state,
+                        )?;
+                        Asset::from(battery)
+                    }
+                };
+                Ok((asset_id, asset))
+            })
+            .collect::<crate::Result<_>>()?;
+        Ok(Self(store))
+    }
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+    pub fn get(&self, asset_id: &Uuid) -> crate::Result<&Asset> {
+        self.0.get(asset_id).ok_or_else(|| {
+            PhysicalError::MissingAssetInStore { asset_id: *asset_id }.into()
+        })
+    }
+    pub fn iter(&self) -> impl Iterator<Item = (&Uuid, &Asset)> {
+        self.0.iter()
+    }
+    /// Computes Maximal physical input and output power limits
+    pub fn maximum_physical_limits(
+        &self,
+        asset_ids: &[Uuid],
+    ) -> crate::Result<(KiloWatt, KiloWatt)> {
+        let mut sum_asset_input = KiloWatt(0.0);
+        let mut sum_asset_output = KiloWatt(0.0);
+        for asset_id in asset_ids {
+            let asset = self.get(asset_id)?;
+            sum_asset_input += asset.max_input_power();
+            sum_asset_output += asset.max_output_power();
+        }
+        Ok((sum_asset_input, sum_asset_output))
+    }
+    /// Moves all asset physical constraints out into an iterator leaving each one empty.
+    pub(crate) fn take_constraints(&mut self) -> impl Iterator<Item = Constraint> {
+        self.0.values_mut().flat_map(|asset| asset.take_constraints())
+    }
+}
+// endregion: Asset store
+
+// region: Solution Conversion
+impl PhysicalStore {
+    pub(crate) fn to_solution(
+        &self,
+        solution: &impl good_lp::Solution,
+    ) -> Vec<PhysicalStates> {
+        self.0
+            .iter()
+            .map(|(asset_id, asset)| match asset {
+                Asset::Bess(battery) => PhysicalStates::Bess {
+                    asset_id: *asset_id,
+                    series: battery
+                        .variable_store
+                        .data()
+                        .iter()
+                        .map(|variables| variables.to_domain_state(solution))
+                        .collect(),
+                },
+                Asset::Ccgt(ccgt) => PhysicalStates::Ccgt {
+                    asset_id: *asset_id,
+                    series: ccgt
+                        .variable_store
+                        .data()
+                        .iter()
+                        .map(|variables| variables.to_domain_state(solution))
+                        .collect(),
+                },
+                Asset::Ren(ren) => PhysicalStates::Ren {
+                    asset_id: *asset_id,
+                    series: ren
+                        .variable_store
+                        .data()
+                        .iter()
+                        .map(|variables| variables.to_domain_state(solution))
+                        .collect(),
+                },
+            })
+            .collect()
+    }
+}
+
+// endregion: Solution Conversion
