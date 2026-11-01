@@ -251,7 +251,7 @@ mod tests {
         let auction = DynamicAuctionTemporality::try_new(
             TimeDefinedInterval::try_new(10, 0, 10, 3, 0.days()).unwrap(),
             0.minutes(),
-            "CET",
+            "Europe/Brussels",
         )
         .unwrap();
         // 10:00 CET, the window is the whole 10:00-10:03 CET interval.
@@ -269,7 +269,7 @@ mod tests {
         let auction = DynamicAuctionTemporality::try_new(
             TimeDefinedInterval::try_new(9, 50, 10, 20, 0.days()).unwrap(),
             0.minutes(),
-            "CET",
+            "Europe/Brussels",
         )
         .unwrap();
         // 10:00 CET is inside 9:50-10:20 CET, so the window opens at the reference.
@@ -287,7 +287,7 @@ mod tests {
         let auction = DynamicAuctionTemporality::try_new(
             TimeDefinedInterval::try_new(0, 0, 23, 59, 0.days()).unwrap(),
             30.minutes(),
-            "CET",
+            "Europe/Brussels",
         )
         .unwrap();
         // 10:00 CET + 30 minutes == 10:30 CET, until 23:59 CET.
@@ -305,7 +305,7 @@ mod tests {
         let auction = DynamicAuctionTemporality::try_new(
             TimeDefinedInterval::try_new(0, 0, 23, 59, 0.days()).unwrap(),
             30.minutes(),
-            "CET",
+            "Europe/Brussels",
         )
         .unwrap();
         // 23:40 CET + 30 minutes == 00:10 CET on the 16th, and the window of the
@@ -322,7 +322,8 @@ mod tests {
     #[test]
     fn continuous_same_day_only() {
         let auction =
-            ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "CET").unwrap();
+            ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "Europe/Brussels")
+                .unwrap();
         // 10:00 CET is before the 15:00 CET next day gate opening: 12:00 CET
         // until the end of the day.
         bidding_horizon_test(
@@ -337,7 +338,8 @@ mod tests {
     #[test]
     fn continuous_next_only() {
         let auction =
-            ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "CET").unwrap();
+            ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "Europe/Brussels")
+                .unwrap();
         // 23:55 CET + 2 hours == 01:55 CET on the 16th, after the gate opening:
         // until the end of the 16th.
         bidding_horizon_test(
@@ -352,7 +354,8 @@ mod tests {
     #[test]
     fn continuous_both_days() {
         let auction =
-            ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "CET").unwrap();
+            ContinuousAuctionTemporality::try_new(15, 0, 2.hours(), "Europe/Brussels")
+                .unwrap();
         // 17:00 CET is after the gate opening: 19:00 CET until the end of the 16th.
         bidding_horizon_test(
             &auction,
@@ -373,7 +376,7 @@ mod tests {
         let auction = DynamicAuctionTemporality::try_new(
             TimeDefinedInterval::try_new(0, 0, 0, 0, 1.days()).unwrap(),
             0.minutes(),
-            "CET",
+            "Europe/Brussels",
         )
         .unwrap();
         let start: Zoned = day_start.parse().unwrap();
