@@ -23,8 +23,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 FROM debian:trixie-slim
 RUN useradd --system golion
+COPY sql/dev_initial sql/dev_initial
 COPY --from=build /usr/local/bin/web-server /usr/local/bin/web-server
 USER golion
-ENV HOST=0.0.0.0
-EXPOSE 3000
 CMD ["web-server"]
