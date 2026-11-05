@@ -1,7 +1,2 @@
 # Cargo config file.
 # See: https://doc.rust-lang.org/cargo/reference/config.html
-
-[env]
-
-# Scope down tracing, to filter out external lib tracing.
-RUST_LOG="web_server=debug,lib_contract=debug,lib_domain=debug,lib_optimization=debug"

@@ -1,0 +1,21 @@
+[package]
+name = "lib-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+
+[dependencies]
+# -- Async
+tokio = { version = "1", features = ["full"] }
+# -- Database querying
+sqlx = { version = "0.9", features = [ "macros", "runtime-tokio", "postgres", "uuid" ] }
+# -- Logging
+tracing = { workspace = true }
+# -- Read Configuration
+config = "0.15.27"
+# -- Serialization
+serde ={ workspace = true }
+
+[lints]
+workspace = true

@@ -2,6 +2,7 @@
 members = [
     # -- Application Libraries
     "crates/libs/lib-contract",
+    "crates/libs/lib-core",
     "crates/libs/lib-domain",
     "crates/libs/lib-optimization",
     # -- Application Services
@@ -20,7 +21,7 @@ derive_more = { version = "2", features = ["full"] }
 uuid = { version = "1.23.1", features = ["serde", "v4"] }
 jiff = "0.2.35"
 serde = { version = "1.0.228", features = ["derive"] }
-
+tracing = "0.1.44"
 [workspace.lints.rust]
 # Temporarily disable dead code check as we are still
 # in early stages of project.

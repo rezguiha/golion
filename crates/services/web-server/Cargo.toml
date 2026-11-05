@@ -14,7 +14,7 @@ axum-valid = { version = "0.25", default-features = false, features = [
 # -- Async
 tokio = { version = "1", features = ["full"] }
 # -- Tracing
-tracing = "0.1.44"
+tracing = {workspace = true}
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 # -- Serialization
 serde = { workspace = true }
@@ -23,12 +23,13 @@ serde_json = { version = "1", features = ["preserve_order"] }
 lib-contract = { path ="../../libs/lib-contract"}
 lib-domain = { path ="../../libs/lib-domain"}
 lib-optimization = { path ="../../libs/lib-optimization"}
+lib-core = { path ="../../libs/lib-core"}
+# -- Read Configuration
+config = "0.15.27"
 # --Others
 derive_more = { workspace = true }
 uuid = { workspace = true }
 jiff = { workspace = true }
-config = "0.15.27"
-
 [dev-dependencies]
 anyhow = "1"
 httpc-test = "0.1.10"

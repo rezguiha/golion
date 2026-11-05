@@ -6,7 +6,6 @@ services:
       dockerfile: docker/web-server/Dockerfile
     init: true
     environment:
-      SERVER_PORT: ${SERVER_PORT}
       RUST_LOG: ${RUST_LOG}
       POSTGRES_HOST: db
       POSTGRES_USER: ${POSTGRES_USER}
@@ -16,7 +15,7 @@ services:
       - client-side
       - server-side
     ports:
-      - ${SERVER_PORT}:${SERVER_PORT}
+      - 127.0.0.1:8080:8080
     depends_on:
       db:
         condition: service_healthy
@@ -28,21 +27,21 @@ services:
           path: ../Cargo.toml
         - action: rebuild
           path: ../Cargo.lock
+        - action: rebuild
+          path: ../sql
 
   db:
     image: postgres:18
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:?set it in .env}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
-      POSTGRES_DB: ${POSTGRES_DB:?set it in .env}
+      POSTGRES_PASSWORD: welcome
     networks:
       - server-side
     ports:
-      - 5432:5432
+      - 127.0.0.1:5432:5432
     volumes:
       - db-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]
       interval: 5s
       timeout: 3s
       retries: 10

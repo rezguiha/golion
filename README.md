@@ -42,6 +42,7 @@ Golion models how a portfolio is traded and settled, not only how each asset dis
 - 🔩 `lib-domain` — shared units and primitives across all crates.
 - 📦 `lib-contract` — serde data models defining the server's request contract.
 - ⚡ `lib-optimization` — optimization models using `good_lp` with HiGHS.
+- 🫙 `lib-core` — backend app state and data access repositories.
 - 🌐 `web-server` — HTTP server wiring the contract and optimization logic.
 
 ## ✨ Features
@@ -93,4 +94,13 @@ From the repository root:
 For fast iteration, consider running in two separate terminals:
 
 - 👷 `make server` — launch the server with live reload via `bacon`
+- 🏗️ `make up` - launch the server and db with live reload via `docker watch`
 - 🤙 `make test-client` — run the server test loop via `bacon`
+
+## 🧰 Useful commands
+
+Connect to postgres database container and execute psql
+
+```
+docker exec -it -u postgres golion-db-1  psql
+```

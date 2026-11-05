@@ -144,8 +144,7 @@ fn create_ancillary_revenue(
 /// on optimize endpoint.
 #[tokio::test]
 async fn test_optimize_bess() -> Result<()> {
-    let port = std::env::var("SERVER_PORT")?;
-    let hc = httpc_test::new_client(format!("http://127.0.0.1:{port}"))?;
+    let hc = httpc_test::new_client("http://127.0.0.1:8080")?;
     let start_zoned = date(2026, 10, 11).at(7, 30, 0, 0).in_tz("Europe/Brussels")?;
 
     let start = start_zoned

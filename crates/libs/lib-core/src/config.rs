@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::sync::LazyLock;
 use tracing::error;
 
-pub(crate) static APP_CONFIG: LazyLock<AppConfig> = LazyLock::new(|| {
+pub(crate) static DB_CONFIG: LazyLock<DBConfig> = LazyLock::new(|| {
     let env_source = Environment::default();
     let config = Config::builder()
         .set_default("postgres_host", "localhost")
@@ -22,8 +22,7 @@ pub(crate) static APP_CONFIG: LazyLock<AppConfig> = LazyLock::new(|| {
 });
 // No `Debug`: it would print the password.
 #[derive(Deserialize)]
-pub struct AppConfig {
-    pub server_port: u16,
+pub struct DBConfig {
     pub postgres_host: String,
     pub postgres_port: u16,
     pub postgres_user: String,
@@ -31,7 +30,7 @@ pub struct AppConfig {
     pub postgres_db: String,
 }
 
-impl AppConfig {
+impl DBConfig {
     pub fn database_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
