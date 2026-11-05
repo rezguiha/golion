@@ -1,5 +1,5 @@
 # Local settings shared with docker/compose.yaml, bacon and cargo.
--include .env
+-include .env.local
 export
 
 lint:
@@ -19,5 +19,12 @@ test-client:
 	bacon test-client
 
 # Runs the stack and rebuilds it when the sources change.
+COMPOSE := docker compose -f docker/compose.yaml --env-file .env.local
 up:
-	docker compose -f docker/compose.yaml --env-file .env up --watch
+	$(COMPOSE) up --build --watch
+
+db:
+	$(COMPOSE) up -d --wait db
+
+down:
+	$(COMPOSE) down

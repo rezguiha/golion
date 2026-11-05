@@ -56,7 +56,7 @@ allow_warnings = true
 background = false
 on_change_strategy = "kill_then_restart"
 default_watch = false
-watch = ["crates"]
+watch = ["crates","sql"]
 scroll_anchor = "auto"
 
 # Runs the test client.
