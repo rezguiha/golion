@@ -31,7 +31,7 @@ derive_more = { workspace = true }
 uuid = { workspace = true }
 jiff = { workspace = true }
 [dev-dependencies]
-anyhow = "1"
+anyhow = { workspace = true }
 httpc-test = "0.1.10"
 
 [lints]
