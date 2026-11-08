@@ -15,7 +15,12 @@ tracing = { workspace = true }
 # -- Read Configuration
 config = "0.15.27"
 # -- Serialization
-serde ={ workspace = true }
+serde = { workspace = true }
+# -- Others
+derive_more = { workspace = true }
 
+[dev-dependencies]
+anyhow = { workspace = true }
+serial_test="4"
 [lints]
 workspace = true
