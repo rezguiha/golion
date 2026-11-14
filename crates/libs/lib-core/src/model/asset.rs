@@ -47,6 +47,14 @@ impl AssetControllers {
     pub async fn delete(ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<()> {
         base::delete::<Self>(ctx, mm, id).await
     }
+    pub async fn update(
+        ctx: &Ctx,
+        mm: &ModelManager,
+        id: i64,
+        asset_u: AssetForUpdate,
+    ) -> crate::Result<()> {
+        base::update::<Self, AssetForUpdate>(ctx, mm, id, asset_u).await
+    }
 }
 
 // endregion:      --- Asset Controllers
@@ -111,11 +119,28 @@ mod tests {
         let ctx = Ctx::root_user();
         // ids start at 1000 so this id is not to be found
         let asset = AssetControllers::delete(&ctx, &mm, 1).await;
-        println!("{asset:?}");
         assert!(matches!(
             asset,
             Err(crate::Error::EntityNotFound { name: "asset", id: 1 })
         ));
+        Ok(())
+    }
+    #[serial_test::serial]
+    #[tokio::test]
+    async fn test_update_asset_ok() -> Result<()> {
+        let mm = _dev_utils::init_test().await;
+        let ctx = Ctx::root_user();
+        let fx_country = "BEL".to_string();
+        let fx_name = "test_update_asset_ok - asset_1";
+        let fx_name_new = "test_update_asset_ok - asset_1 - new";
+        let fx_asset = _dev_utils::seed_assets(&ctx, &mm, &[fx_name]).await?.remove(0);
+        let asset_u = AssetForUpdate {
+            country: fx_country.into(),
+            name: fx_name_new.to_string().into(),
+        };
+        AssetControllers::update(&ctx, &mm, fx_asset.id, asset_u).await?;
+        let asset = AssetControllers::get(&ctx, &mm, fx_asset.id).await?;
+        assert_eq!(&asset.name, fx_name_new);
         Ok(())
     }
 }

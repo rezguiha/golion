@@ -243,7 +243,6 @@ mod tests {
             .bidding_horizon(&reference_time)
             .map(|(start, end)| (start.timestamp(), end.timestamp()))
             .unwrap();
-        println!("Actual : {:?}, expected: {:?}", actual_window, expected_window);
         assert_eq!(actual_window, expected_window);
     }
     #[test]
