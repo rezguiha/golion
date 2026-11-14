@@ -7,6 +7,7 @@ pub enum Error {
     Context(crate::ctx::CtxError),
     // --- Externals
     Sqlx(sqlx::Error),
+    SeaQuery(sea_query::error::Error),
 }
 
 impl core::fmt::Display for Error {
