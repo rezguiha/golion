@@ -2,7 +2,13 @@ mod dev_db;
 use tokio::sync::OnceCell;
 use tracing::info;
 
-use crate::model::ModelManager;
+use crate::{
+    ctx::Ctx,
+    model::{
+        ModelManager,
+        asset::{Asset, AssetControllers, AssetForCreate},
+    },
+};
 
 /// Initialize local dev environment.
 pub async fn init_dev() {
@@ -23,4 +29,22 @@ pub async fn init_test() -> ModelManager {
         })
         .await;
     mm.clone()
+}
+
+pub async fn seed_assets(
+    ctx: &Ctx,
+    mm: &ModelManager,
+    names: &[&str],
+) -> crate::Result<Vec<Asset>> {
+    let mut assets = Vec::new();
+    for name in names {
+        let asset_id = AssetControllers::create(
+            ctx,
+            mm,
+            AssetForCreate { name: name.to_string(), country: "FRA".to_string() },
+        )
+        .await?;
+        assets.push(AssetControllers::get(ctx, mm, asset_id).await?)
+    }
+    Ok(assets)
 }

@@ -1,6 +1,7 @@
 // region:      --- Modules
 pub mod asset;
-pub mod store;
+mod base;
+pub(crate) mod store;
 // endregion:      --- Modules
 
 use crate::model::store::{Db, new_db_pool};

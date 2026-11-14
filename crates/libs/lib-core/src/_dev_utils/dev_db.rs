@@ -32,7 +32,6 @@ pub async fn init_dev_db() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         current_dir.clone()
     };
-    println!("{base_dir:?}");
     let sql_dir = base_dir.join(SQL_DIR);
     // -- Create the golion_db and golion_user with postgres user
     {
@@ -46,7 +45,7 @@ pub async fn init_dev_db() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
         pexec(&root_db, &sql_dir.join(SQL_RECREATE_DB_FILE_NAME)).await?;
     }
-    // -- Get sql files and sort the mas they must be executed in order and are number 00 ,01 ..
+    // -- Get sql files and sort them as they must be executed in order and are number 00 ,01 ..
     let mut paths: Vec<std::path::PathBuf> =
         fs::read_dir(sql_dir)?.filter_map(|entry| entry.ok().map(|e| e.path())).collect();
     paths.sort();
