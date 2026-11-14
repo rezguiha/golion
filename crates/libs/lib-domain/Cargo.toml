@@ -9,7 +9,6 @@ rust-version.workspace = true
 derive_more = { workspace = true }
 jiff = { workspace = true }
 serde = { workspace = true }
-thiserror = "2.0.18"
 uuid = { workspace = true }
 strum = { version = "0.28", features = ["derive"] }
 [lints]

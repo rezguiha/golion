@@ -21,14 +21,8 @@ pub async fn init_dev() {
 }
 /// Initialize test environment.
 pub async fn init_test() -> ModelManager {
-    static INIT: OnceCell<ModelManager> = OnceCell::const_new();
-    let mm = INIT
-        .get_or_init(|| async {
-            init_dev().await;
-            ModelManager::try_new().await.unwrap()
-        })
-        .await;
-    mm.clone()
+    init_dev().await;
+    ModelManager::try_new().await.unwrap()
 }
 
 pub async fn seed_assets(
