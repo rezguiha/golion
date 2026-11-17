@@ -9,18 +9,38 @@ pub struct Asset {
     pub id: i64,
     pub name: String,
     pub country: String,
-    pub bsp_id: Option<i64>,
+    pub brp_id: i64,
+    pub org_id: i64,
 }
 #[derive(Deserialize, Fields)]
 pub struct AssetForCreate {
     pub name: String,
     pub country: String,
+    pub brp_id: i64,
+}
+
+#[derive(Deserialize, Fields)]
+pub(in crate::model) struct AssetForInsert {
+    pub name: String,
+    pub country: String,
+    pub brp_id: i64,
+    pub org_id: i64,
 }
 
 #[derive(Deserialize, Fields)]
 pub struct AssetForUpdate {
     pub name: Option<String>,
     pub country: Option<String>,
+}
+impl AssetForInsert {
+    fn from_asset_for_create(ctx: &Ctx, asset_c: AssetForCreate) -> Self {
+        Self {
+            name: asset_c.name,
+            country: asset_c.country,
+            brp_id: asset_c.brp_id,
+            org_id: ctx.org_id(),
+        }
+    }
 }
 // endregion:      --- Asset Types
 
@@ -36,7 +56,12 @@ impl AssetControllers {
         mm: &ModelManager,
         asset_c: AssetForCreate,
     ) -> crate::Result<i64> {
-        base::create::<Self, _>(ctx, mm, asset_c).await
+        base::create::<Self, _>(
+            ctx,
+            mm,
+            AssetForInsert::from_asset_for_create(ctx, asset_c),
+        )
+        .await
     }
     pub async fn get(ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<Asset> {
         base::get::<Self, Asset>(ctx, mm, id).await
@@ -63,7 +88,7 @@ impl AssetControllers {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::_dev_utils;
+    use crate::_dev_utils::{self, seed_brp};
     use anyhow::Result;
     #[serial_test::serial]
     #[tokio::test]
@@ -72,13 +97,19 @@ mod tests {
         let ctx = Ctx::root_user();
         let fx_name = "test_create_asset_ok name";
         let fx_country = "FRA";
-        let asset_c =
-            AssetForCreate { name: fx_name.to_string(), country: fx_country.to_string() };
+        let fx_brp_name = "test_create_asset_ok brp_name";
+        let fx_brp_id = seed_brp(&ctx, &mm, fx_brp_name).await?;
+        let asset_c = AssetForCreate {
+            name: fx_name.to_string(),
+            country: fx_country.to_string(),
+            brp_id: fx_brp_id,
+        };
         let id = AssetControllers::create(&ctx, &mm, asset_c).await?;
         // -- Check
         let asset = AssetControllers::get(&ctx, &mm, id).await?;
         assert_eq!(asset.name, fx_name);
         assert_eq!(asset.country, fx_country);
+        assert_eq!(asset.brp_id, fx_brp_id);
 
         // -- Clean
         AssetControllers::delete(&ctx, &mm, id).await?;
@@ -103,7 +134,10 @@ mod tests {
         let mm = _dev_utils::init_test().await;
         let ctx = Ctx::root_user();
         let fx_names = &["test_asset_list_ok 01", "test_asset_list_ok 02"];
-        _dev_utils::seed_assets(&ctx, &mm, fx_names).await?;
+
+        let fx_brp_name = "test_asset_list_ok brp_name";
+        let fx_brp_id = seed_brp(&ctx, &mm, fx_brp_name).await?;
+        _dev_utils::seed_assets(&ctx, &mm, fx_names, fx_brp_id).await?;
         let assets = AssetControllers::list(&ctx, &mm).await?;
         let assets: Vec<_> = assets
             .into_iter()
@@ -133,7 +167,10 @@ mod tests {
         let fx_country = "BEL".to_string();
         let fx_name = "test_update_asset_ok - asset_1";
         let fx_name_new = "test_update_asset_ok - asset_1 - new";
-        let fx_asset = _dev_utils::seed_assets(&ctx, &mm, &[fx_name]).await?.remove(0);
+        let fx_brp_name = "test_update_asset_ok brp_name";
+        let fx_brp_id = seed_brp(&ctx, &mm, fx_brp_name).await?;
+        let fx_asset =
+            _dev_utils::seed_assets(&ctx, &mm, &[fx_name], fx_brp_id).await?.remove(0);
         let asset_u = AssetForUpdate {
             country: fx_country.into(),
             name: fx_name_new.to_string().into(),
