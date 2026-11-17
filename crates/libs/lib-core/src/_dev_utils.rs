@@ -7,8 +7,11 @@ use crate::{
     model::{
         ModelManager,
         asset::{Asset, AssetControllers, AssetForCreate},
+        brp::{BrpControllers, BrpForCreate},
+        organization::{OrganizationControllers, OrganizationForCreate},
     },
 };
+const COUNTRY_DEV: &str = "FRA";
 
 /// Initialize local dev environment.
 pub async fn init_dev() {
@@ -29,16 +32,43 @@ pub async fn seed_assets(
     ctx: &Ctx,
     mm: &ModelManager,
     names: &[&str],
+    brp_id: i64,
 ) -> crate::Result<Vec<Asset>> {
     let mut assets = Vec::new();
     for name in names {
         let asset_id = AssetControllers::create(
             ctx,
             mm,
-            AssetForCreate { name: name.to_string(), country: "FRA".to_string() },
+            AssetForCreate {
+                name: name.to_string(),
+                country: COUNTRY_DEV.to_string(),
+                brp_id,
+            },
         )
         .await?;
         assets.push(AssetControllers::get(ctx, mm, asset_id).await?)
     }
     Ok(assets)
+}
+
+pub async fn seed_organization(
+    ctx: &Ctx,
+    mm: &ModelManager,
+    name: &str,
+) -> crate::Result<i64> {
+    OrganizationControllers::create(
+        ctx,
+        mm,
+        OrganizationForCreate { name: name.to_string() },
+    )
+    .await
+}
+
+pub async fn seed_brp(ctx: &Ctx, mm: &ModelManager, name: &str) -> crate::Result<i64> {
+    BrpControllers::create(
+        ctx,
+        mm,
+        BrpForCreate { name: name.to_string(), country: COUNTRY_DEV.to_string() },
+    )
+    .await
 }

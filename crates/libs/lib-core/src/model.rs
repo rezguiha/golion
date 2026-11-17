@@ -1,6 +1,8 @@
 // region:      --- Modules
 pub mod asset;
 mod base;
+pub mod brp;
+pub mod organization;
 pub(crate) mod store;
 // endregion:      --- Modules
 

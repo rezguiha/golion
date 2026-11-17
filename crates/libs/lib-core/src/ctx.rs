@@ -8,17 +8,24 @@ pub enum CtxError {
 #[derive(Clone, Debug)]
 pub struct Ctx {
     user_id: i64,
+    org_id: i64,
 }
 
 impl Ctx {
-    pub fn new(user_id: i64) -> crate::Result<Self> {
-        if user_id == 0 {
+    pub fn new(user_id: i64, org_id: i64) -> crate::Result<Self> {
+        if user_id == 0 || org_id == 0 {
             Err(CtxError::CtxNewUserCanNotBeRoot.into())
         } else {
-            Ok(Self { user_id })
+            Ok(Self { user_id, org_id })
         }
     }
     pub fn root_user() -> Self {
-        Self { user_id: 0 }
+        Self { user_id: 0, org_id: 0 }
+    }
+    pub fn org_id(&self) -> i64 {
+        self.org_id
+    }
+    pub fn user_id(&self) -> i64 {
+        self.user_id
     }
 }
