@@ -37,6 +37,9 @@ pub struct BrpForUpdate {
 pub struct BrpControllers;
 impl BaseControllers for BrpControllers {
     const TABLE_NAME: &'static str = "brp";
+    fn is_org_scoped() -> bool {
+        true
+    }
 }
 impl BrpControllers {
     pub async fn create(

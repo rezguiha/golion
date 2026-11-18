@@ -25,6 +25,9 @@ pub struct OrganizationForUpdate {
 pub struct OrganizationControllers;
 impl BaseControllers for OrganizationControllers {
     const TABLE_NAME: &'static str = "organization";
+    fn is_org_scoped() -> bool {
+        false
+    }
 }
 impl OrganizationControllers {
     pub async fn create(
