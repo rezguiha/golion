@@ -5,21 +5,27 @@ use sea_query_sqlx::SqlxBinder;
 use sqlx::{AssertSqlSafe, FromRow, postgres::PgRow};
 pub trait BaseControllers {
     const TABLE_NAME: &'static str;
+    fn is_org_scoped() -> bool;
 }
 
-pub async fn get<MC, E>(_ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<E>
+pub async fn get<MC, E>(ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<E>
 where
     MC: BaseControllers,
     E: for<'a> FromRow<'a, PgRow> + Send + Unpin,
     E: HasSeaFields,
 {
     let db = mm.db();
-    let (sql, values) = Query::select()
+    let mut query = Query::select();
+    query
         .from(MC::TABLE_NAME)
         .columns(E::sea_column_refs())
-        .and_where(Expr::col("id").eq(id))
-        .build_sqlx(PostgresQueryBuilder);
+        .and_where(Expr::col("id").eq(id));
+    if MC::is_org_scoped() {
+        query.and_where(Expr::col("org_id").eq(ctx.org_id()));
+    };
 
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    println!("{sql}");
     let entity = sqlx::query_as_with(AssertSqlSafe(sql), values)
         .fetch_optional(db)
         .await?
@@ -27,18 +33,22 @@ where
     Ok(entity)
 }
 
-pub async fn list<MC, E>(_ctx: &Ctx, mm: &ModelManager) -> crate::Result<Vec<E>>
+pub async fn list<MC, E>(ctx: &Ctx, mm: &ModelManager) -> crate::Result<Vec<E>>
 where
     MC: BaseControllers,
     E: for<'a> FromRow<'a, PgRow> + Send + Unpin,
     E: HasSeaFields,
 {
     let db = mm.db();
-    let (sql, values) = Query::select()
+    let mut query = Query::select();
+    query
         .from(MC::TABLE_NAME)
         .columns(E::sea_column_refs())
-        .order_by("id", sea_query::Order::Asc)
-        .build_sqlx(PostgresQueryBuilder);
+        .order_by("id", sea_query::Order::Asc);
+    if MC::is_org_scoped() {
+        query.and_where(Expr::col("org_id").eq(ctx.org_id()));
+    };
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
 
     let entities = sqlx::query_as_with(AssertSqlSafe(sql), values).fetch_all(db).await?;
     Ok(entities)
@@ -63,7 +73,7 @@ where
 }
 
 pub async fn update<MC, E>(
-    _ctx: &Ctx,
+    ctx: &Ctx,
     mm: &ModelManager,
     id: i64,
     data: E,
@@ -74,11 +84,12 @@ where
 {
     let db = mm.db();
     let values = data.not_none_sea_fields().for_sea_update();
-    let (sql, values) = Query::update()
-        .table(MC::TABLE_NAME)
-        .values(values)
-        .and_where(Expr::col("id").eq(id))
-        .build_sqlx(PostgresQueryBuilder);
+    let mut query = Query::update();
+    query.table(MC::TABLE_NAME).values(values).and_where(Expr::col("id").eq(id));
+    if MC::is_org_scoped() {
+        query.and_where(Expr::col("org_id").eq(ctx.org_id()));
+    };
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
 
     let count =
         sqlx::query_with(AssertSqlSafe(sql), values).execute(db).await?.rows_affected();
@@ -89,16 +100,17 @@ where
     }
 }
 
-pub async fn delete<MC>(_ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<()>
+pub async fn delete<MC>(ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<()>
 where
     MC: BaseControllers,
 {
     let db = mm.db();
-
-    let (sql, values) = Query::delete()
-        .from_table(MC::TABLE_NAME)
-        .and_where(Expr::col("id").eq(id))
-        .build_sqlx(PostgresQueryBuilder);
+    let mut query = Query::delete();
+    query.from_table(MC::TABLE_NAME).and_where(Expr::col("id").eq(id));
+    if MC::is_org_scoped() {
+        query.and_where(Expr::col("org_id").eq(ctx.org_id()));
+    };
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
 
     let count =
         sqlx::query_with(AssertSqlSafe(sql), values).execute(db).await?.rows_affected();

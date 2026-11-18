@@ -49,6 +49,9 @@ impl AssetForInsert {
 pub struct AssetControllers;
 impl BaseControllers for AssetControllers {
     const TABLE_NAME: &'static str = "asset";
+    fn is_org_scoped() -> bool {
+        true
+    }
 }
 impl AssetControllers {
     pub async fn create(
