@@ -1,3 +1,4 @@
+use crate::generate_common_crud_controllers;
 use crate::model::{ModelManager, base};
 use crate::{ctx::Ctx, model::base::BaseControllers};
 use modql::field::Fields;
@@ -67,6 +68,12 @@ impl BaseControllers for BspControllers {
         true
     }
 }
+// This will generate the `impl BspControllers {...}` with the default CRUD functions.
+generate_common_crud_controllers!(
+    ModController: BspControllers,
+    Entity:Bsp,
+    ForUpdate:BspForUpdate,
+);
 impl BspControllers {
     pub async fn create(
         ctx: &Ctx,
@@ -75,23 +82,6 @@ impl BspControllers {
     ) -> crate::Result<i64> {
         base::create::<Self, _>(ctx, mm, BspForInsert::from_bsp_for_create(ctx, brp_c))
             .await
-    }
-    pub async fn get(ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<Bsp> {
-        base::get::<Self, Bsp>(ctx, mm, id).await
-    }
-    pub async fn list(ctx: &Ctx, mm: &ModelManager) -> crate::Result<Vec<Bsp>> {
-        base::list::<Self, Bsp>(ctx, mm).await
-    }
-    pub async fn delete(ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<()> {
-        base::delete::<Self>(ctx, mm, id).await
-    }
-    pub async fn update(
-        ctx: &Ctx,
-        mm: &ModelManager,
-        id: i64,
-        bsp_u: BspForUpdate,
-    ) -> crate::Result<()> {
-        base::update::<Self, BspForUpdate>(ctx, mm, id, bsp_u).await
     }
 }
 

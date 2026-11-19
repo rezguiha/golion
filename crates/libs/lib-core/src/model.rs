@@ -3,6 +3,7 @@ pub mod asset;
 mod base;
 pub mod brp;
 pub mod bsp;
+mod macros;
 pub mod organization;
 pub(crate) mod store;
 // endregion:      --- Modules
