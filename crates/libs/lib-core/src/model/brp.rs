@@ -1,3 +1,4 @@
+use crate::generate_common_crud_controllers;
 use crate::model::{ModelManager, base};
 use crate::{ctx::Ctx, model::base::BaseControllers};
 use modql::field::Fields;
@@ -41,31 +42,20 @@ impl BaseControllers for BrpControllers {
         true
     }
 }
+// This will generate the `impl BrpControllers {...}` with the default CRUD functions.
+generate_common_crud_controllers!(
+    ModController: BrpControllers,
+    Entity:Brp,
+    ForUpdate:BrpForUpdate,
+);
 impl BrpControllers {
     pub async fn create(
         ctx: &Ctx,
         mm: &ModelManager,
-        brp_c: BrpForCreate,
+        entity_c: BrpForCreate,
     ) -> crate::Result<i64> {
-        base::create::<Self, _>(ctx, mm, BrpForInsert::from_brp_for_create(ctx, brp_c))
+        base::create::<Self, _>(ctx, mm, BrpForInsert::from_brp_for_create(ctx, entity_c))
             .await
-    }
-    pub async fn get(ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<Brp> {
-        base::get::<Self, Brp>(ctx, mm, id).await
-    }
-    pub async fn list(ctx: &Ctx, mm: &ModelManager) -> crate::Result<Vec<Brp>> {
-        base::list::<Self, Brp>(ctx, mm).await
-    }
-    pub async fn delete(ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<()> {
-        base::delete::<Self>(ctx, mm, id).await
-    }
-    pub async fn update(
-        ctx: &Ctx,
-        mm: &ModelManager,
-        id: i64,
-        brp_u: BrpForUpdate,
-    ) -> crate::Result<()> {
-        base::update::<Self, BrpForUpdate>(ctx, mm, id, brp_u).await
     }
 }
 

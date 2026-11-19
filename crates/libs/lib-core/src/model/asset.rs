@@ -1,3 +1,4 @@
+use crate::generate_common_crud_controllers;
 use crate::model::{ModelManager, base};
 use crate::{ctx::Ctx, model::base::BaseControllers};
 use modql::field::Fields;
@@ -54,35 +55,24 @@ impl BaseControllers for AssetControllers {
         true
     }
 }
+// This will generate the `impl AssetControllers {...}` with the default CRUD functions.
+generate_common_crud_controllers!(
+    ModController: AssetControllers,
+    Entity:Asset,
+    ForUpdate:AssetForUpdate,
+);
 impl AssetControllers {
     pub async fn create(
         ctx: &Ctx,
         mm: &ModelManager,
-        asset_c: AssetForCreate,
+        entity_c: AssetForCreate,
     ) -> crate::Result<i64> {
         base::create::<Self, _>(
             ctx,
             mm,
-            AssetForInsert::from_asset_for_create(ctx, asset_c),
+            AssetForInsert::from_asset_for_create(ctx, entity_c),
         )
         .await
-    }
-    pub async fn get(ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<Asset> {
-        base::get::<Self, Asset>(ctx, mm, id).await
-    }
-    pub async fn list(ctx: &Ctx, mm: &ModelManager) -> crate::Result<Vec<Asset>> {
-        base::list::<Self, Asset>(ctx, mm).await
-    }
-    pub async fn delete(ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<()> {
-        base::delete::<Self>(ctx, mm, id).await
-    }
-    pub async fn update(
-        ctx: &Ctx,
-        mm: &ModelManager,
-        id: i64,
-        asset_u: AssetForUpdate,
-    ) -> crate::Result<()> {
-        base::update::<Self, AssetForUpdate>(ctx, mm, id, asset_u).await
     }
 }
 

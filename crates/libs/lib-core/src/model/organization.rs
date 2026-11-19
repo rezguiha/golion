@@ -1,3 +1,4 @@
+use crate::generate_common_crud_controllers;
 use crate::model::{ModelManager, base};
 use crate::{ctx::Ctx, model::base::BaseControllers};
 use modql::field::Fields;
@@ -29,35 +30,9 @@ impl BaseControllers for OrganizationControllers {
         false
     }
 }
-impl OrganizationControllers {
-    pub async fn create(
-        ctx: &Ctx,
-        mm: &ModelManager,
-        org_c: OrganizationForCreate,
-    ) -> crate::Result<i64> {
-        base::create::<Self, _>(ctx, mm, org_c).await
-    }
-    pub async fn get(
-        ctx: &Ctx,
-        mm: &ModelManager,
-        id: i64,
-    ) -> crate::Result<Organization> {
-        base::get::<Self, Organization>(ctx, mm, id).await
-    }
-    pub async fn list(ctx: &Ctx, mm: &ModelManager) -> crate::Result<Vec<Organization>> {
-        base::list::<Self, Organization>(ctx, mm).await
-    }
-    pub async fn delete(ctx: &Ctx, mm: &ModelManager, id: i64) -> crate::Result<()> {
-        base::delete::<Self>(ctx, mm, id).await
-    }
-    pub async fn update(
-        ctx: &Ctx,
-        mm: &ModelManager,
-        id: i64,
-        org_u: OrganizationForUpdate,
-    ) -> crate::Result<()> {
-        base::update::<Self, OrganizationForUpdate>(ctx, mm, id, org_u).await
-    }
-}
-
+// This will generate the `impl OrganizationControllers {...}` with the default CRUD functions.
+generate_common_crud_controllers!(ModController: OrganizationControllers,
+Entity:Organization,
+ForCreate:OrganizationForCreate,
+ForUpdate:OrganizationForUpdate,);
 // endregion:      --- Organization Controllers
