@@ -8,6 +8,7 @@ use crate::{
         ModelManager,
         asset::{Asset, AssetControllers, AssetForCreate},
         brp::{BrpControllers, BrpForCreate},
+        bsp::{AncillaryServiceType, BspControllers, BspForCreate},
         organization::{OrganizationControllers, OrganizationForCreate},
     },
 };
@@ -69,6 +70,24 @@ pub async fn seed_brp(ctx: &Ctx, mm: &ModelManager, name: &str) -> crate::Result
         ctx,
         mm,
         BrpForCreate { name: name.to_string(), country: COUNTRY_DEV.to_string() },
+    )
+    .await
+}
+
+pub async fn seed_bsp(
+    ctx: &Ctx,
+    mm: &ModelManager,
+    name: &str,
+    service_type: AncillaryServiceType,
+) -> crate::Result<i64> {
+    BspControllers::create(
+        ctx,
+        mm,
+        BspForCreate {
+            name: name.to_string(),
+            country: COUNTRY_DEV.to_string(),
+            service_type,
+        },
     )
     .await
 }

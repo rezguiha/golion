@@ -16,7 +16,7 @@ CREATE TABLE "country"(
     code char(3) PRIMARY KEY
 );
 
-CREATE TYPE ancillary_service_type AS ENUM ('FCR','AFRR','AFRR_FREE');
+CREATE TYPE ancillary_service_type AS ENUM ('Fcr','Afrr','AfrrFree');
 
 CREATE TABLE "ancillary_market"(
     country char(3) NOT NULL REFERENCES "country"(code),
