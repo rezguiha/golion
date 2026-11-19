@@ -2,6 +2,7 @@
 pub mod asset;
 mod base;
 pub mod brp;
+pub mod bsp;
 pub mod organization;
 pub(crate) mod store;
 // endregion:      --- Modules
