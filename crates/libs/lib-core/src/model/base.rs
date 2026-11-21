@@ -25,7 +25,6 @@ where
     };
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    println!("{sql}");
     let entity = sqlx::query_as_with(AssertSqlSafe(sql), values)
         .fetch_optional(db)
         .await?

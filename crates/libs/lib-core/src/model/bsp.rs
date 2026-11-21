@@ -2,10 +2,28 @@ use crate::generate_common_crud_controllers;
 use crate::model::{ModelManager, base};
 use crate::{ctx::Ctx, model::base::BaseControllers};
 use modql::field::Fields;
+use sea_query::Iden;
 use serde::{Deserialize, Serialize};
 use sqlx::{self, FromRow};
 // region:      --- Bsp Types
-#[derive(sqlx::Type, Debug, Serialize, Deserialize, derive_more::Display)]
+#[derive(Iden)]
+pub enum BspIden {
+    Id,
+    OrgId,
+    Country,
+    ServiceType,
+}
+
+#[derive(
+    sqlx::Type,
+    Debug,
+    Serialize,
+    Deserialize,
+    derive_more::Display,
+    Clone,
+    Copy,
+    PartialEq,
+)]
 #[sqlx(type_name = "ancillary_service_type")]
 pub enum AncillaryServiceType {
     Fcr,
@@ -57,6 +75,7 @@ impl BspForInsert {
 pub struct BspForUpdate {
     pub name: Option<String>,
 }
+
 // endregion:      --- Bsp Types
 
 // region:         --- Bsp Controllers

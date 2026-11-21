@@ -1,5 +1,6 @@
 // region:      --- Modules
 pub mod asset;
+mod asset_bsp;
 mod base;
 pub mod brp;
 pub mod bsp;
