@@ -119,8 +119,8 @@ impl AssetBspControllers {
     pub async fn get(
         ctx: &Ctx,
         mm: &ModelManager,
-        bsp_id: i64,
         asset_id: i64,
+        bsp_id: i64,
     ) -> crate::Result<AssetBspAssociation> {
         let mut query = Query::select();
         query
@@ -160,13 +160,13 @@ mod tests {
         AssetBspControllers::assign(&ctx, &mm, fx_asset.id, fx_bsp_id).await?;
         // Check
         let asset_bsp_association =
-            AssetBspControllers::get(&ctx, &mm, fx_bsp_id, fx_asset.id).await?;
+            AssetBspControllers::get(&ctx, &mm, fx_asset.id, fx_bsp_id).await?;
         assert_eq!(fx_asset.id, asset_bsp_association.asset_id);
         assert_eq!(fx_bsp_id, asset_bsp_association.bsp_id);
         assert_eq!(fx_service_type, asset_bsp_association.service_type);
         assert_eq!(fx_service_type, asset_bsp_association.service_type);
         // Clean
-        AssetBspControllers::unassign(&ctx, &mm, fx_bsp_id, fx_asset.id).await?;
+        AssetBspControllers::unassign(&ctx, &mm, fx_asset.id, fx_bsp_id).await?;
         Ok(())
     }
 }
