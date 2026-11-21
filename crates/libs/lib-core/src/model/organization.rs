@@ -1,5 +1,5 @@
 use crate::generate_common_crud_controllers;
-use crate::model::{ModelManager, base};
+use crate::model::ModelManager;
 use crate::{ctx::Ctx, model::base::BaseControllers};
 use modql::field::Fields;
 use serde::{Deserialize, Serialize};

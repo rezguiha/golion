@@ -2,9 +2,17 @@ use crate::generate_common_crud_controllers;
 use crate::model::{ModelManager, base};
 use crate::{ctx::Ctx, model::base::BaseControllers};
 use modql::field::Fields;
+use sea_query::Iden;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 // region:      --- Asset Types
+#[derive(Iden)]
+pub enum AssetIden {
+    Id,
+    OrgId,
+    Country,
+}
+
 #[derive(Debug, Serialize, FromRow, Fields)]
 pub struct Asset {
     pub id: i64,
